@@ -335,6 +335,7 @@ export function MyWidgetsTab() {
             </TabPageToolbarActions>
             <SnowflakeHide>
               <Button
+                data-testid="widgets-library-add-data"
                 size="sm"
                 variant="primary"
                 onClick={() => {

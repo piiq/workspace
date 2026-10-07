@@ -44,7 +44,10 @@ export default function PlusMenu({ isMobile = false }: { isMobile: boolean }) {
   ];
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <PopoverPrimitive.Trigger className="obb-icon-btn-v2 size-6">
+      <PopoverPrimitive.Trigger
+        aria-label="Create dashboard or folder"
+        className="obb-icon-btn-v2 size-6"
+      >
         <Icon id="plus-icon" className="mx-auto size-4" />
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>

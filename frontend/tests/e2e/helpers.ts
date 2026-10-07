@@ -1,17 +1,21 @@
+import { randomUUID } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 
-//export const proUrl = "http://localhost:1420";
-export const proUrl = `https://pro.openbb.${process.env.VITE_ENVIRONMENT}`;
-export const hubUrl = `https://my.openbb.${process.env.VITE_ENVIRONMENT}`;
-export const AUTH_HEADERS = {
-  Authorization: `Bearer ${process.env.VITE_PLAYWRIGHT_TEST_KEY}`,
-};
+export const proUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:1420";
 
 export function userInfo(): { username: string; email: string; password: string } {
+  if (
+    process.env.PLAYWRIGHT_BASE_URL &&
+    (!process.env.PLAYWRIGHT_EMAIL || !process.env.PLAYWRIGHT_PASSWORD)
+  ) {
+    throw new Error(
+      "Set PLAYWRIGHT_EMAIL and PLAYWRIGHT_PASSWORD for the deployment account created through the admin CLI.",
+    );
+  }
   return {
-    username: process.env.VITE_PLAYWRIGHT_ACCOUNT_USERNAME ?? "",
-    email: process.env.VITE_PLAYWRIGHT_ACCOUNT_EMAIL ?? "",
-    password: process.env.VITE_PLAYWRIGHT_ACCOUNT_PASSWORD ?? "",
+    username: "Playwright",
+    email: process.env.PLAYWRIGHT_EMAIL ?? "playwright@example.com",
+    password: process.env.PLAYWRIGHT_PASSWORD ?? "WorkspaceTest123!",
   };
 }
 
@@ -23,46 +27,46 @@ export enum UserType {
 
 export const userType: UserType = UserType.Free;
 
-export async function deleteUser({ request, page }) {
-  const { email, password } = userInfo();
-  page.on("console", (msg) => {
-    console.log(msg);
-  });
-
-  const loginInfo = await request.post(`${apiBaseUrl()}/pro/login`, {
-    data: { email, password },
-  });
-  const loginData = await loginInfo.json();
-  console.log("loginData", loginData);
-  console.log("apiBaseUrl", apiBaseUrl());
-  const deleted = await request.delete(
-    `${apiBaseUrl()}/testing/user/${email}/${userType}`,
-    {
-      headers: AUTH_HEADERS,
-    },
-  );
-
-  return deleted;
-}
-
-export function apiBaseUrl(): string {
-  return `https://backend.openbb.${process.env.VITE_ENVIRONMENT}`;
-}
-
 export async function login(page: Page) {
   const user = userInfo();
-  await page.goto(`${proUrl}/login`);
-  try {
-    await page
-      .getByRole("button", { name: "I understand and wish to continue" })
-      .click({ timeout: 2000 });
-  } catch (error) {
-    // Handle the error (e.g., log it or ignore it)
-    console.error("Error clicking the button:", error);
-  }
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
-  await page.getByRole("button", { name: "Login" }).click();
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill(user.email);
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
+  await page.getByRole("button", { name: "Login", exact: true }).click();
+  await page.waitForURL(/\/(app|onboarding)(\/|$)/);
+  await handleFirstTime(page);
+  await expect(page.getByTestId("sidebar")).toBeVisible();
+}
+
+export async function createDashboard(page: Page, prefix: string) {
+  await page.goto("/app");
+  await page
+    .getByRole("button", { name: "Create dashboard or folder", exact: true })
+    .click();
+  await page.getByRole("button", { name: /^New Dashboard/ }).click();
+  await page.waitForURL(/\/app\/[a-f0-9-]+$/);
+  const url = page.url();
+  const dashboard = page.locator(
+    `[id="tab-${new URL(url).pathname.split("/").pop()}"]`,
+  );
+  await dashboard.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+  const name = `${prefix} ${randomUUID().slice(0, 8)}`;
+  await page.getByRole("dialog").getByRole("textbox").fill(name);
+  await page.getByRole("button", { name: "Rename", exact: true }).click();
+  await expect(dashboard).toContainText(name);
+  await saveDashboard(page);
+  return { name, url };
+}
+
+export async function saveDashboard(page: Page) {
+  const response = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/pro/dash/sync") &&
+      response.request().method() === "POST",
+  );
+  await page.keyboard.press("Control+Shift+S");
+  expect((await response).ok()).toBeTruthy();
 }
 
 export async function onboardUser(page: Page) {
@@ -91,7 +95,9 @@ export async function onboardUser(page: Page) {
   await page.getByRole("button", { name: "Continue" }).click();
 
   // Wait for navigation away from onboarding
-  await page.waitForURL((url) => !url.pathname.includes("/onboarding"), { timeout: 30000 });
+  await page.waitForURL((url) => !url.pathname.includes("/onboarding"), {
+    timeout: 30000,
+  });
 }
 
 export async function acceptTermsAndConditions(page: Page) {
@@ -135,4 +141,33 @@ export async function clickOnNews(page: Page, tab: string) {
 
 export async function clickExitButton(page: Page) {
   await page.locator("._dialog-header > div > .flex > button:nth-child(2)").click();
+}
+
+export async function uploadFileToDashboard(page: Page, extension: "csv" | "json") {
+  const name = `${extension.toUpperCase()} test ${randomUUID().slice(0, 8)}`;
+  await page.goto("/app/widgets");
+  await page.getByTestId("widgets-library-add-data").click();
+  await page.getByRole("tab", { name: "File", exact: true }).click();
+  const upload = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/pro/files") && response.request().method() === "POST",
+  );
+  await page
+    .locator("#data-connector-upload")
+    .setInputFiles(`tests/e2e/mock_data/sample_data.${extension}`);
+  expect((await upload).ok()).toBeTruthy();
+  await expect(
+    page.getByRole("tabpanel", { name: "File", exact: true }).locator("svg#check"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByRole("button", { name: "Upload", exact: true }).click();
+  await page.getByRole("button", { name: "Add to new dashboard", exact: true }).click();
+  await page.waitForURL(/\/app\/[a-f0-9-]+$/);
+  await expect(page.getByText(name, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("gridcell").filter({ hasText: "2024-01-01" }),
+  ).toHaveCount(1);
+  await saveDashboard(page);
+  return { name, url: page.url() };
 }

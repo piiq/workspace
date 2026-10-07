@@ -167,6 +167,7 @@ dump.rdb
 *.secrets
 user_create.json
 local_storage/
+.e2e/
 
 **/__pycache__/**
 **/venv/**
