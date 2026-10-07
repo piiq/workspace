@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Check public frontend types
+      - name: Check frontend types
         run: bun run typecheck
 
       - name: Run unit tests

@@ -1,6 +1,6 @@
 # Browser tests
 
-The default Playwright suite checks login settings, uploaded CSV/JSON data, and dashboard operations against the local application. Each scenario creates its own data. Provider and subscription tests are excluded from the default suite. Set `PLAYWRIGHT_HOSTED_TESTS=true` to include them against a deployment with the required data and features.
+Playwright checks login settings, uploaded CSV/JSON data, and dashboard operations against the local application. Each scenario creates its own data. Set `PLAYWRIGHT_HOSTED_TESTS=true` to include provider and subscription tests against a deployment with the required data and features.
 
 ## Run from source
 
@@ -46,4 +46,4 @@ Setting `PLAYWRIGHT_BASE_URL` uses the supplied deployment and account; Playwrig
 
 Tests run headlessly in Chromium with one worker and no retries. Failure traces and screenshots are stored in `test-results/`; the HTML report is in `playwright-report/`. Use `bun run playwright show-report` to inspect it.
 
-The `Frontend Local Browser Tests` workflow runs this source suite manually and uploads the HTML report. Pull requests run public typechecking and frontend unit tests for relevant frontend changes, and backend tests for relevant backend changes.
+The `Frontend Local Browser Tests` workflow runs these tests manually and uploads the HTML report. Pull requests run frontend typechecking and unit tests for relevant frontend changes, and backend tests for relevant backend changes.
