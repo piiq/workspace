@@ -1,0 +1,63 @@
+# Frontend and backend Docker recipes use the repository root as build context.
+
+# Heavy / unrelated dirs
+.git
+.github
+.idea
+.vscode
+lite/backend
+lite/terminalpro
+lite/_hub
+
+# Python build artifacts
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv
+**/venv
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/htmlcov
+
+# Backend Cython artifacts must NOT leak into the image — stale .so files
+# silently override what setup_compile.py decides to build.
+**/*.so
+**/*.c
+**/build/
+
+# Backend env files (we generate fresh secrets at first start).
+backend/envs/.env
+backend/envs/.env.*
+backend/tests
+backend/scripts/cfgs
+backend/.claude
+backend/.pre-commit-config.yaml
+backend/.codespell.ignore
+
+# Frontend / node
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+frontend/playwright-report
+frontend/test-results
+frontend/src-tauri/target
+frontend/dev-dist
+frontend/coverage
+frontend/storybook-static
+frontend/tests
+frontend/docs
+frontend/playwright.config.ts
+frontend/vitest.setup.ts
+
+# Editor cruft
+**/.DS_Store
+**/*.swp
+**/*~
+
+# SQLite scratch DBs from local dev
+backend/test_sqlite.db*
+backend/local_storage

@@ -1,0 +1,23 @@
+name: Backend and Admin CLI Lint
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'backend/**/*.py'
+      - 'backend/pyproject.toml'
+      - 'admin_cli/**/*.py'
+      - 'admin_cli/openbb-admin'
+      - '.github/workflows/backend-lint.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: "3.13"
+      - run: pip install -U ruff
+      - run: |
+          ruff check --output-format=github backend admin_cli admin_cli/openbb-admin

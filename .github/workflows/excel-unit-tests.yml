@@ -1,0 +1,40 @@
+name: Excel Add-in Unit Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'excel-add-in/src/**'
+      - 'excel-add-in/tests/unit/**'
+      - 'excel-add-in/package.json'
+      - 'excel-add-in/package-lock.json'
+      - 'excel-add-in/jest.config.js'
+      - 'excel-add-in/jest.setup.js'
+      - 'excel-add-in/tsconfig*.json'
+      - 'excel-add-in/.env*'
+      - '.github/workflows/excel-unit-tests.yml'
+
+defaults:
+  run:
+    working-directory: excel-add-in
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .env file
+        run: |
+          cp .env.example .env
+          sed -i 's|^VITE_ADDIN_BASE_URL=.*|VITE_ADDIN_BASE_URL=${{ secrets.PROD_VITE_ADDIN_BASE_URL }}|' .env
+          sed -i 's|^VITE_PLATFORM_URL=.*|VITE_PLATFORM_URL=${{ secrets.PROD_VITE_PLATFORM_URL }}|' .env
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm run test:unit

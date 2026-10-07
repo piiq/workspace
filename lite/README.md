@@ -123,7 +123,7 @@ on every start from the env vars below (see
 These are the only frontend fields an operator can change. Everything else
 (branding, registration, ToS, telemetry, ...) is **locked**: its values are
 baked into the JS bundle at build time by the strict Lite profile
-(`terminalpro/config-profiles/lite.locked.json`) and forcibly override
+(`../frontend/config-profiles/lite.locked.json`) and forcibly override
 `config.js` at runtime, so editing or replacing `config.js` cannot flip them.
 If a variable you pass seems to have no effect, start the container with
 `-e DEBUG=1` and check the logs — provided values for locked fields are
@@ -141,7 +141,7 @@ docker run -d -p 3000:3000 \
 
 ### Changing what Lite locks
 
-The lock policy is a **strict profile** that lives in the sibling `terminalpro/` directory:
+The lock policy is a **strict profile** that lives in the sibling `frontend/` directory:
 `config-profiles/lite.locked.json`. Every field in terminalpro's
 `RuntimeConfigSchema` must be triaged there — either **locked** (given a
 value) or listed in **`_unlocked`** (operator-configurable). A terminalpro
@@ -175,30 +175,11 @@ first, then rebuild the image (CI or `./build-local.sh`). The build log's
 
 ## Building the image
 
-This is a standalone repo: it holds the Dockerfile and container config, but the
-backend comes from `backend-api/` in this monorepo (standalone mirror: [`OpenBB-finance/openbb-hub`](https://github.com/OpenBB-finance/openbb-hub))
-(its `backend/` directory) and the frontend from
-[`OpenBB-finance/terminalpro`](https://github.com/OpenBB-finance/terminalpro).
-The build assembles both source trees next to the Dockerfile, then builds.
-
-### In CI (GitHub Actions)
-
-The [`Build & publish`](./.github/workflows/build.yml) workflow checks out both
-source repos at a configurable ref and builds + pushes a multi-arch image to
-GHCR. Run it from the **Actions** tab (`workflow_dispatch`):
-
-- `hub_ref` / `terminalpro_ref` — default `develop`. Set either to a branch,
-  tag, commit SHA, or **a PR** via `refs/pull/<N>/head`.
-- `push_image` — uncheck to build without pushing.
-
-It authenticates to the (private) source repos with a fine-grained PAT stored
-as the `SOURCE_REPOS_PAT` secret (Contents: Read on both repos). The image push
-uses the built-in `GITHUB_TOKEN`.
+This directory contains the Dockerfile, container configuration, and assembly helpers. Local sources are the sibling `../backend/` and `../frontend/` directories. The builder stages them beside its Dockerfile as `backend/` and `terminalpro/`.
 
 ### Locally
 
-Use [`build-local.sh`](./build-local.sh), which assembles the context the same
-way CI does and runs a single-arch `docker build --load`:
+Use [`build-local.sh`](./build-local.sh), which assembles the context and runs a single-arch `docker build --load`:
 
 ```bash
 # Both repos at develop (clones them into ./backend and ./terminalpro):
@@ -211,7 +192,7 @@ way CI does and runs a single-arch `docker build --load`:
 ./build-local.sh --variant full --platform linux/amd64 --backend-branch develop --workspace-branch develop
 
 # Or build from checkouts you already have on disk (picks up local edits):
-./build-local.sh --local   # defaults to the sibling ../backend-api and ../terminalpro directories
+./build-local.sh --local   # defaults to the sibling ../backend and ../frontend directories
 ```
 
 Prefer to do it by hand? Clone the two repos beside the Dockerfile and build:
