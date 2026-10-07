@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenBB Hub Admin CLI - v2.0.0
+OpenBB Hub Admin CLI - v2.1.0
 
 A single-file CLI tool for managing OpenBB Hub entities and users.
 Dependencies: Python 3.8+ stdlib only (no external packages required)
@@ -27,10 +27,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("openbb-admin")
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
-CONFIG_DIR = Path.home() / ".openbb-hub"
-CONFIG_FILE = CONFIG_DIR / "config.json"
+CONFIG_FILE = Path(
+    os.environ.get("OPENBB_CONFIG_FILE", str(Path.home() / ".openbb-hub/config.json"))
+)
+CONFIG_DIR = CONFIG_FILE.parent
 BASE_URL = os.getenv("OPENBB_BASE_URL", "https://localhost:8080")
 
 

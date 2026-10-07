@@ -22,6 +22,8 @@ A single-file Python tool for managing OpenBB Hub entities and users. Zero depen
 
 Auth credentials (token) persisted in `~/.openbb-hub/config.json` (automatically created on first login).
 
+Set `OPENBB_CONFIG_FILE` to use a separate configuration file. Browser tests keep this file inside the checkout's ignored test directory.
+
 **Config file structure:**
 
 ```json

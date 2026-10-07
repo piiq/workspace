@@ -806,7 +806,8 @@ class ProSettings(BaseModel):
     def __init__(self, **data: Any):
         super().__init__(**data)
 
-        if not (create_user := Path.cwd() / "user_create.json").exists():
+        create_user = Path(os.environ.get("USER_CREATE_PATH", "user_create.json"))
+        if not create_user.exists():
             return
 
         with suppress(Exception):
