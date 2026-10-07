@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build the OpenBB image locally.
 #
-# The Dockerfile expects backend/ (from ../backend-api) and terminalpro/ assembled
-# next to it. This script does that assembly the same way CI does, then runs a
+# The Dockerfile expects backend/ (from ../backend) and terminalpro/ assembled
+# next to it. This script assembles those sources, then runs a
 # single-arch `docker build --load` so the image lands in your local daemon.
 #
 # Each repo is sourced independently: either cloned at a git ref (default,
@@ -49,10 +49,10 @@ WORKSPACE_BRANCH="${WORKSPACE_BRANCH:-develop}"
 BACKEND_SRC="clone"
 WORKSPACE_SRC="clone"
 # Defaults for local mode so you can omit the env vars.
-BACKEND_DIR="${BACKEND_DIR:-../backend-api}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-../terminalpro}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+BACKEND_DIR="${BACKEND_DIR:-$SCRIPT_DIR/../backend}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-$SCRIPT_DIR/../frontend}"
 cd "$SCRIPT_DIR"
 
 while [[ $# -gt 0 ]]; do
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
     --workspace-branch) WORKSPACE_BRANCH="$2"; shift 2 ;;
     --variant)          IMAGE_VARIANT="$2"; shift 2 ;;
     --platform)         PLATFORM="$2"; shift 2 ;;
-    -h|--help) sed -n '2,/^set -euo pipefail$/p' "$0" | sed '$d'; exit 0 ;;
+    -h|--help) sed -n '2,/^set -euo pipefail$/p' "$SCRIPT_DIR/build-local.sh" | sed '$d'; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
@@ -111,11 +111,11 @@ else
   fetch_ref "$WORKSPACE_REPO" "$WORKSPACE_BRANCH" terminalpro
 fi
 
-# --- backend-api (backend only) ---
+# --- backend ---
 if [[ "$BACKEND_SRC" == "local" ]]; then
-  [[ -d "$BACKEND_DIR/backend" ]] || { echo "No backend/ under BACKEND_DIR=$BACKEND_DIR" >&2; exit 1; }
-  echo "[build-local] Copying backend from $BACKEND_DIR/backend"
-  copy_src "$BACKEND_DIR/backend" ./backend
+  [[ -f "$BACKEND_DIR/pyproject.toml" ]] || { echo "Backend project not found: $BACKEND_DIR" >&2; exit 1; }
+  echo "[build-local] Copying backend from $BACKEND_DIR"
+  copy_src "$BACKEND_DIR" ./backend
 else
   echo "[build-local] Fetching backend @ $BACKEND_BRANCH (backend only)"
   fetch_ref "$BACKEND_REPO" "$BACKEND_BRANCH" _hub

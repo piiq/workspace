@@ -1,0 +1,48 @@
+name: Frontend Lint and Spelling
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'frontend/src/**'
+      - 'frontend/biome.json'
+      - 'frontend/bun.lock'
+      - 'frontend/package.json'
+      - 'frontend/CHANGELOG.md'
+      - 'frontend/_typos.toml'
+      - '.github/workflows/frontend-lint.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  quality:
+    name: Biome Linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          working-dir: frontend
+
+      - name: Run Biome
+        run: biome ci src
+
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Actions Repository
+        uses: actions/checkout@v3
+
+      - name: Check spelling
+        uses: crate-ci/typos@master
+        with:
+          files: frontend/src frontend/CHANGELOG.md
+          config: frontend/_typos.toml

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Build the OpenBB Lite image for amd64 + arm64 and push to GHCR.
 #
-# For most publishing, prefer the GitHub Actions workflow (.github/workflows/
-# build.yml). This script is the local equivalent: it assembles the build
+# This script assembles the build
 # context (backend from openbb-hub, frontend from terminalpro) and pushes a
 # multi-arch image.
 #
