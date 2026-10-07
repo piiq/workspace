@@ -13,18 +13,27 @@
     "strict": false,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": "./src",
-    "ignoreDeprecations": "6.0",
     "paths": {
-      "~/*": ["./*"]
-    }
+      "~/*": ["./*"],
+      "~/components/Widgets/TVChartContainer/TVChartContainerFunc": [
+        "./components/Widgets/TVChartContainer/TVChartUnavailable.tsx"
+      ]
+    },
+    "skipLibCheck": true
   },
   "include": ["src","tests"],
-  "exclude": ["vite.config.ts"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "exclude": [
+    "vite.config.ts",
+    "src/components/Widgets/TVChartContainer/TVChartContainerFunc.tsx",
+    "src/components/Widgets/TVStudies",
+    "src/components/Widgets/datafeed",
+    "src/components/Charting/TVIndicatorsDialog.tsx",
+    "src/lib/charting_library"
+  ]
 }

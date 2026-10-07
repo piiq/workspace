@@ -57,6 +57,7 @@ const app: ListedApp = {
   backendUrl: "https://example.com",
   thumbnail: "",
   authType: ["api_key"],
+  widgets: [],
 };
 
 describe("ApiKeyModal", () => {

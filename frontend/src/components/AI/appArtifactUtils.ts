@@ -54,6 +54,7 @@ export function buildWidgetMetadataResolver(
  */
 export function buildAppArtifactSource(artifact: AppArtifactT): Source {
   return {
+    id: artifact.uuid,
     uuid: artifact.uuid,
     name: "Copilot App",
     url: "",

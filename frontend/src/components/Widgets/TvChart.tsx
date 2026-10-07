@@ -1,8 +1,7 @@
 import { useMemo } from "react";
+import TVChartContainerFunc from "~/components/Widgets/TVChartContainer/TVChartContainerFunc";
 import { useShallowChartingStore } from "~/lib/state/charting";
-
 import { useWidgetContext } from "../Widget.context";
-import TVChartContainerFunc from "./TVChartContainer/TVChartContainerFunc";
 
 const TvChart = (props: {
   ticker?: string;

@@ -109,7 +109,7 @@ export const Grouped: Story = {
   },
 };
 
-export const AllSizes: Story = {
+export const AllSizes: StoryObj = {
   render: () => (
     <div className="flex flex-col gap-4 w-64">
       {(["xs", "sm", "md", "lg"] as const).map((size) => (

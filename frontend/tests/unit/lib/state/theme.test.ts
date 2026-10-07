@@ -303,6 +303,7 @@ describe("useThemeStore", () => {
       const popup = {
         serverName: "test-server",
         serverUrlHash: "hash123",
+        url: "https://server.example.com",
         authUrl: "https://auth.example.com",
         popupFeatures: "width=500,height=600",
       };
@@ -317,6 +318,7 @@ describe("useThemeStore", () => {
         mcpAuthPopup: {
           serverName: "test",
           serverUrlHash: "hash",
+          url: "url",
           authUrl: "url",
           popupFeatures: "features",
         },
@@ -796,6 +798,7 @@ describe("useThemeStore", () => {
       const persistedPopup = {
         serverName: "persisted-server",
         serverUrlHash: "persisted-hash",
+        url: "https://server.example.com",
         authUrl: "https://auth.example.com",
         popupFeatures: "width=500,height=600",
       };

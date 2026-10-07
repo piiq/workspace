@@ -3,10 +3,10 @@ import { type MutableRefObject, useEffect, useMemo, useRef } from "react";
 import DraggableCard from "~/components/DraggableCard";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import type { ChartingLibraryWidget } from "~/lib/types/charting";
 import { formatNumberNoMagnitude } from "~/lib/utils";
 import GroupDropdown from "../Helpers/GroupDropdown";
 import useCopilotDataWidget from "../Helpers/useCopilotDataWidget";
-import type { ChartingLibraryWidget } from "../TVChartContainer/TVChartContainerFunc";
 import TvChart from "../TvChart";
 
 type TVWidgetT = MutableRefObject<ChartingLibraryWidget | null>;

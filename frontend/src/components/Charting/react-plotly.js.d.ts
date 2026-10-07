@@ -6,7 +6,7 @@ declare module "react-plotly.js" {
     FigureCallback,
     EventCallback,
     PlotParams as PlotParamsType,
-  } from "react-plotly.js/dist/factory";
+  } from "react-plotly.js/factory";
 
   interface PlotParams extends PlotParamsType {
     data?: Data[];

@@ -87,7 +87,7 @@ const makeSkill = (overrides: Partial<Skill> = {}): Skill => ({
 });
 
 const mockChat: Chat = {
-  id: "chat-1",
+  uuid: "chat-1",
   createdAt: CHAT_CREATED_AT,
   label: "Test chat",
   lastOpened: CHAT_CREATED_AT,

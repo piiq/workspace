@@ -32,7 +32,7 @@ export const OpenBBDataMessageSchema = z.object({
   type: z.literal("openbb-data"),
   widgetId: z.string(),
   dataType: z.enum(["table", "markdown"]),
-  data: z.union([z.array(z.record(z.unknown())), z.string()]),
+  data: z.union([z.array(z.record(z.string(), z.unknown())), z.string()]),
   columns: z.array(z.string()).optional(),
 });
 
@@ -63,7 +63,7 @@ export type WidgetParamMessageType = (typeof WIDGET_PARAM_MESSAGE_TYPES)[number]
 
 export const OpenBBWidgetParamsUpdateMessageSchema = z.object({
   type: z.enum(WIDGET_PARAM_MESSAGE_TYPES),
-  params: z.record(OpenBBWidgetParamValueSchema).optional(),
+  params: z.record(z.string(), OpenBBWidgetParamValueSchema).optional(),
   paramName: z.string().optional(),
   value: OpenBBWidgetParamValueSchema.optional(),
 });

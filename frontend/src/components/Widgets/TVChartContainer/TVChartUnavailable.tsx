@@ -2,7 +2,7 @@ import { forwardRef, memo } from "react";
 import type {
   ChartingLibraryWidget,
   TVChartContainerProps,
-} from "./TVChartContainerFunc";
+} from "~/lib/types/charting";
 
 const TVChartUnavailable = forwardRef<ChartingLibraryWidget, TVChartContainerProps>(
   ({ extraClassName }, _ref) => (

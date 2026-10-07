@@ -135,10 +135,9 @@ function applyLockedFields(config: RuntimeConfig): RuntimeConfig {
   const result = { ...config };
   for (const group of Object.keys(locked) as Array<keyof RuntimeConfig>) {
     if (locked[group]) {
-      result[group] = {
-        ...result[group],
-        ...locked[group],
-      } as RuntimeConfig[typeof group];
+      Object.assign(result, {
+        [group]: { ...result[group], ...locked[group] },
+      });
     }
   }
   return result;

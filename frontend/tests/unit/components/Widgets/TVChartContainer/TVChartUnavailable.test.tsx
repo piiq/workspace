@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it } from "vitest";
-import type { ChartingLibraryWidget } from "~/components/Widgets/TVChartContainer/TVChartContainerFunc";
+import type { ChartingLibraryWidget } from "~/lib/types/charting";
 import TVChartUnavailable from "~/components/Widgets/TVChartContainer/TVChartUnavailable";
 
 describe("TVChartUnavailable", () => {

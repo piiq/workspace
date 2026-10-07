@@ -30,6 +30,14 @@ export default defineConfig(({ mode }) => {
   const APP_SHORT_NAME = env.VITE_WL_SHORT_NAME;
   const IS_SNOWFLAKE = env.VITE_SNOWFLAKE_NATIVE_APP === "true";
   const isTradingViewEnabled = env.VITE_TRADINGVIEW_ENABLED === "true";
+  if (
+    isTradingViewEnabled &&
+    !existsSync(path.resolve(import.meta.dirname, "src/lib/charting_library/package.json"))
+  ) {
+    throw new Error(
+      "VITE_TRADINGVIEW_ENABLED requires the licensed library in src/lib/charting_library. Install it or disable VITE_TRADINGVIEW_ENABLED.",
+    );
+  }
 
   // ── Build the locked-config overlay from the deployment's policy ──
   // Two ways to supply the policy (which fields are locked, to what values):

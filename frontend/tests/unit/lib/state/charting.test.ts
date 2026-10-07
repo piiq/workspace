@@ -341,7 +341,6 @@ describe("useTradingViewStore", () => {
             symbol: "AAPL",
             resolution: "1D" as any,
             id: "test-chart-id" as any,
-            // @ts-expect-error - ignored for now
             timestamp: 1697126934,
           },
         ],

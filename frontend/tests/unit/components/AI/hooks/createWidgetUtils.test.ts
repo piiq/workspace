@@ -209,6 +209,8 @@ describe("createWidgetUtils", () => {
   describe("applyChartViewToWidget", () => {
     it("applies chart intent to both data and storage", () => {
       const widget = {
+        id: "test-widget",
+        name: "Test Widget",
         type: "table",
         widgetId: "test-widget",
         data: {
@@ -246,6 +248,8 @@ describe("createWidgetUtils", () => {
 
     it("preserves explicit disabled state when provided", () => {
       const widget = {
+        id: "test-widget",
+        name: "Test Widget",
         type: "table",
         widgetId: "test-widget",
         data: { table: {} },

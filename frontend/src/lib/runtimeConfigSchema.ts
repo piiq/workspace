@@ -212,7 +212,7 @@ export function buildLockedConfig(raw: unknown): LockedConfig {
       throw new Error(`Group "${group}" in locked config must be an object of fields`);
     }
 
-    const groupSchema = shape[group as keyof typeof shape] as unknown as z.AnyZodObject;
+    const groupSchema = shape[group as keyof typeof shape] as unknown as z.ZodObject;
     const groupShape = groupSchema.shape as Record<string, unknown>;
 
     const toValidate: Record<string, unknown> = {};
@@ -263,7 +263,7 @@ function enforceStrictTriage(
     const [group, field] = entry.split(".");
     const groupSchema =
       group in shape
-        ? (shape[group as keyof typeof shape] as unknown as z.AnyZodObject)
+        ? (shape[group as keyof typeof shape] as unknown as z.ZodObject)
         : undefined;
     if (groupSchema && field === "*") {
       unlockedGroups.add(group);
@@ -277,7 +277,7 @@ function enforceStrictTriage(
   }
 
   for (const group of Object.keys(shape)) {
-    const groupSchema = shape[group as keyof typeof shape] as unknown as z.AnyZodObject;
+    const groupSchema = shape[group as keyof typeof shape] as unknown as z.ZodObject;
     for (const field of Object.keys(groupSchema.shape)) {
       const path = `${group}.${field}`;
       const isLocked = locked[group] !== undefined && field in locked[group];
