@@ -75,7 +75,7 @@ types-pymysql = "^1"
 types-pytz = "^2024"
 types-cachetools = "^5"
 ty = "^0.0.15"
-ruff = "^0.15.6"
+ruff = "^0.16.10"
 
 [tool.ruff]
 line-length = 122
