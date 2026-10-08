@@ -76,7 +76,7 @@ bun install
 bun run build
 ```
 
-The default build excludes the vendored TradingView Advanced Charts library's JavaScript and static assets. Advanced chart widgets display an unavailable message with chart exports and Copilot data disabled. The separately hosted TradingView widgets remain available.
+With `VITE_TRADINGVIEW_ENABLED` unset or false, Advanced Charts widgets display an unavailable message, and chart exports and Copilot data are disabled. The library's JavaScript and static assets are excluded from the build.
 
 To include the vendored library:
 

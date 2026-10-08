@@ -188,10 +188,7 @@ export const GroupDropdown = forwardRef<HTMLButtonElement, GroupDropdownProps>(
     );
 
     useEffect(() => {
-      let unsub = null;
-      if (widgetId === "pyth_price_feeds") return;
-
-      unsub = useAppStore.subscribe(
+      const unsub = useAppStore.subscribe(
         (s) => {
           const tab =
             s.getTabById(activeDashboardId) || getDashboardById(activeDashboardId);

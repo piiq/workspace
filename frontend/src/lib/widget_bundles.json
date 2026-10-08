@@ -49,42 +49,6 @@
       "eod_price"
     ]
   },
-  "pyth": {
-    "name": "Pyth",
-    "description": "Real-time market data",
-    "enabled_by_default": true,
-    "widgets": ["pyth_price_feeds"]
-  },
-  "tradingview": {
-    "name": "TradingView",
-    "description": "Collection of 20+ TradingView widgets",
-    "enabled_by_default": false,
-    "widgets": [
-      "tv_charting",
-      "tv_ta",
-      "tv_market_overview",
-      "tv_market_data",
-      "tv_stock_market",
-      "tv_upcoming_economic_events",
-      "tv_ticker",
-      "tv_ticker_tape",
-      "tv_single_ticker",
-      "tv_mini_chart",
-      "tv_symbol_info",
-      "tv_symbol_overview",
-      "tv_forex_cross_rates",
-      "tv_forex_heatmap",
-      "tv_forex_screener",
-      "tv_crypto_screener",
-      "tv_cryptocurrency_market",
-      "tv_fundamental_data",
-      "tv_company_profile",
-      "tv_market_timeline",
-      "tv_timeline",
-      "tv_stock_heatmap",
-      "tv_crypto_coins_heatmap"
-    ]
-  },
   "intrinio": {
     "name": "Intrinio",
     "description": "Intrinio API integration",

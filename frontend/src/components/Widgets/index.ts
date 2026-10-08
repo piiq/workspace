@@ -64,36 +64,6 @@ const RSSViewerFC = lazy(() => import("./RssViewer"));
 const XMLViewerFC = lazy(() => import("./XmlViewer"));
 const NavigationBarFC = lazy(() => import("./ui/NavigationBar"));
 const BigStoriesFC = lazy(() => import("./Equity/News/BigStories"));
-const AdvancedWidgetFC = lazy(() => import("./TVWidgets/AdvancedWidget"));
-const TechnicalAnalysisFC = lazy(() => import("./TVWidgets/TechnicalAnalysisWidget"));
-const MarketOverviewFC = lazy(() => import("./TVWidgets/MarketOverviewWidget"));
-const MarketDataFC = lazy(() => import("./TVWidgets/MarketDataWidget"));
-const StockMarketFC = lazy(() => import("./TVWidgets/StockMarketWidget"));
-const UpcomingEconomicEventsFC = lazy(
-  () => import("./TVWidgets/EconomicCalendarWidget"),
-);
-const TickerFC = lazy(() => import("./TVWidgets/TickerWidget"));
-const TickerTapeFC = lazy(() => import("./TVWidgets/TickerTapeWidget"));
-const MiniChartWidgetFC = lazy(() => import("./TVWidgets/MiniChartWidget"));
-const SymbolInfoFC = lazy(() => import("./TVWidgets/SymbolInfo"));
-const SymbolOverviewFC = lazy(() => import("./TVWidgets/SymbolOverview"));
-const ForexCrossRatesFC = lazy(() => import("./TVWidgets/ForexCrossRatesWidget"));
-const ForexHeatMapFC = lazy(() => import("./TVWidgets/ForexHeatMapWidget"));
-const ForexScreenerFC = lazy(() => import("./TVWidgets/ForexScreenerWidget"));
-const CryptoScreenerFC = lazy(() => import("./TVWidgets/CryptoScreenerWidget"));
-const CryptocurrencyMarketFC = lazy(
-  () => import("./TVWidgets/CryptocurrencyMarketWidget"),
-);
-const FundamentalDataFC = lazy(() => import("./TVWidgets/FundamentalDataWidget"));
-const CompanyProfileDescriptionFC = lazy(
-  () => import("./TVWidgets/CompanyProfileWidget"),
-);
-const TimelineFC = lazy(() => import("./TVWidgets/TimelineWidget"));
-const CryptoCoinsHeatmapFC = lazy(() => import("./TVWidgets/CryptoCoinsHeatMapWidget"));
-const StockHeatMapFC = lazy(() => import("./TVWidgets/StockHeatMapWidget"));
-const SingleTickerFC = lazy(() => import("./TVWidgets/SingleTickerWidget"));
-const MarketTimelineFC = lazy(() => import("./TVWidgets/MarketTimelineWidget"));
-const PythPriceFeedsTableFC = lazy(() => import("./Pyth/PriceFeeds.table"));
 const PdfViewerFC = lazy(() => import("./PdfViewer"));
 const ImageViewerFC = lazy(() => import("./ImageViewer"));
 const HtmlViewerFC = lazy(() => import("./custom/HtmlViewer"));
@@ -123,7 +93,6 @@ export const AgGridComponents = {
   revenue_per_geography: "RevenuePer",
   earnings_trends: "ForwardTrends",
   revenue_trends: "ForwardTrends",
-  pyth_price_feeds: "PythPriceFeedsTable",
   live_grid: "AgWebSockets",
   omni: "OmniWidget",
 } as const;
@@ -157,29 +126,6 @@ export const NonAgGridComponents = {
   ag_chart: "AgChart",
   company_news: "News",
   big_stories: "BigStories",
-  tv_charting: "AdvancedWidget",
-  tv_ta: "TechnicalAnalysisWidget",
-  tv_market_overview: "MarketOverview",
-  tv_market_data: "MarketData",
-  tv_stock_market: "StockMarket",
-  tv_upcoming_economic_events: "UpcomingEconomicEvents",
-  tv_ticker: "Ticker",
-  tv_ticker_tape: "TickerTape",
-  tv_mini_chart: "MiniChartWidget",
-  tv_symbol_info: "SymbolInfo",
-  tv_symbol_overview: "SymbolOverview",
-  tv_forex_cross_rates: "ForexCrossRates",
-  tv_forex_heatmap: "ForexHeatMap",
-  tv_forex_screener: "ForexScreener",
-  tv_crypto_screener: "CryptoScreener",
-  tv_cryptocurrency_market: "CryptocurrencyMarket",
-  tv_fundamental_data: "FundamentalData",
-  tv_company_profile: "CompanyProfileDescription",
-  tv_timeline: "Timeline",
-  tv_market_timeline: "MarketTimeline",
-  tv_stock_heatmap: "StockHeatMap",
-  tv_crypto_coins_heatmap: "CryptoCoinsHeatmap",
-  tv_single_ticker: "SingleTicker",
   multi_file_viewer: "MultiFileViewer",
   newsfeed: "CustomNews",
   // mini_sparkline_charts: "MarketOverviewCustom", commented for now until we finish the component
@@ -239,30 +185,6 @@ export const Widgets = {
   XMLViewer: XMLViewerFC,
   NavigationBar: NavigationBarFC,
   BigStories: BigStoriesFC,
-  AdvancedWidget: AdvancedWidgetFC,
-  TechnicalAnalysisWidget: TechnicalAnalysisFC,
-  MarketOverview: MarketOverviewFC,
-  MarketData: MarketDataFC,
-  StockMarket: StockMarketFC,
-  UpcomingEconomicEvents: UpcomingEconomicEventsFC,
-  Ticker: TickerFC,
-  TickerTape: TickerTapeFC,
-  MiniChartWidget: MiniChartWidgetFC,
-  SymbolInfo: SymbolInfoFC,
-  SymbolOverview: SymbolOverviewFC,
-  ForexCrossRates: ForexCrossRatesFC,
-  ForexHeatMap: ForexHeatMapFC,
-  ForexScreener: ForexScreenerFC,
-  CryptoScreener: CryptoScreenerFC,
-  CryptocurrencyMarket: CryptocurrencyMarketFC,
-  FundamentalData: FundamentalDataFC,
-  CompanyProfileDescription: CompanyProfileDescriptionFC,
-  Timeline: TimelineFC,
-  CryptoCoinsHeatmap: CryptoCoinsHeatmapFC,
-  StockHeatMap: StockHeatMapFC,
-  SingleTicker: SingleTickerFC,
-  MarketTimeline: MarketTimelineFC,
-  PythPriceFeedsTable: PythPriceFeedsTableFC,
   PdfViewer: PdfViewerFC,
   ImageViewer: ImageViewerFC,
   HtmlViewer: HtmlViewerFC,

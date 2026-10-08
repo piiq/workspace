@@ -6,9 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
-import { isCopilotAvailable } from "~/components/AI/hooks/useCopilotAvailable";
 import { getAllowedDataVendors } from "~/lib/onPremFeatureFlags";
 import { useShallowAuthStore } from "~/lib/state/auth";
 import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
@@ -132,14 +130,6 @@ export function Bundle({ bundle, filter }: { bundle: BundleType; filter?: string
   const handleBundleToggle = (e: MouseEvent) => {
     e.stopPropagation();
     toggleBundle(bundle.id);
-    if (bundle.id === "tradingview" && !enabledBundles.includes(bundle.id)) {
-      if (isCopilotAvailable()) {
-        toast.info("TradingView not available with Copilot", {
-          description:
-            "You can still add TradingView widgets to your Dashboard but you won't be able to import them into Copilot.",
-        });
-      }
-    }
   };
 
   const BundleIcon = useCallback(() => {
@@ -150,9 +140,7 @@ export function Bundle({ bundle, filter }: { bundle: BundleType; filter?: string
       >
         <img
           src={`/assets/images/bundles/${bundle.id}_${theme}.png`}
-          className={cn("size-6 object-contain", {
-            "size-4": bundle.id === "pyth",
-          })}
+          className="size-6 object-contain"
         />
       </div>
     );

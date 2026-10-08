@@ -7,7 +7,7 @@ import type {
   ResolutionString,
   TimeFrameItem,
 } from "~/lib/charting_library";
-import { formatPrice } from "../../Pyth/utils";
+import { formatPrice } from "~/lib/utils/price";
 import BalanceIndicator from "../../TVStudies/Balance";
 import CashFlowIndicator from "../../TVStudies/CashFlow";
 import IncomeIndicator from "../../TVStudies/Income";

@@ -6,7 +6,7 @@ import {
   type ICellRenderer,
 } from "ag-grid-community";
 import type { WidgetColumnDefT } from "~/components/types";
-import { formatPrice } from "~/components/Widgets/Pyth/utils";
+import { formatPrice } from "~/lib/utils/price";
 import { getColorStyle } from "./CellOnHover";
 
 const ARROW_UP = "\u2191";

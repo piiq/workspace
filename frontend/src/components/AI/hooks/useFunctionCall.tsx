@@ -1009,38 +1009,6 @@ async function getOpenbbSandboxWidgetsData(
       `Widget with origin ${dataSource.origin} and id ${dataSource.id} not found`,
     );
 
-  // TODO: Here instead of recreating the request a widget makes,
-  // we should just call a function that the widget uses to fetch data
-  // This is a temporary solution to handle Pyth Live Watchlist widget
-  if (builtInWidget.widgetId === "pyth_price_feeds") {
-    const response = await fetch(
-      "https://benchmarks.pyth.network/v1/price_differences/",
-    );
-    if (!response.ok) {
-      throw new CopilotError(
-        CopilotErrorType.GATEWAY_ERROR,
-        "The data source was unavailable. Is it connected and available to OpenBB Workspace?",
-      );
-    }
-    const data = await response.json();
-
-    const processedData = data.reduce((acc: any[], item: any) => {
-      try {
-        if (item?.sparkline?.length > 0) {
-          acc.push({
-            ...item,
-            price: item.sparkline[item.sparkline.length - 1],
-          });
-        }
-      } catch (error) {
-        console.error("Error processing price feed item:", error);
-      }
-      return acc;
-    }, []);
-
-    return processedData;
-  }
-
   // Here we assume:
   // 1. There is 1-1 mapping between platformDataFunctions and platform API endpoints
   //      e.g. obb.equity.price.historical -> /equity/price/historical

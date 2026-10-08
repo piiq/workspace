@@ -18,13 +18,5 @@
   "econdb": {
     "name": "EconDB",
     "website": "https://econdb.com/"
-  },
-  "tv": {
-    "name": "TradingView",
-    "website": "https://www.tradingview.com/"
-  },
-  "pyth": {
-    "name": "Pyth",
-    "website": "https://pyth.network/"
   }
 }

@@ -78,7 +78,7 @@ window.__APP_CONFIG__ = {
   },
   data: {
     packageDataEnabled: true,
-    allowedDataVendors: ["fmp", "benzinga", "econdb", "pyth", "tradingview"],
+    allowedDataVendors: ["fmp", "benzinga", "econdb"],
     allowedDbTypes: ["database", "snowflake", "databricks", "clickhouse"],
     openDataPlatformInstallerEnabled: true,
     allowHtmlJsExecution: false,

@@ -113,14 +113,14 @@ const backendNameToWidget: Record<string, any[]> = {
       subCategory: "Fundamental",
     },
     {
-      widgetId: "pyth_price_feeds",
+      widgetId: "symbol-quotes",
       sourceName: "OpenBB Workspace",
-      name: "Live Watchlist",
+      name: "Symbol Quotes",
       params: [
         {
           paramName: "symbols",
           type: "endpoint",
-          optionsEndpoint: "https://sdk.openbb.dev/udf/pyth-symbols",
+          optionsEndpoint: "http://localhost:8000/options/symbols",
           multiSelect: true,
         },
       ],
@@ -1095,7 +1095,7 @@ describe("useWorkspaceBridgeCommandHandler", () => {
       response = await result.current({
         command: "get_widget_schema",
         origin: "OpenBB Workspace",
-        widget_id: "pyth_price_feeds",
+        widget_id: "symbol-quotes",
       } as never);
     });
 
@@ -1104,12 +1104,12 @@ describe("useWorkspaceBridgeCommandHandler", () => {
       command: "get_widget_schema",
       data: {
         widget: expect.objectContaining({
-          widget_id: "pyth_price_feeds",
+          widget_id: "symbol-quotes",
           params: [
             expect.objectContaining({
               param_name: "symbols",
               requires_options_lookup: true,
-              options_lookup_endpoint: "https://sdk.openbb.dev/udf/pyth-symbols",
+              options_lookup_endpoint: "http://localhost:8000/options/symbols",
             }),
           ],
         }),
