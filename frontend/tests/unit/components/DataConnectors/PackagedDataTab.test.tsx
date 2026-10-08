@@ -1,6 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "../../../mocks/runtimeConfig";
 import { PackagedDataTab } from "~/components/DataConnectors/PackagedDataTab";
@@ -8,10 +7,51 @@ import { PackagedDataTab } from "~/components/DataConnectors/PackagedDataTab";
 const mockToggleBundle = vi.fn();
 const mockToggleWidgetDisabled = vi.fn();
 
+vi.mock("~/lib/widget_bundles.json", async (importOriginal) => ({
+  default: {
+    ...(
+      await importOriginal<{
+        default: typeof import("~/lib/widget_bundles.json");
+      }>()
+    ).default,
+    "equity-data": {
+      name: "Equity Data",
+      description: "Equity quotes",
+      enabled_by_default: true,
+      widgets: ["quotes"],
+    },
+    "economic-data": {
+      name: "Economic Data",
+      description: "Economic indicators",
+      enabled_by_default: false,
+      widgets: ["indicators"],
+    },
+  },
+}));
+
+vi.mock("~/lib/widgets.json", async (importOriginal) => ({
+  default: {
+    ...(await importOriginal<{ default: typeof import("~/lib/widgets.json") }>())
+      .default,
+    quotes: {
+      widgetId: "quotes",
+      name: "Quote Table",
+      description: "Quotes for selected symbols",
+      category: "Equity",
+    },
+    indicators: {
+      widgetId: "indicators",
+      name: "Indicator Table",
+      description: "Economic indicator values",
+      category: "Economy",
+    },
+  },
+}));
+
 vi.mock("~/lib/state/auth", () => ({
   useShallowAuthStore: (selector: any) =>
     selector({
-      enabledBundles: ["pyth"],
+      enabledBundles: ["equity-data"],
       disabledWidgets: [],
       toggleBundle: mockToggleBundle,
       toggleWidgetDisabled: mockToggleWidgetDisabled,
@@ -36,7 +76,7 @@ vi.mock("~/lib/onPremFeatureFlags", async (importOriginal) => {
   const actual = await importOriginal<typeof import("~/lib/onPremFeatureFlags")>();
   return {
     ...actual,
-    getAllowedDataVendors: () => ["pyth", "tradingview"],
+    getAllowedDataVendors: () => ["equity-data", "economic-data"],
   };
 });
 
@@ -95,8 +135,8 @@ describe("PackagedDataTab", () => {
     render(<PackagedDataTab />);
 
     expect(screen.getByPlaceholderText("Search for data")).toBeInTheDocument();
-    expect(screen.getByText("Pyth")).toBeInTheDocument();
-    expect(screen.getByText("TradingView")).toBeInTheDocument();
+    expect(screen.getByText("Equity Data")).toBeInTheDocument();
+    expect(screen.getByText("Economic Data")).toBeInTheDocument();
   });
 
   it("filters bundles by bundle name", async () => {
@@ -105,14 +145,14 @@ describe("PackagedDataTab", () => {
     render(<PackagedDataTab />);
 
     const searchInput = screen.getByPlaceholderText("Search for data");
-    await user.type(searchInput, "TradingView");
+    await user.type(searchInput, "Economic Data");
 
     act(() => {
       vi.advanceTimersByTime(300);
     });
 
-    expect(screen.getByText("TradingView")).toBeInTheDocument();
-    expect(screen.queryByText("Pyth")).not.toBeInTheDocument();
+    expect(screen.getByText("Economic Data")).toBeInTheDocument();
+    expect(screen.queryByText("Equity Data")).not.toBeInTheDocument();
   });
 
   it("filters bundles by widget name", async () => {
@@ -121,14 +161,14 @@ describe("PackagedDataTab", () => {
     render(<PackagedDataTab />);
 
     const searchInput = screen.getByPlaceholderText("Search for data");
-    await user.type(searchInput, "watchlist");
+    await user.type(searchInput, "quote");
 
     act(() => {
       vi.advanceTimersByTime(300);
     });
 
-    expect(screen.getByText("Pyth")).toBeInTheDocument();
-    expect(screen.queryByText("TradingView")).not.toBeInTheDocument();
+    expect(screen.getByText("Equity Data")).toBeInTheDocument();
+    expect(screen.queryByText("Economic Data")).not.toBeInTheDocument();
   });
 
   it("shows search results not found UI when query matches nothing", async () => {
@@ -144,8 +184,8 @@ describe("PackagedDataTab", () => {
     });
 
     expect(screen.getByTestId("no-results")).toBeInTheDocument();
-    expect(screen.queryByText("Pyth")).not.toBeInTheDocument();
-    expect(screen.queryByText("TradingView")).not.toBeInTheDocument();
+    expect(screen.queryByText("Equity Data")).not.toBeInTheDocument();
+    expect(screen.queryByText("Economic Data")).not.toBeInTheDocument();
   });
 
   it("auto-expands matched accordion section during search", async () => {
@@ -154,16 +194,16 @@ describe("PackagedDataTab", () => {
     render(<PackagedDataTab />);
 
     // By default, widgets shouldn't be rendered because accordion is closed
-    expect(screen.queryByText("Live Watchlist")).not.toBeInTheDocument();
+    expect(screen.queryByText("Quote Table")).not.toBeInTheDocument();
 
     const searchInput = screen.getByPlaceholderText("Search for data");
-    await user.type(searchInput, "watchlist");
+    await user.type(searchInput, "quote");
 
     act(() => {
       vi.advanceTimersByTime(300);
     });
 
     // Accordion should expand automatically, rendering matched widget
-    expect(screen.getByText("Live Watchlist")).toBeInTheDocument();
+    expect(screen.getByText("Quote Table")).toBeInTheDocument();
   });
 });
