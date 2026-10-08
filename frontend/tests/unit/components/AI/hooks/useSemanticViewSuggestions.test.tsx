@@ -22,6 +22,7 @@ describe("useSemanticViewSuggestions", () => {
           database: "MY_DB",
           schema: "MY_SCHEMA",
           viewName: "REVENUE_VIEW",
+          baseTable: "",
         },
       },
     });
@@ -34,6 +35,7 @@ describe("useSemanticViewSuggestions", () => {
         database: "MY_DB",
         schema: "MY_SCHEMA",
         viewName: "REVENUE_VIEW",
+        baseTable: "",
         slashText: "/sv:MY_DB.MY_SCHEMA.REVENUE_VIEW",
       },
     ]);
@@ -48,12 +50,14 @@ describe("useSemanticViewSuggestions", () => {
           database: "DB",
           schema: "SCH",
           viewName: "VIEW_A",
+          baseTable: "",
         },
         "DB.SCH.VIEW_B": {
           fqn: "DB.SCH.VIEW_B",
           database: "DB",
           schema: "SCH",
           viewName: "VIEW_B",
+          baseTable: "",
         },
       },
     });
@@ -71,18 +75,21 @@ describe("useSemanticViewSuggestions", () => {
           database: "DB",
           schema: "SCH",
           viewName: "REVENUE",
+          baseTable: "",
         },
         "DB.SCH.COSTS": {
           fqn: "DB.SCH.COSTS",
           database: "DB",
           schema: "SCH",
           viewName: "COSTS",
+          baseTable: "",
         },
         "DB.SCH.REVENUE_DETAIL": {
           fqn: "DB.SCH.REVENUE_DETAIL",
           database: "DB",
           schema: "SCH",
           viewName: "REVENUE_DETAIL",
+          baseTable: "",
         },
       },
     });
@@ -101,6 +108,7 @@ describe("useSemanticViewSuggestions", () => {
           database: "DB",
           schema: "SCH",
           viewName: "SALES",
+          baseTable: "",
         },
       },
     });
@@ -119,6 +127,7 @@ describe("useSemanticViewSuggestions", () => {
           database: "DB",
           schema: "SCH",
           viewName: "SALES",
+          baseTable: "",
         },
       },
     });

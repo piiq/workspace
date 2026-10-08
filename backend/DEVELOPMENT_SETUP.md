@@ -2,10 +2,12 @@
 
 This guide walks through setting up the OpenBB Workspace backend for local development.
 
-For UI testing on macOS, run the backend inside Docker via
+For interactive UI development on macOS, run the backend inside Docker via
 `docker/docker-compose-local-dev.yml`. The API and RQ worker both run from Linux
 containers with the local `backend/` folder bind-mounted, so normal code changes
 do not require rebuilding the images.
+
+For automated browser tests, follow the [browser test setup](../frontend/tests/e2e/README.md). It runs the API and worker from source with SQLite and file storage, and starts Redis in Docker.
 
 ## Prerequisites
 
@@ -174,6 +176,17 @@ cd backend
   `DISABLE_CORS=1`, the `/pro/*` endpoints auto-authenticate using this token,
   so no `X-OpenBB-Authorization` header is needed from localhost clients.
 
-- `user_create.json` is both an output of `init_users.py` and an input to
-  `ProSettings.__init__` (which sets `PRO_TRIAL_EMAIL` and `PRO_TRIAL_USER`).
-  Always delete it before a clean init to avoid circular contamination.
+### Account bootstrap file
+
+`scripts.init_users` writes `backend/user_create.json` by default. `ProSettings` reads `user_create.json` from the backend's working directory at startup. Set `USER_CREATE_PATH` to the same absolute path for provisioning and the API/worker to use a different file.
+
+The file is a JSON object with these fields:
+
+| Field | Type | Meaning | Setting populated |
+| --- | --- | --- | --- |
+| `on_prem_admin_uuid` | UUID string | Entity's Admin permission mapping | `ON_PREM_ADMIN_MAPPING` |
+| `permissions_uuid` | UUID string | Entity's User permission mapping | `PRO_DEVELOPER_MAPPING` |
+| `inviting_uuid` | UUID string | Administrator's user UUID | `PRO_TRIAL_USER` |
+| `inviting_email` | Email string | Administrator's email | `PRO_TRIAL_EMAIL` |
+
+The file contains generated database identifiers; use `scripts.init_users` to produce it. Delete it before initializing a clean database so settings cannot reuse identifiers from another database.

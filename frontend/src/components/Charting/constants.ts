@@ -1,5 +1,3 @@
-import type { EntityId } from "~/lib/charting_library/charting_library";
-
 export type SecurityType = {
   id: string;
   symbol: string;
@@ -17,7 +15,7 @@ export type MetricType = {
   label: string;
   color: string;
   active: boolean;
-  tvId?: EntityId;
+  tvId?: string;
   period?: "annual" | "quarter";
   newPane?: string;
   prevPane?: string;

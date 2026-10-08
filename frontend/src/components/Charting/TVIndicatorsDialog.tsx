@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useStateReducer } from "~/hooks/useStateReducer";
-import type { IChartingLibraryWidget } from "~/lib/charting_library/charting_library";
+import type {
+  EntityId,
+  IChartingLibraryWidget,
+} from "~/lib/charting_library/charting_library";
 import { useShallowChartingStore } from "~/lib/state/charting";
 import { Button } from "../ds/atoms/Button";
 import { Input } from "../ds/atoms/Input";
@@ -130,12 +133,12 @@ export default function TVIndicatorsDialogDialog({
 
                 if (metric.tvId) {
                   if (metric.tvId && metric.newPane !== metric.prevPane) {
-                    tvWidget.activeChart().removeEntity(metric.tvId);
+                    tvWidget.activeChart().removeEntity(metric.tvId as EntityId);
                     metric.tvId = undefined;
                   }
 
                   if (!metric.active) {
-                    tvWidget.activeChart().removeEntity(metric.tvId);
+                    tvWidget.activeChart().removeEntity(metric.tvId as EntityId);
                     dispatch({
                       metrics: (prevMetrics) =>
                         prevMetrics.filter((m) => m.id !== metric.id),
@@ -146,13 +149,13 @@ export default function TVIndicatorsDialogDialog({
                     metric.active &&
                     tvWidget
                       .activeChart()
-                      .getStudyById(metric.tvId)
+                      .getStudyById(metric.tvId as EntityId)
                       .getInputValues()
                       .map((v) => v.id === "period" && v.value === period).length > 0
                   ) {
                     tvWidget
                       .activeChart()
-                      .getStudyById(metric.tvId)
+                      .getStudyById(metric.tvId as EntityId)
                       .setInputValues([
                         {
                           id: "period" as any,

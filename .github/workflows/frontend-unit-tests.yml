@@ -1,4 +1,4 @@
-name: Frontend Unit Tests
+name: Frontend Typecheck and Unit Tests
 
 on:
   workflow_dispatch:
@@ -11,6 +11,7 @@ on:
       - 'frontend/bun.lock'
       - 'frontend/tsconfig*.json'
       - 'frontend/vite.config.ts'
+      - 'frontend/postcss.config.cjs'
       - 'frontend/vitest.setup.ts'
       - 'frontend/.env*'
       - '.github/workflows/frontend-unit-tests.yml'
@@ -37,10 +38,20 @@ jobs:
           node-version: 24
 
       - name: Setup Bun
+        id: setup-bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Cache frontend dependencies
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node24-bun-${{ steps.setup-bun.outputs.bun-version }}-${{ hashFiles('frontend/package.json', 'frontend/bun.lock') }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Check frontend types
+        run: bun run typecheck
 
       - name: Run unit tests
         run: bun run test:unit

@@ -1,4 +1,4 @@
-import DOMPurify from "dompurify";
+import DOMPurify, { type Config } from "dompurify";
 import get from "lodash/get";
 import mammoth from "mammoth";
 import MarkdownToJSX from "markdown-to-jsx";
@@ -300,7 +300,7 @@ export interface MarkdownContentProps {
   content: string;
   citations?: CitationT[];
   artifacts?: ArtifactT[];
-  sanitizeOptions?: DOMPurify.Config;
+  sanitizeOptions?: Config;
   customOverrides?: CustomOverrides;
   onExternalLinkClick?: (url: string) => void;
 }

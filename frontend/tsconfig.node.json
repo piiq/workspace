@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
-    "composite": true,
+    "target": "ESNext",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "ignoreDeprecations": "6.0",
+    "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
     "paths": {
       "~/*": ["./src/*"]
@@ -14,5 +16,5 @@
     "postcss.config.cjs",
     "src/lib/runtimeConfigSchema.ts"
   ],
-  "exclude": ["vite.config.ts"]
+  "exclude": []
 }

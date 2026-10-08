@@ -81,10 +81,8 @@ type ReactInputProps = Omit<
 
 type InputValue = string | number;
 
-export interface InputProps<
-  T extends InputValue = string,
-  TValue = T extends `${infer V}` ? V : T,
-> extends Omit<ReactInputProps, "defaultValue"> {
+export interface InputProps<T extends InputValue = string, TValue = string>
+  extends Omit<ReactInputProps, "defaultValue"> {
   /** Add floating label. Requires `placeholder`. */
   label?: React.ReactNode;
   /** When value is not empty, x icon appears to clear input. */

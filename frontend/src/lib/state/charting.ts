@@ -13,11 +13,10 @@ import type {
   LineToolsAndGroupsLoadRequestContext,
   LineToolsAndGroupsLoadRequestType,
   LineToolsAndGroupsState,
-  ResolutionString,
   SavedStateMetaInfo,
   StudyTemplateData,
   StudyTemplateMetaInfo,
-} from "../charting_library";
+} from "../types/charting";
 import type { Selector } from "./app";
 import mainContent from "./main.json";
 
@@ -245,7 +244,7 @@ export const useTradingViewStore = createWithEqualityFn<TradingViewState>()(
         name: "Main",
         content: JSON.stringify(mainContent),
         symbol: "AAPL",
-        resolution: "1D" as ResolutionString,
+        resolution: "1D",
         id: "nahr3in4k" as any,
         timestamp: 1697126934,
       },

@@ -15,7 +15,7 @@ const meta = {
 } satisfies Meta<typeof ExpandableSection>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
 const InteractiveExample = ({
   defaultExpanded = false,

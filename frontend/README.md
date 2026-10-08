@@ -166,9 +166,11 @@ bunx vitest tests/unit                # Run in watch mode
 bun run test:integration
 
 # E2E tests (Playwright)
-bun run test:e2e                     # Run all E2E tests
-bunx playwright test tests/e2e --ui   # Run with interactive UI
+bun run test:e2e                     # Run local browser tests
+bun run playwright test tests/e2e --ui   # Run with interactive UI
 ```
+
+See [the browser test setup](tests/e2e/README.md) for backend dependencies, Chromium installation, and deployment URLs.
 
 ### Test Structure
 

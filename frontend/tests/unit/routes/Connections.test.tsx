@@ -308,8 +308,8 @@ const mockExternalCopilotHolders: ExternalCopilotHolder[] = [
     url: "https://api.example.com",
     headers: {},
     copilots: [
-      { id: "agent-1", name: "Agent 1", description: "Test agent" },
-      { id: "agent-2", name: "Agent 2", description: "Test agent 2" },
+      { id: "agent-1", name: "Agent 1", description: "Test agent", endpoints: {} },
+      { id: "agent-2", name: "Agent 2", description: "Test agent 2", endpoints: {} },
     ],
   },
 ];

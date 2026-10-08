@@ -1,66 +1,69 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
+
 dotenv.config();
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// require('dotenv').config();
+const deployed = !!process.env.PLAYWRIGHT_BASE_URL;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:1420";
+const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://127.0.0.1:8000";
 
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
-  testDir: "./tests",
-  testMatch: ["**/*.spec.ts", "**/*.spec.tsx"],
-  /* Run tests in files in parallel */
-  fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  testDir: "./tests/e2e",
+  testMatch: "**/*.spec.ts",
+  testIgnore: process.env.PLAYWRIGHT_HOSTED_TESTS === "true" ? [] : [
+    "**/charting.spec.ts",
+    "**/dashboards-templates.spec.ts",
+    "**/news.spec.ts",
+    "**/onboarding-questions.spec.ts",
+    "**/tutorials.spec.ts",
+    "**/transpose-table.spec.ts",
+    "**/widgets.spec.ts",
+  ],
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
+  retries: 0,
   workers: 1,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  timeout: 60_000,
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: `https://pro.openbb.${process.env.VITE_ENVIRONMENT}`,
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+    baseURL,
+    headless: true,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
-  /* Configure projects for major browsers */
   projects: [
-    {
-      name: "register",
-      testMatch: /global\.setup\.ts/,
-      teardown: "delete account",
-    },
-    {
-      name: "delete account",
-      testMatch: /global\.teardown\.ts/,
-    },
-    {
-      name: "Google Chrome",
-      use: {
-        ...devices["Desktop Chrome"],
-        channel: "chrome",
-        storageState: "playwright/.auth/user.json",
-      },
-      dependencies: ["register"],
-    },
+    { name: "account", testMatch: /global\.setup\.ts/ },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], storageState: "playwright/.auth/user.json" },
-      dependencies: ["register"],
+      dependencies: ["account"],
     },
   ],
-
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:1420",
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: deployed ? undefined : [
+    {
+      command: "poetry run python -m scripts.run_e2e",
+      cwd: "../backend",
+      url: `${apiURL}/health`,
+      gracefulShutdown: { signal: "SIGTERM", timeout: 30_000 },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: "bun run dev --host 127.0.0.1",
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: {
+        VITE_PAYMENTS_URL: apiURL,
+        VITE_AUTHENTICATION_ALLOW_EMAIL_LOGIN: "true",
+        VITE_AUTHENTICATION_ALLOW_REGISTRATION: "false",
+        VITE_AUTHENTICATION_ALLOW_FORGOT_PASSWORD: "false",
+        VITE_AUTHENTICATION_IDENTITY_PROVIDERS: "",
+        VITE_UI_SHOW_ONBOARDING_QUESTIONS: "false",
+        VITE_UI_SHOW_TOS: "false",
+        VITE_UI_SHOW_CHANGELOG: "false",
+        VITE_AI_COPILOT_ENABLED: "false",
+      },
+    },
+  ],
 });

@@ -185,7 +185,9 @@ export function FileFormElement(props: FileFormElementProps) {
               <FormField
                 name={`${fileIndex}.name`}
                 control={form.control}
-                render={({ field }) => <FormInput className="" {...field} />}
+                render={({ field }) => (
+                  <FormInput aria-label="Name" className="" {...field} />
+                )}
               />
             </div>
           </div>

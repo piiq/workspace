@@ -9,7 +9,7 @@ import {
 import { format } from "sql-formatter";
 
 import "./tritanopia-dark.css";
-import type { Grammar } from "@wooorm/starry-night/lib/types";
+import type { Grammar } from "@wooorm/starry-night";
 import type { Root } from "hast";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import Markdown, { type MarkdownToJSX, RuleType } from "markdown-to-jsx";

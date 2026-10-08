@@ -13,7 +13,7 @@ let savedLockedConfig: unknown;
 
 beforeEach(() => {
   savedAppConfig = window.__APP_CONFIG__;
-  savedLockedConfig = globalThis.__LOCKED_CONFIG__;
+  savedLockedConfig = (globalThis as Record<string, unknown>).__LOCKED_CONFIG__;
   delete window.__APP_CONFIG__;
   _resetConfig();
   vi.unstubAllEnvs();

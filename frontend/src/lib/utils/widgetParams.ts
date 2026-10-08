@@ -255,9 +255,10 @@ export function createParamDefs(
   const groupIdCounts = {} as Record<string, number>;
 
   if (params.success) {
-    if (backendURL) populateGroupByIdCounts(params.data, groupIdCounts);
+    const paramDefs = params.data as ParamDef[];
+    if (backendURL) populateGroupByIdCounts(paramDefs, groupIdCounts);
 
-    return params.data.map((param) => {
+    return paramDefs.map((param) => {
       param = handleEndpointParam(param, backendURL, groupIdCounts);
 
       if (param?.type === "form") {

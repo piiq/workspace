@@ -19,12 +19,14 @@ import {
   type ChartingLibraryFeatureset,
   type ChartingLibraryWidgetOptions,
   type IChartingLibraryWidget,
+  type IExternalSaveLoadAdapter,
   type RangeOptions,
   type SavedStateMetaInfo,
   widget as TVChartWidget,
 } from "~/lib/charting_library";
 import { useTradingViewStore } from "~/lib/state/charting";
 import { useShallowThemeStore, useThemeStore } from "~/lib/state/theme";
+import type { TVChartContainerProps } from "~/lib/types/charting";
 import { cn, formatNumberNoMagnitude } from "~/lib/utils";
 import {
   onSymbolChanged,
@@ -38,14 +40,6 @@ import type { ChartDataFeed } from "../datafeed/type";
 import { getHeaders } from "../Misc/Charting";
 
 const TVChartResources = ChartResources("TVCHART_MAIN_LABEL");
-
-export interface TVChartContainerProps {
-  ticker?: string;
-  extraClassName?: string;
-  simpleChart?: boolean;
-  secondTickers?: string[];
-  showTA?: boolean;
-}
 
 export interface ChartingLibraryWidget extends IChartingLibraryWidget {
   _ready: boolean;
@@ -280,11 +274,12 @@ const TVChartContainer = forwardRef<ChartingLibraryWidget, TVChartContainerProps
           : defaultProps.container,
         interval: defaultProps.interval,
         theme: theme,
-        save_load_adapter: saveLoadAdapter,
+        // Persisted chart state stores the library's branded strings as plain strings.
+        save_load_adapter: saveLoadAdapter as unknown as IExternalSaveLoadAdapter,
         settings_adapter: saveLoadAdapter,
         settings_overrides: overrides,
         saved_data_meta_info: loadSavedData
-          ? savedLayoutRef.current?.meta_info
+          ? (savedLayoutRef.current?.meta_info as SavedStateMetaInfo)
           : undefined,
         saved_data: loadSavedData ? savedLayoutRef.current?.saved_data : undefined,
         // debug: true,

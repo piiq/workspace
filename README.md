@@ -57,7 +57,7 @@ cd ../backend
 poetry run pytest
 ```
 
-Backend integration and database migration tests start their own Docker containers. Lint and unit/integration workflows run on pull requests that change their component's source, tests, configuration, or workflow file. Frontend browser and Excel smoke tests use manual workflow triggers and require hosted OpenBB accounts and secrets.
+Backend integration and database migration tests start their own Docker containers. Lint and unit/integration workflows run on pull requests that change their component's source, tests, configuration, or workflow file. Frontend browser tests use a manual workflow trigger and run against source servers with SQLite, file storage, and Redis. See [the browser test setup](frontend/tests/e2e/README.md). Excel smoke tests use a manual trigger and require hosted OpenBB accounts and secrets.
 
 ## Notes
 

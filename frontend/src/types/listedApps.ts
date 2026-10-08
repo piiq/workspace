@@ -127,7 +127,7 @@ export function appRequiresAuth(app: ListedApp): boolean {
 export function appHasSavedAuth(
   app: ListedApp,
   endpointHeaders?:
-    | { key: string; value: string; location: "headers" | "query" }[]
+    | { key: string; value: string; location?: "headers" | "query" }[]
     | null,
 ): boolean {
   const authFields = getListedAppAuthFields(app);

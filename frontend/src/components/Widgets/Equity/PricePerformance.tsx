@@ -8,11 +8,11 @@ import {
   useEquityOwnershipShareStatistics,
 } from "~/lib/api/sdkComponents";
 import type { FMPCompanyOverviewData as CompanyOverview } from "~/lib/api/sdkSchemas";
+import type { ChartingLibraryWidget } from "~/lib/types/charting";
 import { formatNumber, formatNumberNoMagnitude } from "~/lib/utils";
 import AdvancedSelectedTicker from "../Helpers/AdvancedSelectTicker";
 import useCopilotDataWidget from "../Helpers/useCopilotDataWidget";
 import { convertToCSV, getHeaders } from "../Misc/Charting";
-import type { ChartingLibraryWidget } from "../TVChartContainer/TVChartContainerFunc";
 import TVChart from "../TvChart";
 
 function useOverviewData(tvWidget: MutableRefObject<ChartingLibraryWidget | null>) {

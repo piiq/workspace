@@ -8,6 +8,7 @@ global.fetch = mockFetch;
 
 describe("validateBackend - apps.json endpoint behavior", () => {
   const mockSource: Source = {
+    id: "test-source",
     url: "https://test-backend.com",
     name: "Test Backend",
     endpointHeaders: [

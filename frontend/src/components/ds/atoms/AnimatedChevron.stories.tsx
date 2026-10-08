@@ -19,7 +19,7 @@ export const Open: Story = {
   args: { isOpen: true },
 };
 
-export const Interactive: Story = {
+export const Interactive: StoryObj = {
   render: () => {
     const [isOpen, setIsOpen] = useState(false);
     return (

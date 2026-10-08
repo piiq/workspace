@@ -129,16 +129,16 @@ bun run test:integration
 bun run test:e2e
 
 # Run with UI (interactive mode)
-bunx playwright test tests/e2e --ui
+bun run playwright test tests/e2e --ui
 
 # Run specific test file
-bunx playwright test tests/e2e/auth.spec.ts
+bun run playwright test tests/e2e/auth.spec.ts
 
-# Generate test code
-bunx playwright codegen tests/e2e
+# Generate test code against a running frontend
+bun run playwright codegen http://127.0.0.1:1420
 ```
 
-> **Local Development**: Uncomment `export const proUrl = "http://localhost:1420";` in `/tests/e2e/helpers.ts` when running E2E tests locally.
+See [the browser test setup](tests/e2e/README.md) for source servers, account provisioning, and deployment URLs. Tests use local data and do not require hosted OpenBB accounts or data subscriptions. Provider and subscription tests require `PLAYWRIGHT_HOSTED_TESTS=true`.
 
 ### Storybook Accessibility Tests
 

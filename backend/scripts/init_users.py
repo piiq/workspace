@@ -1,4 +1,5 @@
 import json
+import os
 import tomllib
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
@@ -27,8 +28,9 @@ type MaybCoro[T] = Coroutine[Any, Any, T] | T
 CONFIG_PATH = Path(__file__).parent / "cfgs"
 
 BACKEND_DIR = Path(__file__).parent.parent
-USER_CREATE_JSON_PATH = BACKEND_DIR / "user_create.json"
-USER_CREATE_JSON_PATH.touch(exist_ok=True)
+USER_CREATE_JSON_PATH = Path(
+    os.environ.get("USER_CREATE_PATH", str(BACKEND_DIR / "user_create.json"))
+)
 
 
 class UserConfig(BaseModel):
@@ -267,9 +269,12 @@ class SetupConfig:
         await self.db.commit()
 
 
-async def setup_configs():
+async def setup_configs(config_path: Path = CONFIG_PATH):
     configs = []
-    for file in CONFIG_PATH.glob("*.toml"):
+    files = list(config_path.glob("*.toml"))
+    if not files:
+        raise ValueError(f"No account configurations found in {config_path}")
+    for file in files:
         with file.open("rb") as f:
             configs.append(Config(**tomllib.load(f)))
 
@@ -282,6 +287,16 @@ async def setup_configs():
 
 
 if __name__ == "__main__":
+    import argparse
     import asyncio
 
-    asyncio.run(setup_configs())
+    parser = argparse.ArgumentParser(
+        description="Provision local entities and accounts.",
+        epilog="Run migrations before provisioning accounts.",
+    )
+    parser.add_argument(
+        "-c", "--config-dir", type=Path, default=CONFIG_PATH,
+        help="Directory containing entity/account TOML files.",
+    )
+    args: argparse.Namespace = parser.parse_args()
+    asyncio.run(setup_configs(args.config_dir))
