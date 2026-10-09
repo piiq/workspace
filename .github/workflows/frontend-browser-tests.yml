@@ -6,6 +6,8 @@ on:
     paths:
       - 'packages/plugin-sdk/src/**'
       - 'packages/plugin-sdk/package.json'
+      - 'frontend/tests/e2e/**'
+      - 'frontend/playwright.config.ts'
       - 'frontend/src/lib/plugins/**'
       - 'frontend/src/components/Widgets/index.ts'
       - 'frontend/src/components/Widget.tsx'
