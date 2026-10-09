@@ -1,13 +1,11 @@
 import { type ReactNode, useCallback, useMemo } from "react";
-import { getColumnDefs } from "~/components/General/Table/AgGridUtils";
-import { AgGridProvider, Table } from "~/components/General/Table/hooks";
-import { getTableData } from "~/components/General/Table/utils";
 import Icon from "~/components/Icon";
 import type { IconId } from "~/components/Icon.types";
 import Tooltip from "~/components/Tooltip";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useJsonData } from "~/lib/api";
 import { cn } from "~/lib/utils";
+import RawDataTable from "./RawDataTable";
 
 type RawQueryResult = {
   data?: unknown;
@@ -106,13 +104,7 @@ export function useRawDataToggle({
 
   const tableNode = useMemo<ReactNode>(() => {
     if (!showTable) return null;
-    const rowData = getTableData(Array.isArray(rawData) ? rawData : [], widget);
-    const columnDefs = getColumnDefs(rowData, widget);
-    return (
-      <Table>
-        <AgGridProvider rowData={rowData} columnDefs={columnDefs} />
-      </Table>
-    );
+    return <RawDataTable data={Array.isArray(rawData) ? rawData : []} />;
   }, [showTable, rawData, widget?.data?.table?.columnsDefs, widget?.data?.dataKey]);
 
   return {

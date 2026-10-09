@@ -20,6 +20,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
@@ -30,6 +31,7 @@ import type { WidgetT } from "~/components/types";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useComposeRefs } from "~/hooks/useRefHooks";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import { widgetRegistry } from "~/lib/plugins/registry";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { cn, isSSRMType } from "~/lib/utils";
 import { createRangeChart, customChartWidgetIds } from "../Chart/AgChartView";
@@ -577,6 +579,15 @@ const AgGridProvider = memo(
   forwardRef<AgGridElement, AgGridProps>((props, ref) => {
     const { extraClassName, className = extraClassName, hideHeader, ...rest } = props;
 
+    const registryRevision = useSyncExternalStore(
+      widgetRegistry.subscribe,
+      widgetRegistry.getSnapshot,
+    );
+    const gridOptions = useMemo(
+      () => widgetRegistry.configureGrid(rest.gridOptions),
+      [rest.gridOptions, registryRevision],
+    );
+
     const gridRef = useAgGridContext()?.gridRef;
 
     const composeRefs = useComposeRefs(gridRef, ref);
@@ -647,7 +658,7 @@ const AgGridProvider = memo(
           noRowsOverlayComponent={NoRowsOverlay}
           {...rest}
           popupParent={rest?.popupParent ?? document.body}
-          gridOptions={rest?.gridOptions}
+          gridOptions={gridOptions}
           rowData={rest?.rowModelType !== "serverSide" ? rest?.rowData : undefined}
           columnDefs={columnDefs}
           onGridReady={onGridReady}
@@ -682,10 +693,11 @@ const AgGridProvider = memo(
         onChartDestroyed,
         onModelUpdated,
         createChartContainer,
+        gridOptions,
       ],
     );
 
-    useSyncTableData(rest?.gridOptions);
+    useSyncTableData(gridOptions);
     useUpdateChartView(rest?.chartThemeOverrides);
 
     return (

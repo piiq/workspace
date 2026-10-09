@@ -1,11 +1,8 @@
 import "@jose-donato/react-grid-layout/css/styles.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AgChartsEnterpriseModule } from "ag-charts-enterprise";
-import {
-  AllEnterpriseModule,
-  LicenseManager,
-  ModuleRegistry,
-} from "ag-grid-enterprise";
+import { ModuleRegistry } from "ag-grid-community";
+import { AllEnterpriseModule, LicenseManager } from "ag-grid-enterprise";
 import posthog from "posthog-js";
 import {
   Fragment,

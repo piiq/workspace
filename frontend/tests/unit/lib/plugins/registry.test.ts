@@ -1,0 +1,157 @@
+import { definePlugin, type PluginHost } from "@piiq/workspace-plugin-sdk";
+import type { AgGridPluginDefinition } from "@piiq/workspace-plugin-sdk/ag-grid";
+import { AllCommunityModule } from "ag-grid-community";
+import { describe, expect, it, vi } from "vitest";
+import { createPluginApi } from "~/lib/plugins/api";
+import { PluginRegistry } from "~/lib/plugins/registry";
+
+const Component = () => null;
+const plugin = (name = "@example/chart") =>
+  definePlugin(
+    { name, version: "1.0.0" },
+    {
+      renderers: [
+        { name: "chart", title: "Chart", Component, capabilities: ["refresh"] },
+      ],
+    },
+  );
+
+function setup() {
+  const registry = new PluginRegistry();
+  const registerModules = vi.fn();
+  const host = {
+    agGrid: { ModuleRegistry: { registerModules } },
+  } as unknown as PluginHost;
+  return { registry, host, registerModules, api: createPluginApi(host, registry) };
+}
+
+describe("plugin registry", () => {
+  it("preserves core IDs and uses qualified IDs for plugins", async () => {
+    const { registry, api } = setup();
+    registry.registerBuiltins([
+      {
+        id: "ag_grid_table",
+        title: "Table",
+        Component,
+        kind: "table",
+        wrapper: "ag-grid",
+      },
+    ]);
+    await api.registerPlugin(plugin());
+    expect(registry.getRendererState("ag_grid_table")).toMatchObject({
+      status: "ready",
+      renderer: { kind: "table", wrapper: "ag-grid", Component },
+    });
+    expect(registry.getRendererState("@example/chart/chart")).toMatchObject({
+      status: "ready",
+      renderer: { pluginId: "@example/chart", capabilities: ["refresh"], Component },
+    });
+    expect(registry.getRendererState("chart").status).toBe("unavailable");
+  });
+
+  it("allows the same local renderer name in separate plugins", async () => {
+    const { registry, api } = setup();
+    await api.registerPlugin(plugin("@example/first"));
+    await api.registerPlugin(plugin("@example/second"));
+    expect(registry.getRenderers().map((renderer) => renderer.id)).toEqual([
+      "@example/first/chart",
+      "@example/second/chart",
+    ]);
+  });
+
+  it("rejects a plugin selected through both loaders, including pending registration", async () => {
+    const { registry, host, api } = setup();
+    const runtimeApi = createPluginApi(host, registry);
+    const pending = api.registerPlugin(plugin());
+    expect(() => runtimeApi.registerPlugin(plugin())).toThrow(
+      "Plugin already registered",
+    );
+    await pending;
+    expect(() => runtimeApi.registerPlugin(plugin())).toThrow(
+      "Plugin already registered",
+    );
+  });
+
+  it("rejects renderer collisions without partially publishing a core batch", () => {
+    const { registry } = setup();
+    registry.registerBuiltins([{ id: "clock", title: "Clock", Component }]);
+    expect(() =>
+      registry.registerBuiltins([
+        { id: "new", title: "New", Component },
+        { id: "clock", title: "Clock", Component },
+      ]),
+    ).toThrow("Renderer already registered");
+    expect(registry.getRendererState("new").status).toBe("unavailable");
+  });
+
+  it("waits for setup and AG module registration before exposing a renderer", async () => {
+    const { registry, host, api, registerModules } = setup();
+    let finishSetup: () => void;
+    const setupDone = new Promise<void>((resolve) => {
+      finishSetup = resolve;
+    });
+    const definition: AgGridPluginDefinition = plugin();
+    definition.setup = vi.fn(async (bindings) => {
+      expect(bindings).toBe(host);
+      await setupDone;
+    });
+    definition.agGridCapabilities = [
+      {
+        name: "integrated-charts",
+        title: "Integrated charts",
+        modules: [AllCommunityModule],
+        configureGrid: (options) => ({ ...options, enableCharts: true }),
+      },
+    ];
+    const changed = vi.fn();
+    const unsubscribe = registry.subscribe(changed);
+    const pending = api.registerPlugin(definition);
+    const resolved = registry.resolveRenderer("@example/chart/chart");
+    expect(registry.getRendererState("@example/chart/chart").status).toBe("pending");
+    expect(registry.hasAgGridCapability("@example/chart/integrated-charts")).toBe(
+      false,
+    );
+    registerModules.mockImplementation(() => {
+      expect(registry.getRendererState("@example/chart/chart").status).toBe("pending");
+    });
+    finishSetup();
+    await pending;
+    expect(registerModules).toHaveBeenCalledWith([AllCommunityModule]);
+    expect((await resolved).status).toBe("ready");
+    expect(registry.hasAgGridCapability("@example/chart/integrated-charts")).toBe(true);
+    expect(registry.configureGrid({ rowModelType: "clientSide" })).toEqual({
+      rowModelType: "clientSide",
+      enableCharts: true,
+    });
+    expect(changed).toHaveBeenCalledTimes(2);
+    unsubscribe();
+  });
+
+  it("reports failed setup on affected renderers and preserves unrelated widgets", async () => {
+    const { registry, api } = setup();
+    registry.registerBuiltins([{ id: "clock", title: "Clock", Component }]);
+    const definition = plugin();
+    definition.setup = () => {
+      throw new Error("Library assets are missing");
+    };
+    const registration = api.registerPlugin(definition);
+    const resolved = registry.resolveRenderer("@example/chart/chart");
+    await expect(registration).rejects.toThrow("Library assets are missing");
+    expect(await resolved).toMatchObject({
+      status: "failed",
+      message: expect.stringContaining("Library assets are missing"),
+    });
+    expect(registry.getRendererState("clock").status).toBe("ready");
+    expect(registry.getRenderers()).toHaveLength(1);
+  });
+
+  it("gives an actionable diagnostic for an absent plugin", () => {
+    const { registry } = setup();
+    expect(registry.getRendererState("@example/chart/chart")).toEqual({
+      status: "unavailable",
+      message:
+        "Renderer @example/chart/chart is unavailable. Install a compatible @example/chart plugin and reload Workspace.",
+    });
+    expect(registry.configureGrid(undefined)).toBeUndefined();
+  });
+});
