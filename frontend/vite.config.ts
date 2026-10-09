@@ -277,6 +277,8 @@ export default defineConfig(({ mode }) => {
       sourcemap: !!process.env.TAURI_DEBUG,
     },
     resolve: {
+      preserveSymlinks: true,
+      dedupe: ["react", "react-dom", "ag-grid-community"],
       alias: [
         ...(!isTradingViewEnabled
           ? [
