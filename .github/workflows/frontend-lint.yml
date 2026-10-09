@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'packages/plugin-sdk/src/**'
+      - 'packages/plugin-sdk/biome.json'
       - 'frontend/src/**'
       - 'frontend/biome.json'
       - 'frontend/bun.lock'
@@ -34,6 +36,10 @@ jobs:
       - name: Run Biome
         run: biome ci src
 
+      - name: Lint plugin SDK
+        working-directory: packages/plugin-sdk
+        run: biome ci src
+
   typos:
     name: Spell Check
     runs-on: ubuntu-latest
@@ -44,5 +50,5 @@ jobs:
       - name: Check spelling
         uses: crate-ci/typos@master
         with:
-          files: frontend/src frontend/CHANGELOG.md
+          files: frontend/src frontend/CHANGELOG.md packages/plugin-sdk/src
           config: frontend/_typos.toml

@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'packages/plugin-sdk/src/**'
+      - 'packages/plugin-sdk/package.json'
       - 'frontend/src/**'
       - 'frontend/tests/**'
       - 'frontend/config-profiles/**'
@@ -45,7 +47,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-${{ runner.arch }}-node24-bun-${{ steps.setup-bun.outputs.bun-version }}-${{ hashFiles('frontend/package.json', 'frontend/bun.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node24-bun-${{ steps.setup-bun.outputs.bun-version }}-${{ hashFiles('frontend/package.json', 'frontend/bun.lock', 'packages/plugin-sdk/package.json') }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

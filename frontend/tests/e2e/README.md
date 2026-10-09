@@ -46,4 +46,4 @@ Setting `PLAYWRIGHT_BASE_URL` uses the supplied deployment and account; Playwrig
 
 Tests run headlessly in Chromium with one worker and no retries. Failure traces and screenshots are stored in `test-results/`; the HTML report is in `playwright-report/`. Use `bun run playwright show-report` to inspect it.
 
-The `Frontend Local Browser Tests` workflow runs these tests manually and uploads the HTML report. Pull requests run frontend typechecking and unit tests for relevant frontend changes, and backend tests for relevant backend changes.
+The `Frontend Local Browser Tests` workflow runs these tests manually and on pull requests affecting the plugin SDK, registry, widget dispatch, or shared table integration, and uploads the HTML report. Pull requests run frontend typechecking and unit tests for relevant frontend and SDK changes, and backend tests for relevant backend changes.
