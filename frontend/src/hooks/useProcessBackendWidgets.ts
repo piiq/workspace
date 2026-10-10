@@ -3,6 +3,7 @@ import type { BackendPermissionsT } from "~/api/user_roles.api";
 import { createSourceWidget } from "~/components/DataConnectors/common/helpers";
 import { someTruthy } from "~/components/General/Table/utils";
 import type { WidgetT } from "~/components/types";
+import { type RendererState, widgetRegistry } from "~/lib/plugins/registry";
 import {
   type Source,
   useShallowBackendConnectorStore,
@@ -12,6 +13,11 @@ import { useShallowPermissionsStore } from "~/lib/state/permissions";
 import { getApiSourceWidgets } from "~/lib/utils/validateBackend";
 import { cleanURL } from "~/lib/utils/widgetParams";
 import type { ProcessedTemplate, SharedPromptT } from "./useSharedTemplates";
+
+export type RendererDiagnostic = Extract<
+  RendererState,
+  { status: "failed" | "unavailable" }
+> & { rendererId: string };
 
 export interface ProcessedBackendT<
   T = boolean,
@@ -23,6 +29,7 @@ export interface ProcessedBackendT<
   validatedUrl?: string;
   templates: ProcessedTemplate<P>[];
   isSharedSource?: boolean;
+  rendererDiagnostics?: Record<string, RendererDiagnostic>;
 }
 
 export function useProcessBackendWidgets() {
@@ -83,6 +90,7 @@ export function useProcessBackendWidgets() {
         }
 
         const newWidgets = {} as ProcessedBackendT["widgets"];
+        const rendererDiagnostics: Record<string, RendererDiagnostic> = {};
 
         // Add widgetId to widgets and check permissions
         for (const [key, widget] of Object.entries(widgets)) {
@@ -93,6 +101,15 @@ export function useProcessBackendWidgets() {
             source,
             hasAccess(backend.uuid, widget.widgetId),
           );
+          const rendererId = widget.type ?? widget.defaultViz ?? "table";
+          const renderer = widgetRegistry.getRendererState(rendererId);
+          if (renderer.status === "failed" || renderer.status === "unavailable") {
+            rendererDiagnostics[key] = {
+              rendererId,
+              status: renderer.status,
+              message: renderer.message,
+            };
+          }
         }
 
         // Filter out templates that the user doesn't have access to
@@ -122,6 +139,7 @@ export function useProcessBackendWidgets() {
           validatedUrl,
           templates: filteredTemplates,
           isSharedSource: true,
+          rendererDiagnostics,
         };
       } catch (err) {
         console.error(`Error processing backend ${backend.name}:`, err);
@@ -134,7 +152,7 @@ export function useProcessBackendWidgets() {
         };
       }
     },
-    [permissions, hasAccess],
+    [permissions, hasAccess, getApiSourceById],
   );
 
   return processBackendWidgets;

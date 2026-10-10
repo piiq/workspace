@@ -4,6 +4,7 @@ import { AllCommunityModule } from "ag-grid-community";
 import { describe, expect, it, vi } from "vitest";
 import { createPluginApi } from "~/lib/plugins/api";
 import { PluginRegistry } from "~/lib/plugins/registry";
+import { RENDERER_BINDINGS } from "~/lib/plugins/rendererBindings";
 
 const Component = () => null;
 const plugin = (name = "@example/chart") =>
@@ -26,6 +27,74 @@ function setup() {
 }
 
 describe("plugin registry", () => {
+  it("resolves table through the registered Community renderer", () => {
+    const { registry } = setup();
+    registry.registerBuiltins([{ id: "ag_grid_table", title: "Table", Component }]);
+    expect(registry.getRendererState("table")).toMatchObject({
+      status: "ready",
+      renderer: { id: "ag_grid_table", Component },
+    });
+  });
+
+  it.each(
+    Object.entries(RENDERER_BINDINGS).filter(([id]) => id !== "table"),
+  )("keeps the fixed binding for %s when its plugin is absent or installed", async (id, boundId) => {
+    const { registry, api } = setup();
+    const packageId = boundId.slice(0, boundId.lastIndexOf("/"));
+    const name = boundId.slice(boundId.lastIndexOf("/") + 1);
+    expect(registry.getRendererState(id)).toMatchObject({
+      status: "unavailable",
+      message: expect.stringContaining(packageId),
+    });
+    await api.registerPlugin(
+      definePlugin(
+        { name: packageId, version: "1.0.0" },
+        {
+          renderers: [{ name, title: name, Component }],
+        },
+      ),
+    );
+    expect(registry.getRendererState(id)).toMatchObject({
+      status: "ready",
+      renderer: { id: boundId, Component },
+    });
+  });
+
+  it("uses an existing built-in registration for a bound ID", () => {
+    const { registry } = setup();
+    registry.registerBuiltins([{ id: "charting", title: "Charting", Component }]);
+    expect(registry.getRendererState("charting")).toMatchObject({
+      status: "ready",
+      renderer: { id: "charting", Component },
+    });
+  });
+
+  it("reports incompatible API versions on affected renderers", () => {
+    const { registry, api } = setup();
+    registry.registerBuiltins([{ id: "clock", title: "Clock", Component }]);
+    const incompatible = { ...plugin(), apiVersion: 2 } as unknown as ReturnType<
+      typeof plugin
+    >;
+    expect(() => api.registerPlugin(incompatible)).toThrow("Workspace supports API 1");
+    expect(registry.getRendererState("@example/chart/chart")).toMatchObject({
+      status: "failed",
+      message: expect.stringContaining("Install a compatible plugin version"),
+    });
+    expect(registry.getRendererState("clock").status).toBe("ready");
+  });
+  it("reports a missing component on affected renderers", () => {
+    const { registry, api } = setup();
+    registry.registerBuiltins([{ id: "clock", title: "Clock", Component }]);
+    const definition = plugin();
+    definition.renderers[0].Component = undefined as any;
+    expect(() => api.registerPlugin(definition)).toThrow("Renderer has no component");
+    expect(registry.getRendererState("@example/chart/chart")).toMatchObject({
+      status: "failed",
+      message: expect.stringContaining("Renderer has no component"),
+    });
+    expect(registry.getRendererState("clock").status).toBe("ready");
+  });
+
   it("preserves core IDs and uses qualified IDs for plugins", async () => {
     const { registry, api } = setup();
     registry.registerBuiltins([

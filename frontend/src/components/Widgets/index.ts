@@ -236,7 +236,7 @@ export function getParsedWidgetData(queryData: QueryDataT, widget: WidgetT) {
   return rowData || queryData?.results || queryData;
 }
 
-export const getWidgetComponent = (widgetId: WidgetId) => {
+export const getWidgetComponent = (widgetId: string) => {
   if (BLOCKED_WIDGET_IDS.has(widgetId)) return;
 
   const state = widgetRegistry.getRendererState(widgetId);
@@ -244,7 +244,7 @@ export const getWidgetComponent = (widgetId: WidgetId) => {
   return state.status === "ready" ? state.renderer.Component : undefined;
 };
 
-export const isAgGridWidget = (widgetId: WidgetId): boolean => {
+export const isAgGridWidget = (widgetId: string): boolean => {
   if (BLOCKED_WIDGET_IDS.has(widgetId)) return false;
   const state = widgetRegistry.getRendererState(widgetId);
   return state.status === "ready" && state.renderer.wrapper === "ag-grid";

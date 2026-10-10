@@ -1,11 +1,12 @@
 import posthog from "posthog-js";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useSyncExternalStore } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import DraggableCard from "~/components/DraggableCard";
 import { Button } from "~/components/ds/atoms/Button";
 import { useWidgetParamsPositions } from "~/components/General/Table/NavBar/QueryParams";
 import { FILE_EXTENSIONS } from "~/lib/constants";
 import { useTabContext } from "~/lib/contexts/TabContext";
+import { widgetRegistry } from "~/lib/plugins/registry";
 import { useAppStore } from "~/lib/state/app";
 import { getCleanWidgetId } from "~/lib/utils";
 import WIDGETS from "~/lib/widgets.json";
@@ -14,7 +15,7 @@ import SearchResultsNotFound from "./General/SearchResultsNotFound";
 import { Table } from "./General/Table/hooks/useTableContext";
 import RenderIfVisible from "./RenderIfVisible";
 import { useWidgetContext, WidgetProvider } from "./Widget.context";
-import Widgets, { getWidgetComponent, isAgGridWidget, type WidgetId } from "./Widgets";
+import Widgets, { getWidgetComponent, isAgGridWidget } from "./Widgets";
 
 const WidgetFallback = () => {
   const { renderRow0Params, renderBelowNavbarRows } = useWidgetParamsPositions(false);
@@ -105,7 +106,7 @@ export function WidgetWrapper(props: { uuid: string; activeDashboardId: string }
   return <ErrorBoundary {...errorBoundaryProps}>{element}</ErrorBoundary>;
 }
 
-function loadWidgetComponent(widgetId: WidgetId) {
+function loadWidgetComponent(widgetId: string) {
   const Component = getWidgetComponent(widgetId);
 
   if (!Component) {
@@ -124,6 +125,11 @@ function loadWidgetComponent(widgetId: WidgetId) {
 }
 
 export function WidgetComponent() {
+  useSyncExternalStore(
+    widgetRegistry.subscribe,
+    widgetRegistry.getSnapshot,
+    widgetRegistry.getSnapshot,
+  );
   const { widget, widgetFromJSON } = useWidgetContext();
   if (!widget?.widgetId) {
     return null;
@@ -131,6 +137,11 @@ export function WidgetComponent() {
 
   const endpointUrl = widget?.endpoint?.url;
   const cleanWidgetId = getCleanWidgetId(widget.widgetId, widget.connectionType);
+  const widgetType = widget?.type ?? widgetFromJSON?.type;
+
+  if (widgetType?.startsWith("@")) {
+    return renderDeclaredWidget(widgetType);
+  }
 
   // Handle YouTube widgets - both built-in (widgetId="youtube-xxx") and backend (type="youtube")
   if (cleanWidgetId === "youtube" || widget?.type === "youtube") {
@@ -154,7 +165,11 @@ export function WidgetComponent() {
     );
   }
 
-  const hasComponent = loadWidgetComponent(cleanWidgetId as WidgetId);
+  if (widget.connectionType === "advanced-backend" && widgetType) {
+    return renderDeclaredWidget(widgetType);
+  }
+
+  const hasComponent = loadWidgetComponent(cleanWidgetId);
 
   if (hasComponent) return hasComponent;
 
@@ -169,10 +184,7 @@ export function WidgetComponent() {
     );
   }
 
-  const widgetType = widgetFromJSON?.type ?? widget?.type;
-  const widgetTypeComponent = loadWidgetComponent(widgetType as WidgetId);
-
-  if (widgetTypeComponent) return widgetTypeComponent;
+  if (widgetType && widgetType !== "custom") return renderDeclaredWidget(widgetType);
 
   if (
     widget?.endpoint ||
@@ -191,6 +203,25 @@ export function WidgetComponent() {
         icon={true}
         firstMessage="Widget is not implemented yet"
         secondMessage={`ID: ${widget.widgetId}`}
+      />
+    </DraggableCard>
+  );
+}
+
+function renderDeclaredWidget(rendererId: string) {
+  const component = loadWidgetComponent(rendererId);
+  if (component) return component;
+  const state = widgetRegistry.getRendererState(rendererId);
+  return (
+    <DraggableCard>
+      <SearchResultsNotFound
+        icon={true}
+        firstMessage="Widget renderer unavailable"
+        secondMessage={
+          state.status === "failed" || state.status === "unavailable"
+            ? state.message
+            : ""
+        }
       />
     </DraggableCard>
   );

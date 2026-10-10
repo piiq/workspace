@@ -14,6 +14,26 @@ An entry module's `register(api)` function calls `api.registerPlugin(plugin)`. B
 
 Optional `setup(host)` finishes before the plugin's renderers become available. Await registration before creating a dependent widget. `resolveRenderer(id)` waits for pending registration and returns a ready renderer or an actionable failure/unavailability message. Failed setup leaves unrelated renderers available. Registration promises reject on failure.
 
+## Widget renderer IDs
+
+Backend `widgets.json` entries select a renderer with `type: "@scope/package/renderer"`. Widget Builder and backend metadata accept qualified IDs without requiring the plugin to be installed. An explicit `type` takes precedence over `defaultViz`; creating, saving, and reopening a widget preserves its renderer ID, parameters, and saved state.
+
+Missing, incompatible, or failed plugins display an actionable message on the affected widget. Other widgets remain usable. Installing the renderer makes a mounted widget render its saved definition without substituting a table or rewriting its ID.
+
+The host keeps these fixed bindings for existing widget definitions:
+
+| Saved renderer ID | Bound renderer ID |
+| --- | --- |
+| `table` | `ag_grid_table` |
+| `charting`, `advanced_charting` | `@piiq/tradingview/chart` |
+| `ssrm_table` | `@piiq/ag-enterprise/server-side-table` |
+| `ssrm_advanced` | `@piiq/ag-enterprise/advanced-server-side-table` |
+| `chart-highcharts` | `@piiq/highcharts/chart` |
+
+A renderer registered under the saved ID takes precedence over its binding. Licensed renderers use their built-in implementations while those registrations exist; after extraction, the same definitions resolve through the bindings. An absent plugin does not invalidate a saved definition.
+
+These bindings do not install plugins or refer to filesystem locations. Plugin authors choose their own package and renderer names and use those qualified IDs in widget declarations, such as `@example/perspective/table`. The fixed aliases apply to existing widget types; independent plugins do not need an entry in this mapping.
+
 ## Host interfaces
 
 `api.host` supplies the application's React, ReactDOM, ReactDOM client, and JSX runtime. Plugins use these bindings to share the application's hooks. `host.useTheme()` follows the application's light/dark theme. The core SDK has no AG Grid imports; plugins using other rendering libraries do not need to install AG Grid.
