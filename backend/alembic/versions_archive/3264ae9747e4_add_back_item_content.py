@@ -11,7 +11,7 @@ from sqlalchemy import func, select, update
 
 from alembic import op  # type: ignore
 from api.models.model_helpers import GzipJsonType
-from api.models.tauri_models import DashboardItem, DashboardSave
+from api.models.workspace_models import DashboardItem, DashboardSave
 
 # revision identifiers, used by Alembic.
 revision = "3264ae9747e4"

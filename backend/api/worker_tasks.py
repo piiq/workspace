@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from loguru import logger
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.models.tauri_models import CopilotChatOld
+from api.models.workspace_models import CopilotChatOld
 from api.schemas import Chat, CopilotChatsCreate, EntitlementUsageGet
 from api.storage import FileStorage
 from routers.pro.helpers import get_entitlement, migrate_user_copilot_chats

@@ -32,7 +32,7 @@ from api.models import (
     UserAppShare,
     UserProInvite,
 )
-from api.models.tauri_models import StoredFile, StoredFileShare
+from api.models.workspace_models import StoredFile, StoredFileShare
 from api.storage import FileStorage
 from utilities.config import settings
 

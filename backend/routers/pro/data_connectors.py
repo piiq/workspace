@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api import auth_helpers, crud, helpers, schemas
 from api.database import aget_read_db, aget_write_db
 from api.models import ApiSource, FileWidget, SingleWidget
-from api.models.tauri_models import StoredFile
+from api.models.workspace_models import StoredFile
 from api.schemas import SuccessReturn
 from api.storage import FileStorage
 from utilities.config import settings

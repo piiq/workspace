@@ -25,7 +25,7 @@ from api.events.types import RoleAuditAction, RoleResourceType
 from utilities.config import BaseModel, settings
 
 if TYPE_CHECKING:
-    from api.models.tauri_models import CopilotChat, StoredFile
+    from api.models.workspace_models import CopilotChat, StoredFile
 
 
 StoredFileT = TypeVar("StoredFileT", bound="StoredFile")

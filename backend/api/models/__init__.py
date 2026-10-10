@@ -13,27 +13,6 @@ from .entity_models import (
 )
 from .general_models import Feedback, Log, StripeEvent
 from .marketplace_models import RateVendorApp, UserAppSubscription, Vendor, VendorApp
-from .tauri_models import (
-    ApiSource,
-    ChatMessages,
-    CopilotChat,
-    CopilotChatOld,
-    CustomCopilot,
-    DashboardItem,
-    DashboardSave,
-    DashboardShare,
-    DONT_USE_CopilotChats,
-    EnabledWidgetBundles,
-    FileWidget,
-    MCPServers,
-    SingleWidget,
-    StoredFile,
-    StoredFileShare,
-    TradingView,
-    UserApp,
-    UserAppShare,
-    WidgetMetadata,
-)
 from .tier_models import (
     DATA_BUNDLE_DEFAULT,
     DATA_BUNDLE_EQUITY_RESEARCH,
@@ -58,4 +37,25 @@ from .user_models import (
     UserPrompts,
     UserRole,
     UserSkills,
+)
+from .workspace_models import (
+    ApiSource,
+    ChatMessages,
+    CopilotChat,
+    CopilotChatOld,
+    CustomCopilot,
+    DashboardItem,
+    DashboardSave,
+    DashboardShare,
+    DONT_USE_CopilotChats,
+    EnabledWidgetBundles,
+    FileWidget,
+    MCPServers,
+    SingleWidget,
+    StoredFile,
+    StoredFileShare,
+    TradingView,
+    UserApp,
+    UserAppShare,
+    WidgetMetadata,
 )

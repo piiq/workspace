@@ -29,7 +29,7 @@ COMPILE_PACKAGES = ["api", "routers", "utilities"]
 # response models. Splitting those routers would let the handlers compile;
 # parked as a follow-up.
 EXCLUDE_FILES = {
-    "api/models/tauri_models.py",
+    "api/models/workspace_models.py",
     "routers/routers_helpers.py",
     "routers/metrics.py",
 }
