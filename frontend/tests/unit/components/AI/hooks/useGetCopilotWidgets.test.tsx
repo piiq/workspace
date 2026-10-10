@@ -40,6 +40,11 @@ const mockGetWidgetRuntimeState = vi.fn().mockReturnValue(undefined);
 const mockGetWidgetsInCurrentDashboard = vi.fn().mockReturnValue([]);
 const mockSetCopilotWidgets = vi.fn();
 
+vi.mock("~/lib/widgetData", () => ({
+  getWidgetData: (...args: unknown[]) => mockGetDashboardWidgetData(...args),
+  getWidgetsData: () => mockGetDashboardWidgetsData(),
+}));
+
 vi.mock("~/lib/state/copilotData", () => ({
   useShallowCopilotDataStore: (selector: (state: any) => any) =>
     selector({
@@ -104,8 +109,8 @@ vi.mock("~/components/AI/hooks/useTextSuggestions", () => ({
   useTextSuggestions: vi.fn(),
 }));
 
-vi.mock("~/components/Widgets/Helpers/useCopilotDataWidget", () => ({
-  createCopilotDataWidget: vi.fn().mockReturnValue({
+vi.mock("~/hooks/useWidgetDataExport", () => ({
+  createWidgetDataMetadata: vi.fn().mockReturnValue({
     metadata: {},
     title: "Mock",
   }),
@@ -734,7 +739,7 @@ describe("useGetCopilotWidgets - agent payload vs. advertised dashboard state", 
  *
  * Tab membership must be read from the raw widget. `widgetData` is either a real
  * entry from `dashboardWidgetsData` (carries innerTab) or a placeholder from
- * `createCopilotDataWidget` (does not), so reading it off `widgetData` makes
+ * `createWidgetDataMetadata` (does not), so reading it off `widgetData` makes
  * `!widgetData.innerTab` true for every placeholder and files not-yet-loaded
  * off-tab widgets under the current tab. #1551 fixed this; #1488 merged 77
  * minutes later off an older branch and carried the previous line back — this

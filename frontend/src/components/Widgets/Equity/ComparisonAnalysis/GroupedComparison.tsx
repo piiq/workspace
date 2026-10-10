@@ -8,13 +8,13 @@ import Icon from "~/components/Icon";
 import { AdvancedSelect } from "~/components/NewAdvancedSelect";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import { useProGroupedComparisons } from "~/lib/api/sdkComponents";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import AdvancedSelectedTickers from "../../Helpers/AdvancedSelectedTickers";
 import AdvancedSelectedTicker, {
   resultsToTicker,
 } from "../../Helpers/AdvancedSelectTicker";
-import useCopilotDataWidget from "../../Helpers/useCopilotDataWidget";
 import { COMPARISON_TYPES, FINANCIAL_RATIOS } from "./constants";
 import { prepareColumnDefs, usePeersData } from "./hooks/usePeersData";
 import type { Selected } from "./types";
@@ -109,9 +109,9 @@ export default function GroupedComparison() {
     );
   }, [currentData?.tickers, state, widget.data?.mainTicker?.symbol]);
 
-  useCopilotDataWidget({
-    aiData: tableData,
-    aiEnabled: true,
+  useWidgetDataExport({
+    data: tableData,
+    enabled: true,
     lastUpdated: peersQuery.dataUpdatedAt,
   });
 

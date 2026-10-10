@@ -5,8 +5,14 @@ import { lazy } from "react";
 import * as jsxRuntime from "react/jsx-runtime";
 import * as reactDom from "react-dom";
 import * as reactDomClient from "react-dom/client";
+import { useWidgetDataExport } from "~/hooks/useWidgetDataExport";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { createPluginApi } from "./api";
+import {
+  usePluginWidgetContext,
+  usePluginWidgetData,
+  usePluginWidgetLifecycle,
+} from "./widgetHooks";
 
 export const pluginHost: AgGridPluginHost = {
   react,
@@ -15,6 +21,10 @@ export const pluginHost: AgGridPluginHost = {
   jsxRuntime,
   agGrid,
   useTheme: () => useShallowThemeStore((state) => state.theme),
+  useWidgetContext: usePluginWidgetContext,
+  useWidgetData: usePluginWidgetData,
+  useWidgetDataExport,
+  useWidgetLifecycle: usePluginWidgetLifecycle,
   ui: {
     Button: lazy(() =>
       import("~/components/ds/atoms/Button").then((module) => ({

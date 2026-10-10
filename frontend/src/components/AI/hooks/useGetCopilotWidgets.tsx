@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { isTruthyRecord } from "~/components/General/Table/utils";
 import type { ParamDef, WidgetT } from "~/components/types";
-import { createCopilotDataWidget } from "~/components/Widgets/Helpers/useCopilotDataWidget";
+import { createWidgetDataMetadata } from "~/hooks/useWidgetDataExport";
 import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { getIframeWidget } from "~/lib/iframeWidgetRegistry";
 import { useShallowAppStore } from "~/lib/state/app";
@@ -24,6 +24,7 @@ import {
   getWidgetInfo,
 } from "~/lib/utils";
 import { type DashboardInfoT, getDashboardInfo } from "~/lib/utils/workspaceDashboard";
+import { getWidgetData, getWidgetsData } from "~/lib/widgetData";
 import type { WorkspaceStateT } from "./useAiFetchRequestInit";
 import { useShallowAppWidgetsStore } from "./useGetAppWidgets";
 import { useShallowStreamingStore } from "./useStreaming";
@@ -88,12 +89,8 @@ export function useGetCopilotWidgets() {
     }
   }, [lastVisitedPage, currentDashboardId]);
 
-  // widgets are the selected widgets when adding to copilot
-  // getDashboardWidgetData contain all the widgets with data filled in a dashboard
   const {
     selectedWidgetIDs: selectedWidgetUUIDs,
-    getDashboardWidgetData,
-    getDashboardWidgetsData,
     getWidgetRuntimeState,
     getWidgetsInCurrentDashboard,
     widgetsLastUpdated,
@@ -102,8 +99,6 @@ export function useGetCopilotWidgets() {
     currentSelectedWidgets,
   } = useShallowCopilotDataStore((state) => ({
     selectedWidgetIDs: state.selectedWidgetIDs,
-    getDashboardWidgetData: state.getDashboardWidgetData,
-    getDashboardWidgetsData: state.getDashboardWidgetsData,
     getWidgetRuntimeState: state.getWidgetRuntimeState,
     widgetSubsetData: state.widgetSubsetData,
     widgetsLastUpdated: state.widgetsLastUpdated,
@@ -145,7 +140,7 @@ export function useGetCopilotWidgets() {
 
     const persistentWidgets = selectedWidgetUUIDs
       .map((uuid) => {
-        const dashboardWidgetData = getDashboardWidgetData(uuid);
+        const dashboardWidgetData = getWidgetData(uuid);
         if (!dashboardWidgetData) return null;
 
         // Check if this is a tab widget (pseudo-widget)
@@ -216,7 +211,6 @@ export function useGetCopilotWidgets() {
     selectedWidgetUUIDs,
     widgetsLastUpdated,
     getWidgetsInCurrentDashboard,
-    getDashboardWidgetData,
     getDashboardWidgetByUuid,
     getWidgetRuntimeState,
     currentSelectedWidgets,
@@ -266,7 +260,7 @@ export function useGetCopilotWidgets() {
 
     if (!selectedCopilot?.features?.["widget-dashboard-select"]) return defaultOutput;
 
-    const dashboardWidgetsData = getDashboardWidgetsData() || {};
+    const dashboardWidgetsData = getWidgetsData();
     const allWidgetsInDashboard = getWidgetsInCurrentDashboard() as WidgetT[];
 
     if (!allWidgetsInDashboard) return defaultOutput;
@@ -283,23 +277,13 @@ export function useGetCopilotWidgets() {
         schema = apiSource?.schemas?.[w?.schemaName];
       }
 
-      // If widget is not in the copilot data, create a basic entry.
-      //
-      // Deliberately NOT skipped for the current tab. The `|| w.innerTab ===
-      // innerTab` short-circuit that used to live here assumed a visible widget
-      // always has data by now, so synthesizing one would be wasted work. That
-      // holds in steady state and fails during load: until a current-tab widget
-      // populates `dashboardWidgetsData`, it has no entry, and the
-      // `if (!widgetData) return acc;` below then drops it from the payload
-      // entirely — while the SAME widget on a background tab survives, because
-      // it got a placeholder. The agent's `workspace_state` is built separately
-      // and still advertises the dropped widget's uuid, so the model asks for a
-      // widget the payload cannot resolve.
+      // Include metadata before a visible widget finishes loading so agents can resolve it.
       if (!widgetData) {
-        widgetData = createCopilotDataWidget({
+        const fallback = createWidgetDataMetadata({
           widget: w,
           widgetSource: getWidgetDataSource(w),
         });
+        widgetData = { ...fallback, description: fallback.description || "" };
       }
 
       if (schema) {
@@ -378,7 +362,6 @@ export function useGetCopilotWidgets() {
     return result;
   }, [
     innerTab,
-    getDashboardWidgetsData,
     getWidgetsInCurrentDashboard,
     widgetsLastUpdated,
     getDashboardWidgetByUuid,

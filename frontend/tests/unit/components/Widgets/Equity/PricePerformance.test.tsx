@@ -33,7 +33,7 @@ vi.mock("~/components/Widgets/Helpers/AdvancedSelectTicker", () => ({
   default: () => <div data-testid="ticker-selector">Ticker</div>,
 }));
 
-vi.mock("~/components/Widgets/Helpers/useCopilotDataWidget", () => ({
+vi.mock("~/hooks/useWidgetDataExport", () => ({
   default: () => null,
 }));
 

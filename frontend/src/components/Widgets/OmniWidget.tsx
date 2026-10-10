@@ -18,6 +18,7 @@ import { useDebounceValue, useResizeObserver } from "usehooks-ts";
 import { useAutoRefresh } from "~/hooks/useAutoRefresh";
 import useIsMobile from "~/hooks/useIsMobile";
 import { type StateDispatch, useStateReducer } from "~/hooks/useStateReducer";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import { cleanSearchParams, convertHeadersToRecord } from "~/lib/api";
 import { type Citation, CopilotDataItemSchema } from "~/lib/state/copilot";
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
@@ -55,7 +56,6 @@ import Tooltip from "../Tooltip";
 import type { WidgetT } from "../types";
 import { getDisplayLanguage } from "../ui/monacoLanguageUtils";
 import { useWidgetContext } from "../Widget.context";
-import useCopilotDataWidget from "./Helpers/useCopilotDataWidget";
 
 const MonacoEditor = lazy(() =>
   import("../ui/MonacoEditor").then((m) => ({ default: m.MonacoEditor })),
@@ -713,9 +713,9 @@ export default function OmniWidget() {
     );
   }, [state.response, state.isEditorExpanded]);
 
-  useCopilotDataWidget({
-    aiData: isError(state.response) ? null : state.response,
-    aiEnabled: true,
+  useWidgetDataExport({
+    data: isError(state.response) ? null : state.response,
+    enabled: true,
     captureExecutedParams: true,
   });
   useEventListener(`runParams-${widget.id}`, () =>
