@@ -54,6 +54,7 @@ import {
   type TaskRequest,
 } from "~/lib/utils";
 import { ONBOARDING_STORED_FILES } from "~/lib/utils/createTemplates";
+import { exportWidgetData } from "~/lib/widgetData";
 import {
   buildChartWidget,
   buildHtmlWidget,
@@ -343,10 +344,9 @@ export function useFunctionCall() {
             })
           ) {
             try {
-              const widgetData = workspaceApi.readWidget(
-                currentDashboardId,
-                widgetUuid,
-              );
+              const widgetData =
+                (await exportWidgetData(widgetUuid)) ??
+                workspaceApi.readWidget(currentDashboardId, widgetUuid);
               // Check if cached data is non-empty before using it
               // SSRM widgets (Snowflake, etc.) may have empty cached data since they fetch on-demand
               const cachedData = widgetData?.data;
@@ -394,11 +394,7 @@ export function useFunctionCall() {
               );
               break;
             case "OpenBB Workspace":
-              result = await getWorkspaceWidgetsData(
-                dataSource,
-                getDashboardWidgetData,
-                getWidgetFromBackend,
-              );
+              result = await getWorkspaceWidgetsData(dataSource, getWidgetFromBackend);
               break;
             default:
               result = await getCustomWidgetsData(
@@ -1386,7 +1382,6 @@ async function getOpenBBHubPreSignedUrls(
 
 async function getWorkspaceWidgetsData(
   dataSource: DataSourceT,
-  getDashboardWidgetData: (widgetId: string) => any,
   getWidgetFromBackend: (backendName: string, widgetId: string) => WidgetT | null,
 ): Promise<any> {
   const widgetUuid = dataSource.widget_uuid;
@@ -1405,7 +1400,7 @@ async function getWorkspaceWidgetsData(
   }
 
   if (widgetUuid) {
-    const widgetData = getDashboardWidgetData(widgetUuid);
+    const widgetData = await exportWidgetData(widgetUuid);
     if (widgetData) return widgetData.data;
     const widget = getWidgetFromBackend("OpenBB Workspace", dataSource.id);
     if (widget?.storage) {

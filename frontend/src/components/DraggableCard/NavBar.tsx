@@ -47,6 +47,7 @@ import {
   showNotification,
   showNotificationWithRememberMe,
 } from "~/lib/utils/toast";
+import { refreshWidgetData } from "~/lib/widgetData";
 import { linkifyText } from "~/utils/linkifyText";
 import EllipsisDropdownMenu from "../EllipsisDropdown";
 import FunctionsDialog from "../FunctionsDialogDraggableCard";
@@ -197,12 +198,20 @@ export function RefreshButton(props: {
     };
   }, [lastUpdated, staleTime]);
 
-  const onClick = useCallback(() => {
+  const onClick = useCallback(async () => {
     if (runButton) {
       dispatchRunParams(widgetUUid);
       if (!hadError) return;
     }
-    updateWidget((prev) => ({ ...prev, refreshQuery: Date.now() }));
+    try {
+      if (!(await refreshWidgetData(widgetUUid))) {
+        updateWidget((prev) => ({ ...prev, refreshQuery: Date.now() }));
+      }
+    } catch (error) {
+      toast.error("Failed to refresh widget", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
   }, [hadError, runButton, widgetUUid, updateWidget]);
 
   const tooltipMessage = useMemo(() => {

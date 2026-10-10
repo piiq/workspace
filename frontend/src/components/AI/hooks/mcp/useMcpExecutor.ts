@@ -4,8 +4,10 @@ import { toast } from "sonner";
 import { getIframeWidget } from "~/lib/iframeWidgetRegistry";
 import type { CopilotDataT } from "~/lib/state/copilot";
 import { CopilotErrorType } from "~/lib/state/copilot";
+import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import { useShallowMcpToolsStore } from "~/lib/state/mcpTools";
 import { getAllWidgets } from "~/lib/utils/widget";
+import { refreshWidgetData } from "~/lib/widgetData";
 
 type ExecuteAgentTool = (
   serverId: string,
@@ -15,6 +17,7 @@ type ExecuteAgentTool = (
 
 interface WidgetCitation {
   widgetId: string;
+  sourceId?: string;
   source: string;
   name?: string;
   description?: string;
@@ -56,6 +59,7 @@ function findEquivalentWidget(
     if (norm(meta.tool_id) !== toolKey) continue;
     return {
       widgetId: w.widgetId || "",
+      sourceId: w.sourceId,
       source:
         w.sourceName ||
         (Array.isArray(w.source) ? w.source.join(", ") : w.source || ""),
@@ -90,6 +94,9 @@ ${error.message}`,
 }
 
 export function useMcpExecutor() {
+  const getWidgetsInCurrentDashboard = useShallowCopilotDataStore(
+    (state) => state.getWidgetsInCurrentDashboard,
+  );
   const mcpToolsStore = useShallowMcpToolsStore((state) => ({
     getServerById: state.getServerById,
     getMCPConnection: state.getMCPConnection,
@@ -234,6 +241,27 @@ export function useMcpExecutor() {
         const equivalentWidget = server.iframeWidgetId
           ? null
           : findEquivalentWidget(server?.clientName || server?.name, actualToolName);
+        if (equivalentWidget && calledTool?.annotations?.destructiveHint === true) {
+          const widgets = getWidgetsInCurrentDashboard();
+          if (Array.isArray(widgets)) {
+            const refreshes = await Promise.allSettled(
+              widgets
+                .filter(
+                  (widget) =>
+                    widget.widgetId === equivalentWidget.widgetId &&
+                    widget.sourceId === equivalentWidget.sourceId,
+                )
+                .map((widget) => refreshWidgetData(widget.id)),
+            );
+            for (const refresh of refreshes) {
+              if (refresh.status === "rejected") {
+                toast.error("Widget refresh failed", {
+                  description: String(refresh.reason),
+                });
+              }
+            }
+          }
+        }
         if (equivalentWidget) {
           const widgetName = equivalentWidget.name || equivalentWidget.widgetId;
           toast.info("Matching widget found", {
@@ -341,7 +369,7 @@ export function useMcpExecutor() {
         return [getErrorContent(toolName, server?.name || serverId, error as Error)];
       }
     },
-    [mcpToolsStore],
+    [mcpToolsStore, getWidgetsInCurrentDashboard],
   );
 
   return executeAgentTool;
