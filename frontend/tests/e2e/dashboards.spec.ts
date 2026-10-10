@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { createDashboard, saveDashboard } from "./helpers";
+import { createDashboard, saveDashboard, waitForWorkspace } from "./helpers";
 
 test("dashboard rename persists after reload", async ({ page }) => {
   const { name } = await createDashboard(page, "Renamed dashboard");
   await page.reload();
+  await waitForWorkspace(page);
   await expect(
     page.getByTestId("sidebar").getByText(name, { exact: true }),
   ).toBeVisible();
@@ -21,6 +22,7 @@ test("delete a dashboard", async ({ page }) => {
   ).toHaveCount(0);
   await saveDashboard(page);
   await page.reload();
+  await waitForWorkspace(page);
   await expect(
     page.getByTestId("sidebar").getByText(name, { exact: true }),
   ).toHaveCount(0);

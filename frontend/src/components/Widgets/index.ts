@@ -1,6 +1,8 @@
 import { lazy } from "react";
 import { WidgetDataProcessors } from "~/components/Widgets/dataProcessors";
 import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
+import { registerBuiltinRenderers } from "~/lib/plugins/api";
+import { widgetRegistry } from "~/lib/plugins/registry";
 import type { WidgetsIds } from "~/lib/utils/widget";
 import type { WidgetT } from "../types";
 
@@ -202,6 +204,16 @@ export const WidgetComponentMap = {
   ...NonAgGridComponents,
 };
 
+registerBuiltinRenderers(
+  Object.entries(WidgetComponentMap).map(([id, componentName]) => ({
+    id,
+    title: componentName.replace(/([a-z])([A-Z])/g, "$1 $2"),
+    Component: Widgets[componentName],
+    kind: id in AgGridComponents ? "table" : "content",
+    wrapper: id in AgGridComponents ? "ag-grid" : undefined,
+  })),
+);
+
 export type WidgetId<T = keyof typeof WidgetComponentMap | WidgetsIds> =
   T extends keyof typeof WidgetComponentMap ? T : T extends WidgetsIds ? T : string;
 
@@ -224,15 +236,16 @@ export function getParsedWidgetData(queryData: QueryDataT, widget: WidgetT) {
   return rowData || queryData?.results || queryData;
 }
 
-export const getWidgetComponent = (
-  widgetId: WidgetId,
-): WidgetComponent<WidgetComponentName> => {
+export const getWidgetComponent = (widgetId: WidgetId) => {
   if (BLOCKED_WIDGET_IDS.has(widgetId)) return;
 
-  return Widgets?.[WidgetComponentMap?.[widgetId]];
+  const state = widgetRegistry.getRendererState(widgetId);
+  if (state.status === "pending") throw state.ready;
+  return state.status === "ready" ? state.renderer.Component : undefined;
 };
 
 export const isAgGridWidget = (widgetId: WidgetId): boolean => {
   if (BLOCKED_WIDGET_IDS.has(widgetId)) return false;
-  return Object.keys(AgGridComponents).includes(widgetId);
+  const state = widgetRegistry.getRendererState(widgetId);
+  return state.status === "ready" && state.renderer.wrapper === "ag-grid";
 };

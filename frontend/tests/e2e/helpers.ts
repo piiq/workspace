@@ -27,6 +27,10 @@ export enum UserType {
 
 export const userType: UserType = UserType.Free;
 
+export async function waitForWorkspace(page: Page) {
+  await expect(page.getByTestId("sidebar")).toBeVisible({ timeout: 30_000 });
+}
+
 export async function login(page: Page) {
   const user = userInfo();
   await page.goto("/login");
@@ -35,7 +39,7 @@ export async function login(page: Page) {
   await page.getByRole("button", { name: "Login", exact: true }).click();
   await page.waitForURL(/\/(app|onboarding)(\/|$)/);
   await handleFirstTime(page);
-  await expect(page.getByTestId("sidebar")).toBeVisible();
+  await waitForWorkspace(page);
 }
 
 export async function createDashboard(page: Page, prefix: string) {

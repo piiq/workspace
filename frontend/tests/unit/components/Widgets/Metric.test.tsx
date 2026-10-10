@@ -1,5 +1,7 @@
 import { screen } from "@testing-library/react";
+import { Suspense } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getWidgetComponent } from "~/components/Widgets";
 import MetricWidget from "~/components/Widgets/Metric";
 import { useJsonData } from "~/lib/api";
 import { renderWidget } from "./WidgetTestWrapper";
@@ -60,5 +62,21 @@ describe("MetricWidget", () => {
 
     renderWidget(<MetricWidget />);
     expect(screen.getByText(/Error: No results found/)).toBeInTheDocument();
+  });
+
+  it("renders a metric resolved through the renderer registry", async () => {
+    vi.mocked(useJsonData).mockReturnValue({
+      isLoading: false,
+      data: { label: "Revenue", value: "$1M", delta: "10%" },
+      error: null,
+    } as never);
+    const Renderer = getWidgetComponent("metric");
+    renderWidget(
+      <Suspense fallback={null}>
+        <Renderer />
+      </Suspense>,
+    );
+    expect(await screen.findByText("$1M")).toBeInTheDocument();
+    expect(screen.getByText("↑ 10%")).toBeInTheDocument();
   });
 });

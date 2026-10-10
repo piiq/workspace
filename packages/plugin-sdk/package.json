@@ -1,0 +1,24 @@
+{
+  "name": "@piiq/workspace-plugin-sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ag-grid": "./src/ag-grid.ts"
+  },
+  "files": ["src"],
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "ag-grid-community": "34.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.3.1"
+  },
+  "peerDependenciesMeta": {
+    "ag-grid-community": {
+      "optional": true
+    }
+  }
+}
