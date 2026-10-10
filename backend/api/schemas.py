@@ -32,6 +32,10 @@ StoredFileT = TypeVar("StoredFileT", bound="StoredFile")
 
 main_config = ConfigDict(extra="forbid", from_attributes=True)
 source_type = Literal["terminal", "hub", "sdk", "pro", "oauth-pro", "oauth-hub", "excel"]
+# Must match rendererIdSchema in packages/plugin-sdk/src/index.ts.
+RENDERER_ID_PATTERN = r"^@[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*$"
+RendererId: TypeAlias = Annotated[str, Field(pattern=RENDERER_ID_PATTERN)]
+
 MetaDataWidgetType = Literal[
     "iframe",
     "rss_viewer",
@@ -42,7 +46,7 @@ MetaDataWidgetType = Literal[
     "chart",
     "html",
     "ag_chart_from_table",
-]
+] | RendererId
 
 permissions_type = Literal["view", "comment"]  # "edit"
 UserSourceType = Literal["user", "invite", "takeover"]

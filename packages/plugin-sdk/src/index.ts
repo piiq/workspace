@@ -12,11 +12,14 @@ const localName = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 export const pluginIdSchema = z
   .string()
   .regex(/^@[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/);
+export type RendererId = `@${string}/${string}/${string}`;
+// Keep this pattern aligned with RENDERER_ID_PATTERN in backend/api/schemas.py.
+// Widget Builder's type/defaultViz schemas derive from this through frontend/src/lib/types/app.ts; frontend/tests/unit/utils/zodForms.test.tsx checks their parity.
 export const rendererIdSchema = z
   .string()
   .regex(
     /^@[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  );
+  ) as z.ZodType<RendererId>;
 
 const jsonSchema = z.record(z.string(), z.unknown());
 export const rendererMetadataSchema = z.object({
@@ -192,8 +195,8 @@ export interface PluginApi {
   registerPlugin: (plugin: PluginDefinition) => Promise<void>;
 }
 
-export function getRendererId(pluginId: string, rendererName: string): string {
-  return `${pluginIdSchema.parse(pluginId)}/${localName.parse(rendererName)}`;
+export function getRendererId(pluginId: string, rendererName: string): RendererId {
+  return `${pluginIdSchema.parse(pluginId)}/${localName.parse(rendererName)}` as RendererId;
 }
 
 export function definePlugin<

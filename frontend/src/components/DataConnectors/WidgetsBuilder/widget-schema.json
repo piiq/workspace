@@ -1906,26 +1906,36 @@
         "default": "table",
         "anyOf": [
           {
-            "type": "string",
-            "enum": [
-              "advanced_charting",
-              "chart",
-              "chart-highcharts",
-              "chart-vegalite",
-              "file_viewer",
-              "html",
-              "iframe",
-              "live_grid",
-              "markdown",
-              "metric",
-              "multi_file_viewer",
-              "newsfeed",
-              "note",
-              "omni",
-              "pdf",
-              "table",
-              "ssrm_table",
-              "ssrm_advanced"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "advanced_charting",
+                  "chart",
+                  "chart-highcharts",
+                  "chart-vegalite",
+                  "file_viewer",
+                  "html",
+                  "iframe",
+                  "live_grid",
+                  "markdown",
+                  "metric",
+                  "multi_file_viewer",
+                  "newsfeed",
+                  "note",
+                  "rich_note",
+                  "omni",
+                  "pdf",
+                  "table",
+                  "ssrm_table",
+                  "ssrm_advanced",
+                  "youtube"
+                ]
+              },
+              {
+                "type": "string",
+                "pattern": "^@[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-z0-9]+(?:-[a-z0-9]+)*$"
+              }
             ]
           },
           {
@@ -1938,25 +1948,36 @@
         "description": "Deprecated legacy alias of \"type\" — do not use in new configs. Set \"type\" to the widget type instead; for a table with a chart toggle use \"type\": \"table\" with data.table.chartView ({ \"enabled\": true, \"chartType\": \"line\" }).",
         "anyOf": [
           {
-            "type": "string",
-            "enum": [
-              "advanced_charting",
-              "chart",
-              "chart-highcharts",
-              "chart-vegalite",
-              "file_viewer",
-              "html",
-              "iframe",
-              "live_grid",
-              "markdown",
-              "metric",
-              "multi_file_viewer",
-              "newsfeed",
-              "note",
-              "omni",
-              "pdf",
-              "table",
-              "ssrm_table"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "advanced_charting",
+                  "chart",
+                  "chart-highcharts",
+                  "chart-vegalite",
+                  "file_viewer",
+                  "html",
+                  "iframe",
+                  "live_grid",
+                  "markdown",
+                  "metric",
+                  "multi_file_viewer",
+                  "newsfeed",
+                  "note",
+                  "rich_note",
+                  "omni",
+                  "pdf",
+                  "table",
+                  "ssrm_table",
+                  "ssrm_advanced",
+                  "youtube"
+                ]
+              },
+              {
+                "type": "string",
+                "pattern": "^@[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-z0-9]+(?:-[a-z0-9]+)*$"
+              }
             ]
           },
           {

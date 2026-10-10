@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from uuid import uuid4
 
 import pymysql
 import pytest
@@ -76,11 +77,11 @@ def _base_env() -> dict[str, str]:
     }
 
 
-def _run_alembic_upgrade(env_vars: dict[str, str]):
-    """Run alembic upgrade head as a subprocess for full isolation."""
+def _run_alembic_upgrade(env_vars: dict[str, str], revision: str = "head"):
+    """Run alembic upgrade to a test-specified revision in a subprocess."""
     env = {**os.environ, **env_vars}
-    result = subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "alembic", "upgrade", revision],
         cwd=_BACKEND_DIR,
         env=env,
         capture_output=True,
@@ -110,6 +111,21 @@ def _inspect_and_verify(engine: sa.engine.Engine, dialect_name: str):
     """Introspect all tables and run a SELECT on each to verify types work."""
     inspector = sa.inspect(engine)
     tables = inspector.get_table_names()
+
+    widget_type = next(
+        column for column in inspector.get_columns("widget_metadata")
+        if column["name"] == "widget_type"
+    )
+    assert isinstance(widget_type["type"], sa.Text)
+    assert widget_type["nullable"] is False
+    widget_index = next(
+        index for index in inspector.get_indexes("widget_metadata")
+        if index["name"] == "ix_user_name_type"
+    )
+    assert widget_index["column_names"] == ["user_uuid", "name", "widget_type"]
+    assert not widget_index["unique"]
+    if dialect_name == "mysql":
+        assert widget_index["dialect_options"]["mysql_length"] == {"widget_type": 50}
 
     # Verify minimum table count
     assert (
@@ -365,7 +381,7 @@ class TestSQLiteMigrations:
                 "REDIS_PASS": "",
             }
 
-            result = _run_alembic_upgrade(env_vars)
+            result = _run_alembic_upgrade(env_vars, revision="0d4a342f4c26")
             assert (
                 "Running upgrade" in result.stderr
             ), f"No migrations ran:\n{result.stderr}"
@@ -373,6 +389,49 @@ class TestSQLiteMigrations:
             url = f"sqlite:///{db_path}"
             engine = sa.create_engine(url)
             try:
+                from sqlalchemy.orm import Session
+
+                from api import models
+
+                widget_id = uuid4()
+                user_id = uuid4()
+                storage = {"params": {"symbol": "AAPL"}, "pluginState": {"selected": [1, 2]}}
+                config = {"nested": {"columns": ["symbol", "price"]}}
+                with Session(engine) as session:
+                    session.add(
+                        models.User(
+                            uuid=user_id,
+                            email="saved-widget@example.com",
+                            clean_email="saved-widget@example.com",
+                            password="test-password",
+                        )
+                    )
+                    session.flush()
+                    session.add(
+                        models.WidgetMetadata(
+                            user_uuid=user_id,
+                            widget_id=widget_id,
+                            name="Saved widget",
+                            description="Saved data",
+                            source="local",
+                            category="testing",
+                            sub_category="testing",
+                            widget_type="iframe",
+                            storage=storage,
+                            widget_config=config,
+                        )
+                    )
+                    session.commit()
+
+                _run_alembic_upgrade(env_vars)
                 _inspect_and_verify(engine, "sqlite")
+
+                with Session(engine) as session:
+                    widget = session.scalars(
+                        sa.select(models.WidgetMetadata).where(models.WidgetMetadata.widget_id == widget_id)
+                    ).one()
+                    assert widget.widget_type == "iframe"
+                    assert widget.storage == storage
+                    assert widget.widget_config == config
             finally:
                 engine.dispose()

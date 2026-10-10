@@ -73,6 +73,45 @@ class TestWidgetMetadata:
         assert data.get("success") is True
 
     @pytest.mark.asyncio
+    async def test_plugin_widget_metadata_create_update_and_filter(self, auth_client):
+        widget_id = str(uuid4())
+        renderer_id = "@example-org/independent-portfolio-analysis-plugin/interactive-price-table"
+        storage = {"params": {"symbol": "AAPL"}, "customState": {"selectedRows": [2, 4]}}
+        config = {"nested": {"sort": [{"column": "price", "direction": "asc"}]}}
+        payload = {
+            "widgetId": widget_id,
+            "name": f"plugin-{widget_id}",
+            "description": "Portfolio data",
+            "source": "local",
+            "category": "testing",
+            "subCategory": "testing",
+            "widgetType": renderer_id,
+            "storage": storage,
+            "widgetConfig": config,
+        }
+        response = await auth_client.post("/pro/widget-metadata", json=payload)
+        assert response.status_code == 200
+
+        response = await auth_client.get(
+            "/pro/widget-metadata", params={"widget_type": renderer_id, "name": payload["name"]}
+        )
+        assert response.status_code == 200
+        assert response.json() == [payload]
+
+        updated_state = {"params": {"symbol": "MSFT"}, "customState": {"selectedRows": [1]}}
+        updated_renderer = "@example-org/independent-portfolio-analysis-plugin/another-price-table"
+        response = await auth_client.patch(
+            "/pro/widget-metadata",
+            params={"widget_type": renderer_id, "name": payload["name"]},
+            json={"widgetType": updated_renderer, "storage": updated_state},
+        )
+        assert response.status_code == 200
+
+        response = await auth_client.get("/pro/widget-metadata", params={"widget_id": widget_id})
+        assert response.status_code == 200
+        assert response.json() == [{**payload, "widgetType": updated_renderer, "storage": updated_state}]
+
+    @pytest.mark.asyncio
     async def test_create_widget_metadata_chart_html_types(self, auth_client):
         """Should accept canonical chart/html widget types"""
         for widget_type in ("chart", "html"):

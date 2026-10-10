@@ -381,7 +381,7 @@ class WidgetMetadata(Base, UUIDMixin, DateMixin):
     source: Mapped[str] = mapped_column(String(50))
     category: Mapped[str] = mapped_column(String(50))
     sub_category: Mapped[str] = mapped_column(String(50))
-    widget_type: Mapped[str] = mapped_column(String(50))
+    widget_type: Mapped[str] = mapped_column(Text)
     storage: Mapped[str | None] = mapped_column(GzipJsonType)
     widget_config: Mapped[dict | None] = mapped_column(GzipJsonType)
     widget_id: Mapped[UUID] = mapped_column(
@@ -389,7 +389,14 @@ class WidgetMetadata(Base, UUIDMixin, DateMixin):
     )  # this is FE ID (uuid)
 
     __table_args__ = (
-        Index("ix_user_name_type", "user_uuid", "name", "widget_type", unique=False),
+        Index(
+            "ix_user_name_type",
+            "user_uuid",
+            "name",
+            "widget_type",
+            unique=False,
+            mysql_length={"widget_type": 50},
+        ),
     )
 
 

@@ -1,8 +1,10 @@
 import { render } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
+import { z } from "zod";
 
-import { KNOWN_TEMPLATE_KEYS } from "~/lib/types/app";
+import builderSchema from "~/components/DataConnectors/WidgetsBuilder/widget-schema.json";
+import { KNOWN_TEMPLATE_KEYS, widgetTypesSchema } from "~/lib/types/app";
 import {
   formatUnrecognizedKeysMessage,
   showUnrecognizedKeysToast,
@@ -16,12 +18,60 @@ import {
   resetSchema,
   SnowflakeIntroSchema,
   SQLIntroSchema,
+  specificationSchema,
   totpSchema,
   type UnrecognizedKeysReport,
   urlSchema,
   zodEmail,
   zodPassword,
 } from "~/utils/zodForms";
+
+describe("plugin widget definitions", () => {
+  it("preserves a qualified renderer and plugin state without installation", () => {
+    const rendererId = "@test-plugin/charts/price-history";
+    const storage = { params: { symbol: "AAPL" }, selected: "close", range: [0, 5] };
+    const definition = {
+      name: "Price history",
+      description: "A plugin chart",
+      endpoint: "/prices",
+      type: rendererId,
+      defaultViz: "table",
+      storage,
+    };
+
+    const parsed = specificationSchema.parse({ priceHistory: definition });
+    expect(parsed.priceHistory.type).toBe(rendererId);
+    expect(parsed.priceHistory.storage).toEqual(storage);
+    expect(specificationSchema.parse(JSON.parse(JSON.stringify(parsed)))).toEqual(
+      parsed,
+    );
+  });
+
+  it("accepts a qualified renderer through the defaultViz alias", () => {
+    const rendererId = "@test-plugin/charts/price-history";
+    const parsed = specificationSchema.parse({
+      chart: {
+        name: "Price history",
+        description: "A plugin chart",
+        endpoint: "/prices",
+        defaultViz: rendererId,
+      },
+    });
+    expect(parsed.chart.type).toBe(rendererId);
+  });
+
+  it("uses the structural renderer schema in Widget Builder", () => {
+    const { $schema, ...rendererSchema } = z.toJSONSchema(widgetTypesSchema, {
+      target: "draft-7",
+    });
+    expect(builderSchema.additionalProperties.properties.type.anyOf).toEqual(
+      rendererSchema.anyOf,
+    );
+    expect(builderSchema.additionalProperties.properties.defaultViz.anyOf).toEqual(
+      rendererSchema.anyOf,
+    );
+  });
+});
 
 vi.mock("sonner", () => ({
   toast: { warning: vi.fn() },
