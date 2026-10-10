@@ -1,3 +1,4 @@
+import { type RendererId, rendererIdSchema } from "@piiq/workspace-plugin-sdk";
 import { z } from "zod";
 import type { FormInputParamDef, ParamDef } from "~/components/types";
 import { AG_CHART_TYPES } from "../constants";
@@ -667,14 +668,14 @@ const supportedTypesError = WidgetVizTypes.filter(
   .map((v) => `\`${v}\``)
   .join(", ");
 
-export type WidgetVizType = (typeof WidgetVizTypes)[number] | "custom";
+export type WidgetVizType = (typeof WidgetVizTypes)[number] | "custom" | RendererId;
 
 export const widgetTypesSchema = z
   .preprocess(
     (val) => (val === "note" ? "rich_note" : val),
     z
-      .enum(
-        WidgetVizTypes,
+      .union(
+        [z.enum(WidgetVizTypes), rendererIdSchema],
         unionErrorMap(`Supported types are ${supportedTypesError}.`),
       )
       .nullish(),
@@ -923,5 +924,7 @@ export const ExternalWidgetSchema = WidgetSchemaBase.extend({
   );
 
 export function isWidgetVizType(type: string): type is WidgetVizType {
-  return WidgetVizTypes.includes(type as any);
+  return (
+    WidgetVizTypes.includes(type as any) || rendererIdSchema.safeParse(type).success
+  );
 }

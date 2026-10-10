@@ -569,9 +569,22 @@ describe("Zod Schemas from app.ts", () => {
     it("should invalidate unknown types", () => {
       const result = widgetTypesSchema.safeParse("invalidWidgetType");
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toContain("Supported types are");
-      }
+    });
+
+    it("accepts qualified renderer IDs without checking installation", () => {
+      const rendererId = "@test-plugin/charts/price-history";
+      expect(widgetTypesSchema.parse(rendererId)).toBe(rendererId);
+      expect(isWidgetVizType(rendererId)).toBe(true);
+    });
+
+    it.each([
+      "@test-plugin/charts",
+      "@test-plugin/Charts/price-history",
+      "@test-plugin/charts/price_history",
+      "@test-plugin/charts/price-history/extra",
+    ])("rejects malformed renderer ID %s", (rendererId) => {
+      expect(widgetTypesSchema.safeParse(rendererId).success).toBe(false);
+      expect(isWidgetVizType(rendererId)).toBe(false);
     });
   });
 

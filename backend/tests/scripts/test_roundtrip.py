@@ -183,9 +183,6 @@ def _seed_source(session):
             enabled_bundles=["equity"],
             disabled_widgets=[],
         ),
-        models.CopilotChatOld(
-            uuid=uuid4(), user_uuid=USER_UUID, content={"messages": ["old"]}
-        ),
     ])
     session.flush()
 
@@ -357,11 +354,6 @@ async def test_every_table_arrives_identical(table, databases, imported):
     """Row for row, ignoring only the columns the importer deliberately resets."""
     if table in scope.NOT_IMPORTED:
         pytest.skip(f"{table} is archived but never imported")
-    if table == "copilot_chat_old":
-        pytest.skip(
-            "conditionally imported -- covered by the two dedup tests below"
-        )
-
     src_sessions, dst_sessions = databases
     spec = scope.spec_by_table(table)
     forced = set(scope.import_overrides(spec)) | {"permissions_uuid", "username"}
@@ -516,83 +508,6 @@ async def test_org_ownership_and_sharing_are_dropped(databases, imported):
     assert dashboard.entity_share is False
 
 
-async def test_pre_refactor_chats_are_not_duplicated_when_already_migrated(
-    databases, imported
-):
-    """The seed has one chat in copilot_chat and one in copilot_chat_old.
-
-    On a real account these are the same conversations -- the migration worker
-    copies without deleting -- so loading both would double the user's history.
-    """
-    export_result, import_result = imported
-    _, dst_sessions = databases
-
-    with ZipFile(export_result.archive) as zf:
-        assert "data/copilot_chat_old.jsonl" in set(zf.namelist()), (
-            "the pre-refactor rows must still be preserved in the archive"
-        )
-
-    async with dst_sessions() as s:
-        old = (await s.execute(sa.select(models.CopilotChatOld))).scalars().all()
-        new = (await s.execute(sa.select(models.CopilotChat))).scalars().all()
-
-    assert old == [], "pre-refactor chats must not be loaded alongside migrated ones"
-    assert len(new) == 1
-    assert "copilot_chat_old" in import_result.skipped_tables
-    assert any("already present" in w for w in import_result.warnings)
-
-
-async def test_pre_refactor_chats_load_when_the_account_was_never_migrated(
-    tmp_path_factory, databases, storage, imported, request
-):
-    """An unmigrated account's only copy is the old table -- it must survive."""
-    export_result, _ = imported
-
-    mp = pytest.MonkeyPatch()
-    request.addfinalizer(mp.undo)
-
-    # A destination with no chats at all, standing in for a fresh Lite install.
-    root = tmp_path_factory.mktemp("unmigrated")
-    db_path = root / "lite.db"
-    sync = sa.create_engine(f"sqlite:///{db_path}")
-    Base.metadata.create_all(sync)
-    with Session(sync) as session:
-        _seed_destination(session)
-
-    sessions = async_sessionmaker(create_async_engine(f"sqlite+aiosqlite:///{db_path}"))
-
-    async def write_db():
-        async with sessions() as session:
-            yield session
-
-    mp.setattr(importer, "aget_write_db", write_db)
-
-    # Rewrite the archive so copilot_chat is empty but copilot_chat_old is not,
-    # which is what an account the migration worker never reached looks like.
-    stripped = root / "no-new-chats.zip"
-    with ZipFile(export_result.archive) as src, ZipFile(stripped, "w") as dst:
-        for name in src.namelist():
-            payload = b"" if name == "data/copilot_chat.jsonl" else src.read(name)
-            dst.writestr(name, payload)
-
-    result = await importer.import_archive(stripped)
-
-    async with sessions() as s:
-        old = (await s.execute(sa.select(models.CopilotChatOld))).scalars().all()
-
-    assert len(old) == 1, "the only copy of the history must be loaded"
-    assert "copilot_chat_old" not in result.skipped_tables
-
-
-async def test_legacy_blob_table_is_reported_but_not_loaded(imported, databases):
-    export_result, import_result = imported
-
-    with ZipFile(export_result.archive) as zf:
-        assert "data/copilot_chats.jsonl" not in set(zf.namelist())
-
-    assert "copilot_chats" not in import_result.inserted
-
-
 # --------------------------------------------------------------------------- #
 # Re-import behaviour
 # --------------------------------------------------------------------------- #
@@ -623,8 +538,9 @@ async def test_force_replaces_rather_than_duplicating(imported, databases):
 # --------------------------------------------------------------------------- #
 # Archive validation
 # --------------------------------------------------------------------------- #
-async def test_scope_version_mismatch_is_refused(tmp_path, imported):
-    """A newer archive against an older Lite must fail loudly, not half-import."""
+@pytest.mark.parametrize("scope_version", [1, scope.SCOPE_VERSION + 99])
+async def test_scope_version_mismatch_is_refused(tmp_path, imported, scope_version):
+    """A mismatched archive scope is rejected before importing data."""
     export_result, _ = imported
     tampered = tmp_path / "tampered.zip"
 
@@ -633,7 +549,7 @@ async def test_scope_version_mismatch_is_refused(tmp_path, imported):
             payload = src.read(name)
             if name == "manifest.json":
                 manifest = json.loads(payload)
-                manifest["scope_version"] = scope.SCOPE_VERSION + 99
+                manifest["scope_version"] = scope_version
                 payload = json.dumps(manifest).encode()
             dst.writestr(name, payload)
 

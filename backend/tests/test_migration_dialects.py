@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from uuid import uuid4
 
 import pymysql
 import pytest
@@ -76,11 +77,11 @@ def _base_env() -> dict[str, str]:
     }
 
 
-def _run_alembic_upgrade(env_vars: dict[str, str]):
-    """Run alembic upgrade head as a subprocess for full isolation."""
+def _run_alembic_upgrade(env_vars: dict[str, str], revision: str = "head"):
+    """Run alembic upgrade to a test-specified revision in a subprocess."""
     env = {**os.environ, **env_vars}
-    result = subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "alembic", "upgrade", revision],
         cwd=_BACKEND_DIR,
         env=env,
         capture_output=True,
@@ -110,6 +111,24 @@ def _inspect_and_verify(engine: sa.engine.Engine, dialect_name: str):
     """Introspect all tables and run a SELECT on each to verify types work."""
     inspector = sa.inspect(engine)
     tables = inspector.get_table_names()
+    assert "copilot_chat_old" not in tables
+    assert "copilot_chats" not in tables
+    assert {"copilot_chat", "copilot_messages"}.issubset(tables)
+
+    widget_type = next(
+        column for column in inspector.get_columns("widget_metadata")
+        if column["name"] == "widget_type"
+    )
+    assert isinstance(widget_type["type"], sa.Text)
+    assert widget_type["nullable"] is False
+    widget_index = next(
+        index for index in inspector.get_indexes("widget_metadata")
+        if index["name"] == "ix_user_name_type"
+    )
+    assert widget_index["column_names"] == ["user_uuid", "name", "widget_type"]
+    assert not widget_index["unique"]
+    if dialect_name == "mysql":
+        assert widget_index["dialect_options"]["mysql_length"] == {"widget_type": 50}
 
     # Verify minimum table count
     assert (
@@ -365,7 +384,7 @@ class TestSQLiteMigrations:
                 "REDIS_PASS": "",
             }
 
-            result = _run_alembic_upgrade(env_vars)
+            result = _run_alembic_upgrade(env_vars, revision="0d4a342f4c26")
             assert (
                 "Running upgrade" in result.stderr
             ), f"No migrations ran:\n{result.stderr}"
@@ -373,6 +392,126 @@ class TestSQLiteMigrations:
             url = f"sqlite:///{db_path}"
             engine = sa.create_engine(url)
             try:
+                from sqlalchemy.orm import Session
+
+                from api import models
+
+                widget_id = uuid4()
+                user_id = uuid4()
+                storage = {"params": {"symbol": "AAPL"}, "pluginState": {"selected": [1, 2]}}
+                config = {"nested": {"columns": ["symbol", "price"]}}
+                with Session(engine) as session:
+                    session.add(
+                        models.User(
+                            uuid=user_id,
+                            email="saved-widget@example.com",
+                            clean_email="saved-widget@example.com",
+                            password="test-password",
+                        )
+                    )
+                    session.flush()
+                    session.add(
+                        models.WidgetMetadata(
+                            user_uuid=user_id,
+                            widget_id=widget_id,
+                            name="Saved widget",
+                            description="Saved data",
+                            source="local",
+                            category="testing",
+                            sub_category="testing",
+                            widget_type="iframe",
+                            storage=storage,
+                            widget_config=config,
+                        )
+                    )
+                    session.commit()
+
+                _run_alembic_upgrade(env_vars)
                 _inspect_and_verify(engine, "sqlite")
+
+                with Session(engine) as session:
+                    widget = session.scalars(
+                        sa.select(models.WidgetMetadata).where(models.WidgetMetadata.widget_id == widget_id)
+                    ).one()
+                    assert widget.widget_type == "iframe"
+                    assert widget.storage == storage
+                    assert widget.widget_config == config
             finally:
                 engine.dispose()
+
+    @pytest.mark.parametrize("remove_account", ["replace", "delete"])
+    async def test_unused_chat_tables_do_not_block_account_removal(self, tmp_path, remove_account):
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+        from sqlalchemy.orm import Session
+        from sqlalchemy_utils import UUIDType
+
+        from api import base, crud, models
+        from scripts.import_user_data import purge_user
+
+        db_path = tmp_path / "chat-cleanup.db"
+        env_vars = {
+            **_base_env(),
+            "DATABASE_TYPE": "sqlite",
+            "DB_PATH": str(db_path),
+            "REDIS_HOST": "127.0.0.1",
+            "REDIS_PORT": "6379",
+            "REDIS_PASS": "",
+        }
+        _run_alembic_upgrade(env_vars, revision="d3e5a8c9b1f2")
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+
+        def enable_foreign_keys(dbapi_connection, _):
+            dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+        sa.event.listen(engine, "connect", enable_foreign_keys)
+        user_id, chat_id, message_id = uuid4(), uuid4(), uuid4()
+        try:
+            with Session(engine) as session:
+                session.add(models.User(
+                    uuid=user_id,
+                    email="chat-cleanup@example.com",
+                    clean_email="chat-cleanup@example.com",
+                    password="test-password",
+                ))
+                session.flush()
+                session.add(models.CopilotChat(uuid=chat_id, user_uuid=user_id, label="Saved chat"))
+                session.flush()
+                session.add(models.ChatMessages(
+                    uuid=message_id,
+                    user_uuid=user_id,
+                    chat_uuid=chat_id,
+                    role=base.ChatMessageRole.human,
+                    content={"text": "Saved message"},
+                ))
+                for table_name in ("copilot_chat_old", "copilot_chats"):
+                    table = sa.Table(
+                        table_name,
+                        sa.MetaData(),
+                        sa.Column("uuid", UUIDType(), primary_key=True),
+                        sa.Column("user_uuid", UUIDType()),
+                        autoload_with=session.connection(),
+                    )
+                    session.execute(table.insert().values(uuid=uuid4(), user_uuid=user_id))
+                session.commit()
+
+            _run_alembic_upgrade(env_vars)
+            _inspect_and_verify(engine, "sqlite")
+            with Session(engine) as session:
+                assert session.get(models.CopilotChat, chat_id).label == "Saved chat"
+                assert session.get(models.ChatMessages, message_id).content == {"text": "Saved message"}
+        finally:
+            engine.dispose()
+
+        async_engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
+        sa.event.listen(async_engine.sync_engine, "connect", enable_foreign_keys)
+        try:
+            async with async_sessionmaker(async_engine)() as session:
+                if remove_account == "replace":
+                    await purge_user(session, user_id)
+                else:
+                    await crud.full_delete_user(session, user_id)
+                await session.commit()
+                for model in (models.User, models.CopilotChat, models.ChatMessages):
+                    assert await session.scalar(sa.select(sa.func.count()).select_from(model)) == 0
+        finally:
+            await async_engine.dispose()

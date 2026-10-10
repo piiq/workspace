@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 from fastapi import HTTPException, status
 from loguru import logger
 from sqlalchemy import and_, case, delete, func, insert, literal, select, update
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import flag_modified
@@ -128,7 +127,7 @@ async def get_mcp_servers(db: AsyncSession, user: models.User) -> schemas.MCPSer
 
 
 async def get_copilot_chats(
-    db: AsyncSession, user_uuid: UUID, retry: bool = True
+    db: AsyncSession, user_uuid: UUID
 ) -> list[schemas.ChatInfo | schemas.Chat]:
 
     last_opened_query = (
@@ -160,10 +159,6 @@ async def get_copilot_chats(
             schemas.Chat.from_row(last_opened if row.uuid == latest_uuid else row)
         )
 
-    # backwards compatibility with old chats
-    if not chats and retry and (await migrate_user_copilot_chats(db, user_uuid)):
-        return await get_copilot_chats(db, user_uuid, retry=False)
-
     return chats or schemas.default_chats()
 
 
@@ -180,38 +175,6 @@ async def get_user_questions_history(db: AsyncSession, user_uuid: UUID) -> list[
         .order_by(func.max(models.ChatMessages.updated_date).asc())
     )
     return (await db.execute(query)).scalars().all()
-
-
-async def migrate_user_copilot_chats(db: AsyncSession, user_uuid: UUID):
-    """Migrate old copilot chats to the new format."""
-    chats_post: dict[UUID, schemas.ChatUpdate] = {}
-    query = select(models.CopilotChatOld).where(
-        models.CopilotChatOld.user_uuid == user_uuid
-    )
-
-    async for row in (await db.stream(query)).scalars():
-        try:
-            chat = schemas.Chat.from_db(row.content, row.uuid).model_dump(by_alias=True)
-            messages = {uuid4(): m for m in chat.pop("messages", [])}
-            chat.update({"messages": messages})
-            chats_post[row.uuid] = schemas.ChatUpdate.model_validate(chat)
-        except Exception as e:
-            logger.error(e)
-            continue
-
-    if not chats_post:
-        return False
-
-    try:
-        await crud.bulk_copilot_chats_insert_update(
-            db, user_uuid, schemas.CopilotChatsCreate(chats=chats_post)
-        )
-        return True
-    except SQLAlchemyError as e:
-        logger.error(e)
-        await db.rollback()
-
-    return False
 
 
 async def get_entity_theme_settings(db: AsyncSession, entity_uuid: UUID):

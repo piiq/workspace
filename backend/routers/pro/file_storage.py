@@ -20,7 +20,7 @@ from starlette.background import BackgroundTask
 from api import auth_helpers, schemas
 from api.database import aget_read_db, aget_write_db
 from api.helpers import refresh_usage_cache
-from api.models.tauri_models import PostStoredFile, StoredFile
+from api.models.workspace_models import PostStoredFile, StoredFile
 from api.schemas import SuccessReturn
 from api.storage import FileStorage
 from routers.pro.helpers import get_dashboard_shared_file_uuids, get_shared_file_uuids

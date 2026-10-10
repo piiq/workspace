@@ -2,10 +2,23 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BackendPermissionsT } from "~/api/user_roles.api";
 import { useProcessBackendWidgets } from "~/hooks/useProcessBackendWidgets";
+import { widgetRegistry } from "~/lib/plugins/registry";
 import type { BackendTemplate, ValidateBackend } from "~/lib/state/backendConnector";
 
 // Mock getApiSourceWidgets from backendConnector
 const mockGetApiSourceWidgets = vi.fn();
+const mockGetRendererState = vi.spyOn(widgetRegistry, "getRendererState");
+const readyRenderer = {
+  status: "ready" as const,
+  renderer: {
+    id: "table",
+    name: "table",
+    title: "Table",
+    kind: "table" as const,
+    capabilities: [],
+    Component: () => null,
+  },
+};
 vi.mock("~/lib/state/backendConnector", async () => {
   const actual = await vi.importActual("~/lib/state/backendConnector");
   return {
@@ -135,9 +148,72 @@ describe("useProcessBackendWidgets", () => {
     vi.clearAllMocks();
     mockGetApiSourceById.mockReturnValue(undefined);
     mockHasAccess.mockReturnValue(true);
+    mockGetRendererState.mockReturnValue(readyRenderer);
   });
 
   describe("successful widget processing", () => {
+    it("keeps unavailable widgets and available siblings with local diagnostics", async () => {
+      const rendererId = "@test-plugin/charts/price-history";
+      const widgets = createMockWidgets();
+      widgets["widget-2"].type = rendererId;
+      widgets["widget-2"].storage = { params: { symbol: "AAPL" }, selected: "close" };
+      mockGetApiSourceWidgets.mockResolvedValue({
+        widgets,
+        templates: createMockTemplates(),
+        errorMessage: null,
+      });
+      mockGetRendererState.mockImplementation((id) =>
+        id === rendererId
+          ? { status: "unavailable", message: "Install @test-plugin/charts." }
+          : readyRenderer,
+      );
+
+      const { result } = renderHook(() => useProcessBackendWidgets());
+      const processed = await result.current(createMockBackend());
+
+      expect(processed.status).toBe("success");
+      expect(Object.keys(processed.widgets)).toEqual(["widget-1", "widget-2"]);
+      expect(processed.widgets["widget-2"]).toMatchObject({
+        type: rendererId,
+        storage: widgets["widget-2"].storage,
+        disabled: false,
+      });
+      expect(processed.rendererDiagnostics).toEqual({
+        "widget-2": {
+          rendererId,
+          status: "unavailable",
+          message: "Install @test-plugin/charts.",
+        },
+      });
+      expect(processed.widgets["widget-2"]).not.toHaveProperty("rendererDiagnostics");
+
+      mockGetRendererState.mockReturnValue(readyRenderer);
+      expect((await result.current(createMockBackend())).rendererDiagnostics).toEqual(
+        {},
+      );
+    });
+
+    it("keeps failed plugin errors local to the affected widget", async () => {
+      const widgets = createMockWidgets();
+      widgets["widget-2"].type = "@test-plugin/charts/price-history";
+      mockGetApiSourceWidgets.mockResolvedValue({
+        widgets,
+        templates: createMockTemplates(),
+        errorMessage: null,
+      });
+      mockGetRendererState.mockImplementation((id) =>
+        id.startsWith("@")
+          ? { status: "failed", message: "Plugin setup failed. Check the plugin." }
+          : readyRenderer,
+      );
+
+      const { result } = renderHook(() => useProcessBackendWidgets());
+      const processed = await result.current(createMockBackend());
+      expect(processed.status).toBe("success");
+      expect(processed.rendererDiagnostics["widget-2"].status).toBe("failed");
+      expect(processed.widgets["widget-1"].disabled).toBe(false);
+    });
+
     it("should process backend widgets successfully with valid data", async () => {
       const mockBackend = createMockBackend();
       const mockWidgets = createMockWidgets();

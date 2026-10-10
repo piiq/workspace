@@ -25,13 +25,17 @@ from api.events.types import RoleAuditAction, RoleResourceType
 from utilities.config import BaseModel, settings
 
 if TYPE_CHECKING:
-    from api.models.tauri_models import CopilotChat, StoredFile
+    from api.models.workspace_models import CopilotChat, StoredFile
 
 
 StoredFileT = TypeVar("StoredFileT", bound="StoredFile")
 
 main_config = ConfigDict(extra="forbid", from_attributes=True)
 source_type = Literal["terminal", "hub", "sdk", "pro", "oauth-pro", "oauth-hub", "excel"]
+# Must match rendererIdSchema in packages/plugin-sdk/src/index.ts.
+RENDERER_ID_PATTERN = r"^@[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*$"
+RendererId: TypeAlias = Annotated[str, Field(pattern=RENDERER_ID_PATTERN)]
+
 MetaDataWidgetType = Literal[
     "iframe",
     "rss_viewer",
@@ -42,7 +46,7 @@ MetaDataWidgetType = Literal[
     "chart",
     "html",
     "ag_chart_from_table",
-]
+] | RendererId
 
 permissions_type = Literal["view", "comment"]  # "edit"
 UserSourceType = Literal["user", "invite", "takeover"]
@@ -1489,16 +1493,6 @@ class ChatInfo(BaseModel):
 class Chat(ChatInfo):
     artifacts: list[dict] | None = Field(default_factory=list)
     messages: list[ChatMessage]
-
-    @classmethod
-    def from_db(cls, value: dict | None, uuid: UUID) -> "Chat":
-        if value is None:
-            return cls.corrupted(uuid)
-
-        value.pop("id_", None)
-        value.pop("id", None)
-        value.update({"uuid": uuid})
-        return cls.model_validate(value)
 
     @classmethod
     def from_row(cls, row: "CopilotChat", from_search: bool = False) -> "ChatInfo | Chat":

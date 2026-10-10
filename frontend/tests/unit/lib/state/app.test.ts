@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { postDashboards } from "~/api/dashboard.api";
 import { type Item, type Items, useAppStore } from "~/lib/state/app";
 
 const sharedAppMocks = vi.hoisted(() => {
@@ -1654,6 +1655,50 @@ describe("useAppStore", () => {
   });
 
   describe("addWidget", () => {
+    it.each([
+      "@test/renderer/chart",
+      "advanced_charting",
+      "ssrm_table",
+      "ssrm_advanced",
+      "chart-highcharts",
+    ])("preserves renderer %s and state through creation, saving, and reopening", async (type) => {
+      const storage = {
+        params: { symbol: "MSFT" },
+        pluginState: { expanded: true, selected: ["revenue"] },
+        columnState: [{ colId: "revenue", width: 160 }],
+      };
+      const id = await useAppStore.getState().addWidget("tab-1", {
+        widgetId: "external-prices",
+        name: "Prices",
+        type,
+        defaultViz: "table",
+        external: true,
+        connectionType: "advanced-backend",
+        endpoint: "https://data.example/prices",
+        sourceId: "data-source",
+        sourceName: "Data Source",
+        data: { defaultSymbol: "MSFT" },
+        storage,
+        params: [{ paramName: "symbol", type: "text", value: "AAPL" }],
+      } as any);
+      const created = useAppStore
+        .getState()
+        .getTabById("tab-1")
+        ?.data?.widgets?.find((w) => w.id === id);
+      expect(created).toMatchObject({ type, storage });
+      await useAppStore.getState().saveDashboards();
+      expect(postDashboards).toHaveBeenCalledOnce();
+      const saved = JSON.parse(
+        JSON.stringify(vi.mocked(postDashboards).mock.calls[0][0]),
+      );
+      useAppStore.setState({ items: saved });
+      const reopened = useAppStore
+        .getState()
+        .getTabById("tab-1")
+        ?.data?.widgets?.find((w) => w.id === id);
+      expect(reopened).toMatchObject({ type, storage });
+    });
+
     it("should add a widget to a tab", async () => {
       const widget = {
         widgetId: "equity_profile",

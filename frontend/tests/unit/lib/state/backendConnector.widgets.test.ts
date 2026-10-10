@@ -33,6 +33,40 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
   });
 
   describe("widgets.json response handling", () => {
+    it("keeps a connection usable when a declared plugin renderer is unavailable", async () => {
+      const widgets = {
+        core: {
+          name: "Core table",
+          description: "Available renderer",
+          endpoint: "/core",
+          type: "table",
+        },
+        plugin: {
+          name: "Plugin chart",
+          description: "Renderer is not installed",
+          endpoint: "/prices",
+          type: "@test-plugin/charts/price-history",
+          storage: { params: { symbol: "AAPL" }, selected: "close" },
+        },
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => widgets,
+        headers: new Headers(),
+      });
+
+      const validated = await validateBackend(mockSource, {
+        agents: false,
+        apps: false,
+      });
+
+      expect(validated.errorMessage).toBeNull();
+      expect(validated.widgets).toEqual(widgets);
+      expect(validated.widgets.plugin.type).toBe("@test-plugin/charts/price-history");
+      expect(validated.widgets.plugin.storage).toEqual(widgets.plugin.storage);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
     it("should handle jsonify({}) for widgets.json - returns empty widgets, no error message", async () => {
       // Mock widgets.json response with empty object
       mockFetch
@@ -503,7 +537,13 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
       });
 
       const signal = new AbortController().signal;
-      await validateBackendEndpoints(widgets, mockBackendUrl, mockHeaders, false, signal);
+      await validateBackendEndpoints(
+        widgets,
+        mockBackendUrl,
+        mockHeaders,
+        false,
+        signal,
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),

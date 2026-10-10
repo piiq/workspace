@@ -660,9 +660,6 @@ async def post_export_user_data(
     include_history: Annotated[
         bool, Query(description="Include dashboard version history")
     ] = False,
-    include_legacy: Annotated[
-        bool, Query(description="Include the legacy copilot chat table")
-    ] = False,
     with_files: Annotated[
         bool,
         Query(
@@ -701,7 +698,6 @@ async def post_export_user_data(
             db,
             str(target.email),
             include_history=include_history,
-            include_legacy=include_legacy,
             with_files=with_files,
         )
     except export_user_data.ExportError as exc:

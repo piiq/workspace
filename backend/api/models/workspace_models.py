@@ -1,4 +1,4 @@
-"""Tauri models"""
+"""Workspace persistence models."""
 
 from datetime import datetime
 from uuid import UUID
@@ -162,28 +162,6 @@ class FileWidget(Base, UUIDMixin, DateMixin):
     category: Mapped[None | str] = mapped_column(Text)
     sub_category: Mapped[None | str] = mapped_column(Text)
     source: Mapped[None | str] = mapped_column(Text)
-
-
-class DONT_USE_CopilotChats(Base, UUIDMixin, DateMixin):
-    """Copilot Chat"""
-
-    __tablename__ = "copilot_chats"
-    user_uuid: Mapped[UUID] = mapped_column(
-        UUIDType, ForeignKey("user.uuid"), unique=True, nullable=False
-    )
-    chats: Mapped[list[dict] | None] = mapped_column(
-        GzipJsonType,
-    )
-
-
-class CopilotChatOld(Base, UUIDMixin, DateMixin):
-    """Copilot Chat"""
-
-    __tablename__ = "copilot_chat_old"
-    user_uuid: Mapped[UUID] = mapped_column(
-        UUIDType, ForeignKey("user.uuid"), nullable=False, index=True
-    )
-    content: Mapped[dict | None] = mapped_column(GzipJsonLongType)
 
 
 class CopilotChat(Base, UUIDMixin, DateMixin):
@@ -381,7 +359,7 @@ class WidgetMetadata(Base, UUIDMixin, DateMixin):
     source: Mapped[str] = mapped_column(String(50))
     category: Mapped[str] = mapped_column(String(50))
     sub_category: Mapped[str] = mapped_column(String(50))
-    widget_type: Mapped[str] = mapped_column(String(50))
+    widget_type: Mapped[str] = mapped_column(Text)
     storage: Mapped[str | None] = mapped_column(GzipJsonType)
     widget_config: Mapped[dict | None] = mapped_column(GzipJsonType)
     widget_id: Mapped[UUID] = mapped_column(
@@ -389,7 +367,14 @@ class WidgetMetadata(Base, UUIDMixin, DateMixin):
     )  # this is FE ID (uuid)
 
     __table_args__ = (
-        Index("ix_user_name_type", "user_uuid", "name", "widget_type", unique=False),
+        Index(
+            "ix_user_name_type",
+            "user_uuid",
+            "name",
+            "widget_type",
+            unique=False,
+            mysql_length={"widget_type": 50},
+        ),
     )
 
 

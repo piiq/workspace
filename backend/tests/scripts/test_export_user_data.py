@@ -88,11 +88,6 @@ def _seed(session):
             role=base.ChatMessageRole.human,
             content={"text": "my private question"},
         ),
-        models.CopilotChatOld(
-            uuid=uuid4(),
-            user_uuid=TARGET_UUID,
-            content={"messages": [{"content": "my older chat"}]},
-        ),
         models.StoredFile(
             uuid=uuid4(),
             creater_uuid=TARGET_UUID,
@@ -143,11 +138,6 @@ def _seed(session):
             chat_uuid=OTHER_CHAT,
             role=base.ChatMessageRole.human,
             content={"text": "other-user-message"},
-        ),
-        models.CopilotChatOld(
-            uuid=uuid4(),
-            user_uuid=OTHER_UUID,
-            content={"messages": [{"content": "other-user-old-chat"}]},
         ),
         models.StoredFile(
             uuid=uuid4(),
@@ -234,8 +224,7 @@ async def test_no_other_users_data_appears_anywhere(archive):
         assert leak not in blob, f"leaked another user's data: {leak!r}"
 
 
-async def test_chat_history_is_exported_from_all_three_tables(archive):
-    """An account mid-migration has chats split across old and new tables."""
+async def test_chat_history_is_exported(archive):
     _, zf = archive
 
     assert [r["uuid"] for r in _rows(zf, "copilot_chat")] == [str(TARGET_CHAT)]
@@ -245,10 +234,6 @@ async def test_chat_history_is_exported_from_all_three_tables(archive):
     assert messages[0]["chat_uuid"] == str(TARGET_CHAT)
     assert messages[0]["content"] == {"text": "my private question"}
     assert messages[0]["role"] == "human"
-
-    old = _rows(zf, "copilot_chat_old")
-    assert len(old) == 1
-    assert old[0]["content"]["messages"][0]["content"] == "my older chat"
 
 
 async def test_only_the_targets_rows_are_exported(archive):

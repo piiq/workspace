@@ -5,15 +5,13 @@ import io
 import warnings
 from datetime import datetime, timedelta  # type: ignore
 from typing import Literal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from loguru import logger
-from sqlalchemy.exc import SQLAlchemyError
 
-from api.models.tauri_models import CopilotChatOld
-from api.schemas import Chat, CopilotChatsCreate, EntitlementUsageGet
+from api.schemas import EntitlementUsageGet
 from api.storage import FileStorage
-from routers.pro.helpers import get_entitlement, migrate_user_copilot_chats
+from routers.pro.helpers import get_entitlement
 from utilities import workers_queue
 from utilities.decorators import next_schedule_dt, repeat_every
 
@@ -30,7 +28,6 @@ from api.models import (
     DashboardItem,
     DashboardSave,
     DashboardShare,
-    DONT_USE_CopilotChats,
     EntitlementUsage,
     Entity,
     EntityEntitlement,
@@ -472,78 +469,6 @@ async def add_entity_entitlements():
     return True
 
 
-async def migrate_duplicate_copilot_chats():
-    """Migrate copilot chats"""
-    async with AsyncWriteSessionLocal.session() as db:
-        user_uuids = (
-            (await db.execute(select(CopilotChatOld.user_uuid).distinct()))
-            .scalars()
-            .all()
-        )
-
-        for user_uuid in user_uuids:
-            query = select(CopilotChatOld).where(CopilotChatOld.user_uuid == user_uuid)
-            results = (await db.execute(query)).scalars().all()
-
-            chats = [
-                Chat.from_db(chat.content, chat.uuid)
-                for chat in results
-                if chat.content
-            ]
-
-            chats_post: dict[UUID, dict] = {}
-
-            try:
-                query = (
-                    select(DONT_USE_CopilotChats)
-                    .where(DONT_USE_CopilotChats.user_uuid == user_uuid)
-                    .limit(1)
-                )
-
-                if (result := (await db.execute(query)).scalar_one_or_none()) is None:
-                    continue
-
-                new_chats = {chat.createdAt: str(chat.uuid) for chat in chats}
-
-                for chat in result.chats or []:
-                    uuid = str(chat.get("id", chat.get("uuid", uuid4())))
-                    chat.update({"uuid": uuid, "id": uuid})
-
-                    created_at = chat.get("createdAt")
-                    if (
-                        created_at is not None
-                        and created_at not in new_chats
-                        and uuid not in new_chats.values()
-                        and new_chats.get(created_at) != uuid
-                    ):
-                        chats_post[uuid] = chat
-            except Exception as e:
-                logger.error(e)
-                continue
-
-            if chats_post:
-                try:
-                    await crud.bulk_copilot_chats_insert_update(
-                        db, user_uuid, CopilotChatsCreate(chats=chats_post)
-                    )
-                except SQLAlchemyError as e:
-                    logger.error(e)
-                    await db.rollback()
-
-    return True
-
-
-async def migrate_copilot_chats():
-    """Migrate copilot chats"""
-    async with AsyncWriteSessionLocal.session() as db:
-        result = await db.stream(select(CopilotChatOld.user_uuid).distinct())
-
-        async for user_uuid in result.scalars():
-            await migrate_user_copilot_chats(db, user_uuid)
-
-    return True
-
-
 # This task is not repeated because it is a one-time migration
 @repeat_every(seconds=10, wait_first=True, max_repetitions=1)
 async def add_entity_entitlements_task():
@@ -649,28 +574,6 @@ async def encrypt_api_source_headers_task():
     """Task to encrypt api source headers"""
     return await workers_queue.worker_queue(
         encrypt_api_source_headers, "encrypt_api_source_headers", result_ttl=-1
-    )
-
-
-@repeat_every(seconds=10, wait_first=False, max_repetitions=1)
-async def migrate_duplicate_copilot_chats_task():
-    """Task to migrate copilot chats"""
-    return await workers_queue.worker_queue(
-        migrate_duplicate_copilot_chats,
-        "migrate_copilot_chats_task",
-        result_ttl=-1,
-        job_timeout=1800,
-    )
-
-
-@repeat_every(seconds=10, wait_first=False, max_repetitions=1)
-async def migrate_new_copilot_chats_task():
-    """Task to migrate copilot chats"""
-    return await workers_queue.worker_queue(
-        migrate_copilot_chats,
-        "migrate_new_copilot_chats_task",
-        result_ttl=-1,
-        job_timeout=1800,
     )
 
 
@@ -788,7 +691,6 @@ async def start_background_tasks():
     await migrate_stored_files_task()
     await add_entity_entitlements_task()
     await encrypt_api_source_headers_task()
-    # await migrate_duplicate_copilot_chats_task()
     await populate_dashboard_items_is_shared_task()
     await fix_multiple_mcp_servers_entries_task()
 

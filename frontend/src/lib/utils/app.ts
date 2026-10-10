@@ -1752,9 +1752,7 @@ export function getWidgetData(params: {
 
   if (isWidgetVizType(widget.type)) {
     finalWidgetData.type = widget.type;
-  }
-
-  if (widget.defaultViz) {
+  } else if (widget.defaultViz) {
     finalWidgetData.type = widget.defaultViz;
   }
 

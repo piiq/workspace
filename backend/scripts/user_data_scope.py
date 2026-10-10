@@ -31,7 +31,7 @@ from api import models
 # Scope version. Bump when INCLUDED changes shape; the importer refuses an
 # archive whose manifest records a different value.
 # --------------------------------------------------------------------------- #
-SCOPE_VERSION = 1
+SCOPE_VERSION = 2
 
 # Columns never written to the archive, regardless of table.
 #
@@ -193,22 +193,6 @@ INCLUDED: list[TableSpec] = [
         ),
     ),
     TableSpec(
-        model=models.CopilotChatOld,
-        link_column="user_uuid",
-        label="Pre-refactor copilot chats",
-        note=(
-            "The copilot chat refactor renamed the old table aside; "
-            "migrate_duplicate_copilot_chats copies rows into copilot_chat in "
-            "the background WITHOUT deleting the originals, so a migrated "
-            "account holds every chat in both places (observed on a real "
-            "account: 251 rows in each). Always exported, but imported only "
-            "when copilot_chat is empty -- otherwise loading it would duplicate "
-            "the user's entire chat history. An account the worker never "
-            "reached has its only copy here, which is why it is not simply "
-            "dropped."
-        ),
-    ),
-    TableSpec(
         model=models.UserPrompts,
         link_column="user_uuid",
         label="Saved prompts",
@@ -230,22 +214,10 @@ INCLUDED: list[TableSpec] = [
         link_column="user_uuid",
         label="Enabled widget bundles and disabled widgets",
     ),
-    # -- Preserved for completeness, not replayed. See EXCLUDED note below.
-    TableSpec(
-        model=models.DONT_USE_CopilotChats,
-        link_column="user_uuid",
-        label="Legacy copilot chat blob (archived, not imported)",
-        optional=True,
-        note=(
-            "Superseded by copilot_chat. Exported under --include-legacy so "
-            "old accounts lose nothing, but the importer never writes it."
-        ),
-    ),
 ]
 
 # Specs the importer skips even when present in the archive.
 NOT_IMPORTED: frozenset[str] = frozenset({
-    models.DONT_USE_CopilotChats.__tablename__,
     # Uploaded files are handed back to the user as a folder in the archive,
     # not reinstated in the destination. See the StoredFile spec above.
     models.StoredFile.__tablename__,
@@ -411,13 +383,10 @@ ASSETS: list[AssetSpec] = [
 # --------------------------------------------------------------------------- #
 # Lookups and reporting
 # --------------------------------------------------------------------------- #
-def included_specs(
-    *, include_history: bool = False, include_legacy: bool = False
-) -> list[TableSpec]:
+def included_specs(*, include_history: bool = False) -> list[TableSpec]:
     """The specs active for a given run, in insert order."""
     optional_on = {
         models.DashboardSave.__tablename__: include_history,
-        models.DONT_USE_CopilotChats.__tablename__: include_legacy,
     }
     return [s for s in INCLUDED if not s.optional or optional_on.get(s.table, False)]
 
@@ -487,15 +456,13 @@ def _describe_excluded() -> list[str]:
     return lines
 
 
-def describe(*, include_history: bool = False, include_legacy: bool = False) -> str:
+def describe(*, include_history: bool = False) -> str:
     """Render the scope as human-readable text.
 
     Surfaced by ``--describe-scope`` on both commands and embedded in the
     archive README so the contract ships with the data.
     """
-    active = included_specs(
-        include_history=include_history, include_legacy=include_legacy
-    )
+    active = included_specs(include_history=include_history)
 
     lines = [
         f"OpenBB user data scope (version {SCOPE_VERSION})",
@@ -521,4 +488,4 @@ def describe(*, include_history: bool = False, include_legacy: bool = False) -> 
 if __name__ == "__main__":
     # Written straight to stdout rather than logged: this is a document meant to
     # be read or redirected to a file, not an operational message.
-    sys.stdout.write(describe(include_history=True, include_legacy=True) + "\n")
+    sys.stdout.write(describe(include_history=True) + "\n")
