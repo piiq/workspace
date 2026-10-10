@@ -1,18 +1,19 @@
+import type { WidgetDataExportOptions } from "@piiq/workspace-plugin-sdk";
 import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import type { Widget, WidgetT } from "~/components/types";
 import { useWidgetContext } from "~/components/Widget.context";
 import SOURCES from "~/lib/sources.json";
-import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import { extractColumns, getJsonWidget, useWidgetDataSource } from "~/lib/utils";
+import { publishWidgetData } from "~/lib/widgetData";
 import { handleWidgetMetadata } from "~/utils/dataConnectorsHelpers";
 
-export function createCopilotDataWidget(params: {
+export function createWidgetDataMetadata(params: {
   title?: string;
   widget: WidgetT | null;
   widgetFromJSON?: Partial<Widget>;
   widgetSource?: string[];
-  additionalMetadata?: Record<string, any>;
+  additionalMetadata?: Record<string, unknown>;
 }) {
   const {
     title,
@@ -22,7 +23,7 @@ export function createCopilotDataWidget(params: {
     additionalMetadata,
   } = params;
 
-  const widgetMetadata = handleWidgetMetadata(widget);
+  const widgetMetadata = widget ? handleWidgetMetadata(widget) : undefined;
 
   const name = title || widget?.name || widgetFromJSON?.name;
   const description = widget?.description || widgetFromJSON?.description;
@@ -42,27 +43,21 @@ export function createCopilotDataWidget(params: {
   };
 }
 
-function useCopilotDataWidget({
-  aiData: data,
+export function useWidgetDataExport({
+  data,
   title,
-  aiEnabled,
+  enabled,
+  lastUpdated: dataUpdatedAt,
   additionalMetadata,
   captureExecutedParams = true,
-}: {
-  aiData: any;
-  title?: string;
-  aiEnabled: boolean;
-  lastUpdated?: number;
-  additionalMetadata?: Record<string, any>;
-  captureExecutedParams?: boolean;
-}) {
+}: WidgetDataExportOptions) {
   const { id: currentDashboardId = "" } = useParams();
   const { widget, widgetFromJSON } = useWidgetContext(true);
   const widgetSource = useWidgetDataSource();
   const filtered = typeof data === "boolean";
 
   const { name, description, source, metadata } = useMemo(() => {
-    return createCopilotDataWidget({
+    return createWidgetDataMetadata({
       title,
       widget,
       widgetFromJSON,
@@ -73,6 +68,8 @@ function useCopilotDataWidget({
     title,
     widgetSource,
     widget?.name,
+    widget?.connectionType,
+    widget?.storage?.params,
     widget?.description,
     widget?.widgetId,
     widget?.metadata,
@@ -82,21 +79,17 @@ function useCopilotDataWidget({
 
   const executedParamsSnapshot = useMemo(
     () => ({ ...(widget?.storage?.params || {}) }),
-    [data, widget?.id],
+    [data, dataUpdatedAt, widget?.id],
   );
-  const lastUpdated = useMemo(() => Date.now(), [data]);
-
-  const addDataOnDashboardWidget = useShallowCopilotDataStore(
-    (state) => state?.addDataOnDashboardWidget,
-  );
+  const lastUpdated = useMemo(() => dataUpdatedAt ?? Date.now(), [data, dataUpdatedAt]);
 
   useEffect(() => {
-    if (!(aiEnabled && widget?.id) || filtered) return;
+    if (!(enabled && widget?.id) || filtered) return;
     const fileType =
       widget?.connectionType === "file" && widget?.endpoint?.url?.split(".")?.pop();
     const columns = extractColumns(data);
 
-    addDataOnDashboardWidget(widget.id, {
+    publishWidgetData(widget.id, {
       data,
       captureExecutedParams,
       innerTab: widget.innerTab,
@@ -114,8 +107,12 @@ function useCopilotDataWidget({
       dashboardId: currentDashboardId,
     });
   }, [
-    aiEnabled,
+    enabled,
     widget?.id,
+    widget?.innerTab,
+    widget?.connectionType,
+    widget?.endpoint?.url,
+    currentDashboardId,
     data,
     name,
     description,
@@ -127,4 +124,4 @@ function useCopilotDataWidget({
   ]);
 }
 
-export default useCopilotDataWidget;
+export default useWidgetDataExport;

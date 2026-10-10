@@ -3,10 +3,10 @@ import { type MutableRefObject, useEffect, useMemo, useRef } from "react";
 import DraggableCard from "~/components/DraggableCard";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import type { ChartingLibraryWidget } from "~/lib/types/charting";
 import { formatNumberNoMagnitude } from "~/lib/utils";
 import GroupDropdown from "../Helpers/GroupDropdown";
-import useCopilotDataWidget from "../Helpers/useCopilotDataWidget";
 import TvChart from "../TvChart";
 
 type TVWidgetT = MutableRefObject<ChartingLibraryWidget | null>;
@@ -45,9 +45,10 @@ function useTVCopilotData(tvWidget: TVWidgetT) {
     );
   }, [tvWidget.current]);
 
-  useCopilotDataWidget({
-    ...state,
-    aiEnabled: import.meta.env.VITE_TRADINGVIEW_ENABLED === "true",
+  useWidgetDataExport({
+    data: state.aiData,
+    lastUpdated: state.lastUpdated,
+    enabled: import.meta.env.VITE_TRADINGVIEW_ENABLED === "true",
   });
 }
 

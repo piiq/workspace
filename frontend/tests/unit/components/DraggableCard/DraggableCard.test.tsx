@@ -42,7 +42,7 @@ vi.mock("~/components/LayoutAuth/Search/hooks/useFetchSharedResources", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("~/components/Widgets/Helpers/useCopilotDataWidget", () => ({
+vi.mock("~/hooks/useWidgetDataExport", () => ({
   default: vi.fn(),
 }));
 

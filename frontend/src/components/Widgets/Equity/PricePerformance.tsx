@@ -3,6 +3,7 @@ import { type MutableRefObject, useEffect, useMemo, useRef } from "react";
 import DraggableCard from "~/components/DraggableCard";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import {
   useEquityFundamentalOverview,
   useEquityOwnershipShareStatistics,
@@ -11,7 +12,6 @@ import type { FMPCompanyOverviewData as CompanyOverview } from "~/lib/api/sdkSch
 import type { ChartingLibraryWidget } from "~/lib/types/charting";
 import { formatNumber, formatNumberNoMagnitude } from "~/lib/utils";
 import AdvancedSelectedTicker from "../Helpers/AdvancedSelectTicker";
-import useCopilotDataWidget from "../Helpers/useCopilotDataWidget";
 import { convertToCSV, getHeaders } from "../Misc/Charting";
 import TVChart from "../TvChart";
 
@@ -81,10 +81,10 @@ function useOverviewData(tvWidget: MutableRefObject<ChartingLibraryWidget | null
     );
   }, [tvWidget.current]);
 
-  useCopilotDataWidget({
-    aiData: state.aiData,
+  useWidgetDataExport({
+    data: state.aiData,
     title: "Price Performance",
-    aiEnabled: import.meta.env.VITE_TRADINGVIEW_ENABLED === "true",
+    enabled: import.meta.env.VITE_TRADINGVIEW_ENABLED === "true",
     lastUpdated: state.lastUpdated,
   });
 

@@ -106,6 +106,31 @@ export interface WidgetDataExport {
   columns?: string[];
 }
 
+export interface WidgetDataOptions {
+  query?: Record<string, unknown>;
+  body?: object;
+  enabled?: boolean;
+  asText?: boolean;
+}
+
+export interface WidgetDataResult<Data = unknown> {
+  data: Data | undefined;
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null;
+  lastUpdated: number;
+  refetch: () => Promise<void>;
+}
+
+export interface WidgetDataExportOptions {
+  data: unknown;
+  enabled: boolean;
+  title?: string;
+  additionalMetadata?: Record<string, unknown>;
+  captureExecutedParams?: boolean;
+  lastUpdated?: number | null;
+}
+
 export interface WidgetLifecycle {
   refresh: () => void | Promise<void>;
   exportData?: () => WidgetDataExport | Promise<WidgetDataExport>;
@@ -128,6 +153,12 @@ export interface PluginHost {
   reactDomClient: typeof import("react-dom/client");
   jsxRuntime: typeof import("react/jsx-runtime");
   useTheme: () => WidgetTheme;
+  useWidgetContext: () => WidgetContext;
+  useWidgetData: <Data = unknown>(
+    options?: WidgetDataOptions,
+  ) => WidgetDataResult<Data>;
+  useWidgetDataExport: (options: WidgetDataExportOptions) => void;
+  useWidgetLifecycle: (lifecycle: WidgetLifecycle) => void;
   ui: {
     Button: ComponentType<
       ButtonHTMLAttributes<HTMLButtonElement> & {

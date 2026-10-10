@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CopilotCommandResultT } from "~/lib/state/copilot";
 import type { AddGenerativeWidgetInputArgumentsT } from "~/lib/utils/ai";
+import { registerWidgetLifecycle } from "~/lib/widgetData";
 
 // Mock external dependencies
 vi.mock("react-router-dom", () => ({
@@ -72,6 +73,9 @@ vi.mock("~/lib/state/copilot", async (importOriginal) => {
 });
 
 vi.mock("~/lib/state/copilotData", () => ({
+  useCopilotDataStore: {
+    getState: () => ({ getDashboardWidgetData: mockGetDashboardWidgetData }),
+  },
   useShallowCopilotDataStore: vi.fn((selector) =>
     selector({
       getDashboardWidgetData: mockGetDashboardWidgetData,
@@ -172,6 +176,73 @@ describe("useFunctionCall", () => {
   };
 
   describe("getWidgetData", () => {
+    it.each([
+      "Reference Backend",
+      "OpenBB Workspace",
+    ])("uses a native renderer export for %s", async (origin) => {
+      const exportData = vi.fn(() => ({ data: [{ total: 42 }], columns: ["total"] }));
+      const unregister = registerWidgetLifecycle("plugin-widget", {
+        refresh: vi.fn(),
+        exportData,
+      });
+      mockCheckWidgetSignature.mockReturnValue(true);
+      const { result, unmount } = renderUseFunctionCall();
+      try {
+        const response = await result.current.getWidgetData([
+          {
+            origin,
+            id: "totals",
+            widget_uuid: "plugin-widget",
+            input_args: { region: "us" },
+          },
+        ]);
+        expect(exportData).toHaveBeenCalledOnce();
+        expect(response[0]).toMatchObject({
+          items: [{ content: JSON.stringify([{ total: 42 }]) }],
+        });
+        expect(fetch).not.toHaveBeenCalled();
+        expect(mockReadWidget).not.toHaveBeenCalled();
+      } finally {
+        unmount();
+        unregister();
+      }
+    });
+
+    it("fetches the endpoint when requested arguments differ from a native renderer", async () => {
+      const exportData = vi.fn(() => ({ data: [{ total: 42 }] }));
+      const unregister = registerWidgetLifecycle("plugin-widget", {
+        refresh: vi.fn(),
+        exportData,
+      });
+      mockGetAppWidget.mockReturnValue({
+        widgetId: "totals",
+        name: "Totals",
+        type: "@test/totals/table",
+        endpoint: "https://reference-backend.test/totals",
+        endpointHeaders: [],
+      });
+      vi.mocked(fetch).mockResolvedValue(Response.json([{ total: 99 }]));
+      const { result, unmount } = renderUseFunctionCall();
+      try {
+        const response = await result.current.getWidgetData([
+          {
+            origin: "Reference Backend",
+            id: "totals",
+            widget_uuid: "plugin-widget",
+            input_args: { region: "eu" },
+          },
+        ]);
+        expect(exportData).not.toHaveBeenCalled();
+        expect(fetch).toHaveBeenCalledOnce();
+        expect(response[0]).toMatchObject({
+          items: [{ content: JSON.stringify([{ total: 99 }]) }],
+        });
+      } finally {
+        unmount();
+        unregister();
+      }
+    });
+
     it("uses cached non-empty HTML string data", async () => {
       mockCheckWidgetSignature.mockReturnValue(true);
       mockReadWidget.mockReturnValue({

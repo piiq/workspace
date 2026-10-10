@@ -146,7 +146,7 @@ vi.mock("~/components/Widgets/Helpers/PdfViewerCore", () => ({
   ),
 }));
 
-vi.mock("~/components/Widgets/Helpers/useCopilotDataWidget", () => ({
+vi.mock("~/hooks/useWidgetDataExport", () => ({
   default: () => {},
 }));
 

@@ -70,7 +70,7 @@ vi.mock("~/components/General/Table/Chart/themes", () => ({
   }),
 }));
 
-vi.mock("~/components/Widgets/Helpers/useCopilotDataWidget", () => ({
+vi.mock("~/hooks/useWidgetDataExport", () => ({
   default: () => {},
 }));
 
@@ -102,9 +102,7 @@ describe("OmniWidget", () => {
     render(<OmniWidget />);
 
     // MonacoEditor is lazy-loaded behind Suspense, so wait for it
-    expect(
-      await screen.findByDisplayValue("What is the revenue?"),
-    ).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("What is the revenue?")).toBeInTheDocument();
   });
 });
 

@@ -1,10 +1,18 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
+import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import NavBar from "~/components/DraggableCard/NavBar";
+import NavBar, { RefreshButton } from "~/components/DraggableCard/NavBar";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import { useShallowThemeStore } from "~/lib/state/theme";
+import { refreshWidgetData } from "~/lib/widgetData";
+
+vi.mock("~/lib/widgetData", () => ({
+  refreshWidgetData: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 // Mock the necessary hooks and components
 vi.mock("~/components/Widget.context", () => ({
@@ -552,5 +560,52 @@ describe("NavBar - Auto-locked controls for active widgets", () => {
       "data-collapsed",
       "false",
     );
+  });
+});
+
+describe("RefreshButton", () => {
+  const updateWidget = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(refreshWidgetData).mockResolvedValue(false);
+    vi.mocked(useWidgetContext).mockReturnValue({
+      widget: { id: "widget-1", type: "table" },
+      widgetRef: { current: { id: "widget-1", storage: {} } },
+      updateWidget,
+    } as any);
+  });
+
+  it("refreshes through a registered native lifecycle", async () => {
+    vi.mocked(refreshWidgetData).mockResolvedValue(true);
+    render(<RefreshButton runButton={false} />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() => expect(refreshWidgetData).toHaveBeenCalledWith("widget-1"));
+    expect(updateWidget).not.toHaveBeenCalled();
+  });
+
+  it("sets refreshQuery when no native lifecycle is registered", async () => {
+    render(<RefreshButton runButton={false} />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() => expect(updateWidget).toHaveBeenCalledTimes(1));
+    expect(refreshWidgetData).toHaveBeenCalledWith("widget-1");
+    expect(updateWidget.mock.calls[0][0]({ id: "widget-1" })).toEqual({
+      id: "widget-1",
+      refreshQuery: expect.any(Number),
+    });
+  });
+
+  it("reports native refresh failures", async () => {
+    vi.mocked(refreshWidgetData).mockRejectedValue(
+      new Error("Data service unavailable"),
+    );
+    render(<RefreshButton runButton={false} />);
+    fireEvent.click(screen.getByRole("button"));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Failed to refresh widget", {
+        description: "Data service unavailable",
+      }),
+    );
+    expect(updateWidget).not.toHaveBeenCalled();
   });
 });

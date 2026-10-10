@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { useTabContext } from "~/lib/contexts/TabContext";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
@@ -22,7 +23,6 @@ import { cn } from "../ds/utils";
 import SearchResultsNotFound from "../General/SearchResultsNotFound";
 import useFetchSharedResources from "../LayoutAuth/Search/hooks/useFetchSharedResources";
 import { useWidgetContext } from "../Widget.context";
-import useCopilotDataWidget from "../Widgets/Helpers/useCopilotDataWidget";
 import Navbar, { type NavBarProps } from "./NavBar";
 import { LoadingElement } from "./SetLoadingOnResize";
 
@@ -199,7 +199,7 @@ const DraggableCard = forwardRef<HTMLDivElement, DraggableCardProps>(
       };
     }, []);
 
-    useCopilotDataWidget({ aiData, title, aiEnabled, lastUpdated });
+    useWidgetDataExport({ data: aiData, title, enabled: aiEnabled, lastUpdated });
 
     const [state, dispatch] = useStateReducer({
       accessError: null as string | null,

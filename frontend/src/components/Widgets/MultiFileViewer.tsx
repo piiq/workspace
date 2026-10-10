@@ -4,6 +4,7 @@ import { PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import DraggableCard, { SetLoadingOnResize } from "~/components/DraggableCard";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import { type QueryOptions, useJsonData, useMultipleQueries } from "~/lib/api";
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import {
@@ -22,7 +23,6 @@ import type { ParamDefT } from "../types";
 import { ResizablePanel, ResizablePanelGroup } from "../ui/Resizable";
 import { useWidgetContext } from "../Widget.context";
 import { FileViewer } from "./Helpers/MultiFileViewer/FileViewer";
-import useCopilotDataWidget from "./Helpers/useCopilotDataWidget";
 
 const DEFAULT_SIDEBAR_SIZE = 25;
 const MIN_SIDEBAR_SIZE = 10;
@@ -497,9 +497,9 @@ export default function MultiFileViewer() {
     return { options: { [selectorParamName]: filteredOptions } };
   }, [filteredOptions, aiFileNames, widgetAiSelected, selectorParamName]);
 
-  useCopilotDataWidget({
-    aiData: aiDataMemo,
-    aiEnabled: true,
+  useWidgetDataExport({
+    data: aiDataMemo,
+    enabled: true,
     additionalMetadata: additionalMetadataMemo,
   });
 

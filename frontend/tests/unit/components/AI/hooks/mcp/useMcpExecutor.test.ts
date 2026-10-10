@@ -7,9 +7,13 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getIframeWidget } from "~/lib/iframeWidgetRegistry";
 import { CopilotErrorType } from "~/lib/state/copilot";
+import { useCopilotDataStore } from "~/lib/state/copilotData";
 import type { McpConnection, McpServer } from "~/lib/state/mcpTools";
 import { useMcpToolsStore } from "~/lib/state/mcpTools";
+import { getAllWidgets } from "~/lib/utils/widget";
+import { registerWidgetLifecycle } from "~/lib/widgetData";
 
 // Mock posthog
 vi.mock("posthog-js", () => ({
@@ -23,6 +27,7 @@ vi.mock("sonner", () => ({
   toast: {
     info: vi.fn(),
     warning: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -30,6 +35,8 @@ vi.mock("sonner", () => ({
 vi.mock("~/lib/utils/widget", () => ({
   getAllWidgets: vi.fn().mockReturnValue([]),
 }));
+
+vi.mock("~/lib/iframeWidgetRegistry", () => ({ getIframeWidget: vi.fn() }));
 
 // Mock API calls
 vi.mock("~/api/auth.api", () => ({
@@ -84,6 +91,8 @@ function parseErrorPayload(result: any[]) {
 describe("useMcpExecutor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getAllWidgets).mockReturnValue([]);
+    useCopilotDataStore.setState({ widgetsInCurrentDashboard: [] });
     act(() => {
       useMcpToolsStore.setState({
         servers: [],
@@ -431,6 +440,122 @@ describe("useMcpExecutor", () => {
   });
 
   describe("successful tool execution", () => {
+    it.each([
+      true,
+      false,
+    ])("refreshes matching native widgets for a destructive tool: %s", async (destructive) => {
+      vi.mocked(getAllWidgets).mockReturnValue([
+        {
+          widgetId: "holdings",
+          name: "Holdings",
+          sourceId: "portfolio-source",
+          mcp_tool: { mcp_server: "Portfolio MCP", tool_id: "holdings" },
+        },
+      ] as any);
+      useCopilotDataStore.setState({
+        widgetsInCurrentDashboard: [
+          { id: "native-holdings", widgetId: "holdings", sourceId: "portfolio-source" },
+          { id: "unrelated", widgetId: "holdings", sourceId: "other-source" },
+        ] as any,
+      });
+      const refresh = vi.fn();
+      const unrelated = vi.fn();
+      const unregister = registerWidgetLifecycle("native-holdings", { refresh });
+      const unregisterOther = registerWidgetLifecycle("unrelated", {
+        refresh: unrelated,
+      });
+      setupStore(
+        createMockServer({
+          clientName: "Portfolio MCP",
+          tools: [
+            {
+              id: "holdings",
+              name: "Holdings",
+              enabled: true,
+              annotations: { destructiveHint: destructive },
+            },
+          ],
+        }),
+        createMockConnection(),
+      );
+      try {
+        const executeAgentTool = await getExecutor();
+        const response = await executeAgentTool("server-1", "Portfolio_holdings", {});
+        expect((response[0].items[0] as { content: string }).content).toContain("ok");
+        expect(refresh).toHaveBeenCalledTimes(destructive ? 1 : 0);
+        expect(unrelated).not.toHaveBeenCalled();
+      } finally {
+        unregister();
+        unregisterOther();
+      }
+    });
+
+    it("keeps the successful MCP result when a native refresh fails", async () => {
+      vi.mocked(getAllWidgets).mockReturnValue([
+        {
+          widgetId: "holdings",
+          sourceId: "portfolio-source",
+          mcp_tool: { mcp_server: "Portfolio MCP", tool_id: "holdings" },
+        },
+      ] as any);
+      useCopilotDataStore.setState({
+        widgetsInCurrentDashboard: [
+          { id: "native-holdings", widgetId: "holdings", sourceId: "portfolio-source" },
+        ] as any,
+      });
+      const unregister = registerWidgetLifecycle("native-holdings", {
+        refresh: vi.fn().mockRejectedValue(new Error("Data endpoint unavailable")),
+      });
+      setupStore(
+        createMockServer({
+          clientName: "Portfolio MCP",
+          tools: [
+            {
+              id: "holdings",
+              name: "Holdings",
+              enabled: true,
+              annotations: { destructiveHint: true },
+            },
+          ],
+        }),
+        createMockConnection(),
+      );
+      try {
+        const executeAgentTool = await getExecutor();
+        const response = await executeAgentTool("server-1", "Portfolio_holdings", {});
+        expect((response[0].items[0] as { content: string }).content).toContain("ok");
+        const { toast } = await import("sonner");
+        expect(toast.error).toHaveBeenCalledWith("Widget refresh failed", {
+          description: "Error: Data endpoint unavailable",
+        });
+      } finally {
+        unregister();
+      }
+    });
+
+    it("refreshes an iframe through its bridge for a destructive tool", async () => {
+      const sendRefresh = vi.fn();
+      vi.mocked(getIframeWidget).mockReturnValue({ sendRefresh } as any);
+      setupStore(
+        createMockServer({
+          iframeWidgetId: "iframe-widget",
+          tools: [
+            {
+              id: "holdings",
+              name: "Holdings",
+              enabled: true,
+              annotations: { destructiveHint: true },
+            },
+          ],
+        }),
+        createMockConnection(),
+      );
+      const executeAgentTool = await getExecutor();
+      await executeAgentTool("server-1", "Portfolio_holdings", {});
+      expect(getIframeWidget).toHaveBeenCalledWith("iframe-widget");
+      expect(sendRefresh).toHaveBeenCalledOnce();
+    });
+
     it("should return content from callTool response", async () => {
       const connection = createMockConnection({
         callTool: vi.fn().mockResolvedValue({

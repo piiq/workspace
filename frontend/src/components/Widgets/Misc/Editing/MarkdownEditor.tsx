@@ -16,10 +16,10 @@ import DraggableCard from "~/components/DraggableCard";
 import Icon from "~/components/Icon";
 import Tooltip from "~/components/Tooltip";
 import { useWidgetContext } from "~/components/Widget.context";
+import useWidgetDataExport from "~/hooks/useWidgetDataExport";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { cn, getContrastColor, useEventListener } from "~/lib/utils";
 import { MaterialSymbols123 } from "../../../Icons";
-import useCopilotDataWidget from "../../Helpers/useCopilotDataWidget";
 import { EditorExtensions, EditorOptions } from "./utils";
 
 export const SettingsSchema = z.object({
@@ -251,10 +251,10 @@ function MarkdownEditor() {
     }
   });
 
-  useCopilotDataWidget({
-    aiEnabled: true,
+  useWidgetDataExport({
+    enabled: true,
     title: widget?.name,
-    aiData: widget?.storage?.html,
+    data: widget?.storage?.html,
   });
 
   const onClick = useCallback(
