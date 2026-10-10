@@ -111,6 +111,9 @@ def _inspect_and_verify(engine: sa.engine.Engine, dialect_name: str):
     """Introspect all tables and run a SELECT on each to verify types work."""
     inspector = sa.inspect(engine)
     tables = inspector.get_table_names()
+    assert "copilot_chat_old" not in tables
+    assert "copilot_chats" not in tables
+    assert {"copilot_chat", "copilot_messages"}.issubset(tables)
 
     widget_type = next(
         column for column in inspector.get_columns("widget_metadata")
@@ -435,3 +438,80 @@ class TestSQLiteMigrations:
                     assert widget.widget_config == config
             finally:
                 engine.dispose()
+
+    @pytest.mark.parametrize("remove_account", ["replace", "delete"])
+    async def test_unused_chat_tables_do_not_block_account_removal(self, tmp_path, remove_account):
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+        from sqlalchemy.orm import Session
+        from sqlalchemy_utils import UUIDType
+
+        from api import base, crud, models
+        from scripts.import_user_data import purge_user
+
+        db_path = tmp_path / "chat-cleanup.db"
+        env_vars = {
+            **_base_env(),
+            "DATABASE_TYPE": "sqlite",
+            "DB_PATH": str(db_path),
+            "REDIS_HOST": "127.0.0.1",
+            "REDIS_PORT": "6379",
+            "REDIS_PASS": "",
+        }
+        _run_alembic_upgrade(env_vars, revision="d3e5a8c9b1f2")
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+
+        def enable_foreign_keys(dbapi_connection, _):
+            dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+        sa.event.listen(engine, "connect", enable_foreign_keys)
+        user_id, chat_id, message_id = uuid4(), uuid4(), uuid4()
+        try:
+            with Session(engine) as session:
+                session.add(models.User(
+                    uuid=user_id,
+                    email="chat-cleanup@example.com",
+                    clean_email="chat-cleanup@example.com",
+                    password="test-password",
+                ))
+                session.flush()
+                session.add(models.CopilotChat(uuid=chat_id, user_uuid=user_id, label="Saved chat"))
+                session.flush()
+                session.add(models.ChatMessages(
+                    uuid=message_id,
+                    user_uuid=user_id,
+                    chat_uuid=chat_id,
+                    role=base.ChatMessageRole.human,
+                    content={"text": "Saved message"},
+                ))
+                for table_name in ("copilot_chat_old", "copilot_chats"):
+                    table = sa.Table(
+                        table_name,
+                        sa.MetaData(),
+                        sa.Column("uuid", UUIDType(), primary_key=True),
+                        sa.Column("user_uuid", UUIDType()),
+                        autoload_with=session.connection(),
+                    )
+                    session.execute(table.insert().values(uuid=uuid4(), user_uuid=user_id))
+                session.commit()
+
+            _run_alembic_upgrade(env_vars)
+            _inspect_and_verify(engine, "sqlite")
+            with Session(engine) as session:
+                assert session.get(models.CopilotChat, chat_id).label == "Saved chat"
+                assert session.get(models.ChatMessages, message_id).content == {"text": "Saved message"}
+        finally:
+            engine.dispose()
+
+        async_engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
+        sa.event.listen(async_engine.sync_engine, "connect", enable_foreign_keys)
+        try:
+            async with async_sessionmaker(async_engine)() as session:
+                if remove_account == "replace":
+                    await purge_user(session, user_id)
+                else:
+                    await crud.full_delete_user(session, user_id)
+                await session.commit()
+                for model in (models.User, models.CopilotChat, models.ChatMessages):
+                    assert await session.scalar(sa.select(sa.func.count()).select_from(model)) == 0
+        finally:
+            await async_engine.dispose()

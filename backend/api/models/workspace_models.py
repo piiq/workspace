@@ -164,28 +164,6 @@ class FileWidget(Base, UUIDMixin, DateMixin):
     source: Mapped[None | str] = mapped_column(Text)
 
 
-class DONT_USE_CopilotChats(Base, UUIDMixin, DateMixin):
-    """Copilot Chat"""
-
-    __tablename__ = "copilot_chats"
-    user_uuid: Mapped[UUID] = mapped_column(
-        UUIDType, ForeignKey("user.uuid"), unique=True, nullable=False
-    )
-    chats: Mapped[list[dict] | None] = mapped_column(
-        GzipJsonType,
-    )
-
-
-class CopilotChatOld(Base, UUIDMixin, DateMixin):
-    """Copilot Chat"""
-
-    __tablename__ = "copilot_chat_old"
-    user_uuid: Mapped[UUID] = mapped_column(
-        UUIDType, ForeignKey("user.uuid"), nullable=False, index=True
-    )
-    content: Mapped[dict | None] = mapped_column(GzipJsonLongType)
-
-
 class CopilotChat(Base, UUIDMixin, DateMixin):
     """Copilot Chat"""
 

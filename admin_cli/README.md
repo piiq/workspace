@@ -254,6 +254,8 @@ Returns a new temporary password.
 Downloads a complete copy of somebody's account as a zip, which they can import
 into OpenBB Lite.
 
+Exports include current chat history. Re-export older account archives before importing.
+
 ```bash
 ./openbb-admin user export analyst@acme.com --out ./exports
 ```
@@ -271,7 +273,6 @@ Options:
 | `--out` | Directory or file path for the archive (default: current directory) |
 | `--with-files` | Download the account's uploaded files. **Slow** — see below. |
 | `--include-history` | Include dashboard version history. Much larger archive. |
-| `--include-legacy` | Include the legacy copilot chat blob table |
 | `--json` | Print `{"path": ..., "bytes": ...}` instead of the human summary |
 
 #### Why files are opt-in

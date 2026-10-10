@@ -1495,16 +1495,6 @@ class Chat(ChatInfo):
     messages: list[ChatMessage]
 
     @classmethod
-    def from_db(cls, value: dict | None, uuid: UUID) -> "Chat":
-        if value is None:
-            return cls.corrupted(uuid)
-
-        value.pop("id_", None)
-        value.pop("id", None)
-        value.update({"uuid": uuid})
-        return cls.model_validate(value)
-
-    @classmethod
     def from_row(cls, row: "CopilotChat", from_search: bool = False) -> "ChatInfo | Chat":
         if (value := row.content) is None:
             return cls.corrupted(row.uuid)

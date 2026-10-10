@@ -1061,14 +1061,6 @@ async def remove_pro_data(db: AsyncSession, user_uuid: UUID):
         models.EntitlementUsage.user_uuid == user_uuid
     )
     await db.execute(entitlements_usage)
-    try:
-        copilot_chats = delete(models.DONT_USE_CopilotChats).where(
-            models.DONT_USE_CopilotChats.user_uuid == user_uuid
-        )
-        await db.execute(copilot_chats)
-    except Exception as e:
-        logger.error(e)
-
     copilot_chats = delete(models.CopilotChat).where(
         models.CopilotChat.user_uuid == user_uuid
     )

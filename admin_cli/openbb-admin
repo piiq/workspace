@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenBB Hub Admin CLI - v2.1.0
+OpenBB Hub Admin CLI - v2.2.0
 
 A single-file CLI tool for managing OpenBB Hub entities and users.
 Dependencies: Python 3.8+ stdlib only (no external packages required)
@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("openbb-admin")
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 
 CONFIG_FILE = Path(
     os.environ.get("OPENBB_CONFIG_FILE", str(Path.home() / ".openbb-hub/config.json"))
@@ -459,15 +459,12 @@ class HubAPIClient:
         self,
         user_uuid: str,
         include_history: bool = False,
-        include_legacy: bool = False,
         with_files: bool = False,
     ) -> tuple[bytes, str]:
         """Download a user's data archive. Returns (zip bytes, filename)."""
         params: dict[str, Any] = {}
         if include_history:
             params["include_history"] = "true"
-        if include_legacy:
-            params["include_legacy"] = "true"
         if with_files:
             params["with_files"] = "true"
         return self._request_binary(
@@ -989,7 +986,6 @@ def user_export(args: argparse.Namespace) -> None:
         payload, suggested = client.user_export(
             user["uuid"],
             include_history=args.include_history,
-            include_legacy=args.include_legacy,
             with_files=args.with_files,
         )
     except APIError as e:
@@ -1475,11 +1471,6 @@ def main() -> None:
         "--include-history",
         action="store_true",
         help="Include dashboard version history (much larger archive)",
-    )
-    u_export.add_argument(
-        "--include-legacy",
-        action="store_true",
-        help="Include the legacy copilot chat table (archived, never imported)",
     )
     u_export.add_argument(
         "--with-files",

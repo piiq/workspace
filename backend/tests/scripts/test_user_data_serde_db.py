@@ -124,11 +124,6 @@ def _sample_rows() -> dict[str, object]:
             content={"text": "what is the price of AAPL?"},
             searchable_content="what is the price of AAPL?",
         ),
-        "copilot_chat_old": models.CopilotChatOld(
-            uuid=uuid4(),
-            user_uuid=USER_UUID,
-            content={"messages": [{"role": "user", "content": "an older chat"}]},
-        ),
         "user_prompts": models.UserPrompts(
             uuid=uuid4(), user_uuid=USER_UUID, prompt=[{"title": "p", "body": "b"}]
         ),

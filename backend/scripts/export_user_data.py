@@ -277,7 +277,6 @@ async def build_archive(
     email: str,
     *,
     include_history: bool = False,
-    include_legacy: bool = False,
     with_files: bool = False,
 ) -> tuple[bytes, ExportResult]:
     """Produce the archive in memory from an existing session.
@@ -285,9 +284,7 @@ async def build_archive(
     Split out from ``export_user`` so the admin API endpoint can stream the same
     bytes without going through the filesystem.
     """
-    specs = scope.included_specs(
-        include_history=include_history, include_legacy=include_legacy
-    )
+    specs = scope.included_specs(include_history=include_history)
 
     # Fail before touching the database if the schema and codec disagree.
     for spec in specs:
@@ -361,9 +358,7 @@ async def build_archive(
             "(pass --with-files to include them)"
         )
 
-    scope_text = scope.describe(
-        include_history=include_history, include_legacy=include_legacy
-    )
+    scope_text = scope.describe(include_history=include_history)
     manifest = {
         "manifest_version": MANIFEST_VERSION,
         "scope_version": scope.SCOPE_VERSION,
@@ -381,7 +376,6 @@ async def build_archive(
         },
         "options": {
             "include_history": include_history,
-            "include_legacy": include_legacy,
             "with_files": with_files,
         },
         "tables": {
@@ -415,7 +409,6 @@ async def export_user(
     out_dir: Path,
     *,
     include_history: bool = False,
-    include_legacy: bool = False,
     with_files: bool = False,
 ) -> ExportResult:
     """Export an account to a zip on disk."""
@@ -424,7 +417,6 @@ async def export_user(
             db,
             email,
             include_history=include_history,
-            include_legacy=include_legacy,
             with_files=with_files,
         )
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -453,11 +445,6 @@ def main(argv: list[str] | None = None) -> int:
         help="Include dashboard version history (much larger archive)",
     )
     parser.add_argument(
-        "--include-legacy",
-        action="store_true",
-        help="Include the legacy copilot chat table (archived, never imported)",
-    )
-    parser.add_argument(
         "--with-files",
         action="store_true",
         help="Download the account's uploaded files into the archive. Slow: this "
@@ -471,12 +458,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.describe_scope:
-        logger.info(
-            scope.describe(
-                include_history=args.include_history,
-                include_legacy=args.include_legacy,
-            )
-        )
+        logger.info(scope.describe(include_history=args.include_history))
         return 0
 
     if not args.email:
@@ -489,7 +471,6 @@ def main(argv: list[str] | None = None) -> int:
                 args.email,
                 Path(args.out),
                 include_history=args.include_history,
-                include_legacy=args.include_legacy,
                 with_files=args.with_files,
             )
         )
