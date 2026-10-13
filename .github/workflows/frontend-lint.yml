@@ -5,6 +5,12 @@ on:
     paths:
       - 'packages/plugin-sdk/src/**'
       - 'packages/plugin-sdk/biome.json'
+      - 'scripts/build-plugin.ts'
+      - 'scripts/biome.json'
+      - 'examples/plugins/basic-widget/src/**'
+      - 'examples/plugins/basic-widget/build.ts'
+      - 'examples/plugins/basic-widget/assets/**'
+      - 'examples/plugins/basic-widget/biome.json'
       - 'frontend/src/**'
       - 'frontend/biome.json'
       - 'frontend/bun.lock'
@@ -40,6 +46,14 @@ jobs:
         working-directory: packages/plugin-sdk
         run: biome ci src
 
+      - name: Lint plugin build command
+        working-directory: scripts
+        run: biome ci build-plugin.ts
+
+      - name: Lint example plugin
+        working-directory: examples/plugins/basic-widget
+        run: biome ci src build.ts
+
   typos:
     name: Spell Check
     runs-on: ubuntu-latest
@@ -50,5 +64,5 @@ jobs:
       - name: Check spelling
         uses: crate-ci/typos@master
         with:
-          files: frontend/src frontend/CHANGELOG.md packages/plugin-sdk/src
+          files: frontend/src frontend/CHANGELOG.md packages/plugin-sdk/src scripts/build-plugin.ts examples/plugins/basic-widget/src examples/plugins/basic-widget/build.ts
           config: frontend/_typos.toml
