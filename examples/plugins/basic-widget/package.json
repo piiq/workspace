@@ -1,0 +1,19 @@
+{
+  "name": "@example/basic-widget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "bun build.ts"
+  },
+  "dependencies": {
+    "@piiq/workspace-plugin-sdk": "../../../packages/plugin-sdk"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/react": "^18.2.57",
+    "@types/react-dom": "^18.2.19",
+    "typescript": "^5.5.3"
+  }
+}

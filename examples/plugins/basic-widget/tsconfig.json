@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "preserveSymlinks": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "lib": ["ESNext", "DOM"],
+    "types": ["bun", "react", "react-dom"]
+  },
+  "include": ["src", "build.ts"]
+}
