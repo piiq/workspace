@@ -99,6 +99,8 @@ src/api/auth.api.ts
 
 ### Unit Tests
 
+Plugin build tests compile the standalone example with Bun and register its generated module against the host API. Install the SDK runtime and example dependencies using [the plugin build instructions](../docs/plugins.md#building-a-plugin) before running the unit suite.
+
 ```bash
 # Run all unit tests
 bun run test:unit

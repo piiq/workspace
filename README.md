@@ -48,6 +48,8 @@ docker build -f backend/fastapi.Dockerfile -t workspace-backend:dev .
 
 ## Checks
 
+Frontend unit tests compile the example plugin. Install its dependencies and the SDK runtime dependencies using [the plugin build instructions](docs/plugins.md#building-a-plugin) before running the suite.
+
 ```bash
 cd frontend
 bun run typecheck
