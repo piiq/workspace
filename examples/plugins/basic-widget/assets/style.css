@@ -1,0 +1,14 @@
+.basic-widget table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.basic-widget th,
+.basic-widget td {
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.basic-widget tr[aria-selected="true"] {
+  outline: 1px solid currentColor;
+}

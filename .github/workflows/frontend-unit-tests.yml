@@ -6,6 +6,9 @@ on:
     paths:
       - 'packages/plugin-sdk/src/**'
       - 'packages/plugin-sdk/package.json'
+      - 'packages/plugin-sdk/bun.lock'
+      - 'scripts/build-plugin.ts'
+      - 'examples/plugins/basic-widget/**'
       - 'frontend/src/**'
       - 'frontend/tests/**'
       - 'frontend/config-profiles/**'
@@ -51,6 +54,24 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Cache plugin development dependencies
+        uses: actions/cache@v4
+        with:
+          path: examples/plugins/basic-widget/node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node24-bun-${{ steps.setup-bun.outputs.bun-version }}-plugins-${{ hashFiles('packages/plugin-sdk/package.json', 'examples/plugins/basic-widget/package.json', 'examples/plugins/basic-widget/bun.lock') }}
+
+      - name: Install example dependencies
+        working-directory: examples/plugins/basic-widget
+        run: bun install --frozen-lockfile
+
+      - name: Install SDK runtime dependencies
+        working-directory: packages/plugin-sdk
+        run: bun install --frozen-lockfile --production
+
+      - name: Check example types and build
+        working-directory: examples/plugins/basic-widget
+        run: bun run typecheck && bun run build
 
       - name: Check frontend types
         run: bun run typecheck

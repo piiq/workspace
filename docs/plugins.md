@@ -1,6 +1,6 @@
 # Workspace plugins
 
-`packages/plugin-sdk/` provides `@piiq/workspace-plugin-sdk`. The frontend consumes it as a local Bun dependency. Run `bun install --frozen-lockfile` in `frontend/` before typechecking or testing. Plugin projects consume the SDK package without importing Workspace source files or stores.
+`packages/plugin-sdk/` provides `@piiq/workspace-plugin-sdk`. The frontend consumes it as a local Bun dependency. Run `bun install --frozen-lockfile` in `frontend/` before typechecking or testing. Unit tests also require the SDK runtime and example dependencies described under [Building a plugin](#building-a-plugin). Plugin projects consume the SDK package without importing Workspace source files or stores.
 
 ## Registration
 
@@ -63,8 +63,42 @@ Declare `agGridCapabilities` alongside renderers, using `AgGridCapabilityDefinit
 
 Build selections use `mode: "build"` and one `source`: `{ "path": "../my-plugin" }`, `{ "repository": "ssh://git.example/plugin.git", "ref": "v1.0.0" }`, or `{ "dist": "../my-plugin/dist" }`. Runtime selections use `mode: "runtime"` and `descriptorUrl`, either relative to the manifest or an absolute URL. An empty selection is `{ "plugins": [] }`. Keep deployment selections outside tracked application configuration. Application flags remain in `frontend/src/lib/runtimeConfigSchema.ts`.
 
-The SDK validates selections and descriptors. Build preparation, descriptor loading, and plugin installation commands are not provided by this interface. Plugin sources retain their own dependencies and lockfiles; generated descriptors, entry modules, and assets belong in their build output.
+The SDK validates selections and descriptors. Workspace preparation and descriptor loading are separate from building a plugin. Plugin sources retain their own dependencies and lockfiles; generated descriptors, entry modules, and assets belong in their build output.
 
 Runtime plugins execute in the Workspace page with the same trust as application code. Administrators select executable modules; user-supplied widget declarations identify renderers and do not supply executable URLs.
 
 Build-time plugins are included in the application build. Changes to a plugin's source or hosted output do not change that deployment; updating its plugin code requires another application build.
+
+## Building a plugin
+
+`@piiq/workspace-plugin-sdk/build` exports `buildPlugin({ root, entry, assets })`, using Bun's bundler. `root` defaults to the working directory; `entry` names the definition module, and `assets` contains project-relative files or directories. The helper writes `dist/plugin.json`, `dist/entry.js`, and assets, and returns the validated descriptor. Keep `dist/` and `node_modules/` ignored in each plugin repository.
+
+Default-export a `PluginDefinition` created with `definePlugin(packageJson, declarations)` from the entry module. Its name/version must match the project's `package.json`. The build imports this module in Bun to generate the descriptor from the same declarations used during registration. Put browser initialization in `setup(host)` or the renderer component. Build failures exit with an error; install the plugin's dependencies and run its TypeScript check before building.
+
+The generated browser module exports `register(api)`. It evaluates the compiled plugin using that API's React, ReactDOM, JSX runtime, and optional AG Community exports, then awaits `api.registerPlugin()`. Plugins can use ordinary imports from `react`, `react-dom`, `react-dom/client`, `react/jsx-runtime`, and `ag-grid-community`; these dependencies come from the host during registration. Other dependencies are bundled from the plugin project. The Bun build helper is a separate SDK export and is not included in browser code.
+
+Assets listed in the build options keep their project-relative paths under `dist/`. Imported file assets receive generated names and are included in the descriptor. Use `new URL(assetPath, import.meta.url)` for URLs relative to `entry.js`. Load descriptor assets relative to `plugin.json`; CSS assets accompany the plugin's JavaScript. The same output can be copied into a Workspace build or served for runtime loading.
+
+The [basic widget example](../examples/plugins/basic-widget/) consumes the SDK through its own manifest and lockfile. It renders supplied endpoint data with HTML, exposes a symbol parameter and saved row selection, publishes data through WidgetShell, and provides data export and refresh through the lifecycle API. Its build script also copies `assets/style.css`.
+
+Local Bun dependencies link SDK source files to this checkout, so install the SDK's runtime dependencies before building the example. A packed SDK resolves its dependencies inside the consuming project.
+
+```sh
+cd packages/plugin-sdk
+bun install --frozen-lockfile --production
+cd ../../examples/plugins/basic-widget
+bun install --frozen-lockfile
+bun run typecheck
+bun run build
+```
+
+From the Workspace root, the convenience command builds a definition module using the plugin's installed SDK and dependencies:
+
+```sh
+bun scripts/build-plugin.ts --path examples/plugins/basic-widget --asset assets
+bun scripts/build-plugin.ts --help
+```
+
+`--entry` selects a module other than `src/index.tsx`; repeat `--asset` for multiple files or directories. Plugin projects can call the SDK helper from their own build scripts without this command.
+
+For a project outside this checkout, set its SDK dependency to the local `packages/plugin-sdk/` path or a tarball produced by `bun pm pack` in that directory. Install and typecheck in the plugin project, then call its build script. No imports from Workspace source files or stores are required.

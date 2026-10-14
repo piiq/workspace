@@ -965,7 +965,7 @@
 
     "@oxc-resolver/binding-win32-x64-msvc": ["@oxc-resolver/binding-win32-x64-msvc@11.20.0", "", { "os": "win32", "cpu": "x64" }, "sha512-Wb14jWEW8huH6It9F6sXd9vrYmIS7pMrgkU6sxpLxkP+9z+wRgs71hUEhRpcn8FOXAFa27FVWfY2tRpbfTzfLw=="],
 
-    "@piiq/workspace-plugin-sdk": ["@piiq/workspace-plugin-sdk@file:../packages/plugin-sdk", { "dependencies": { "zod": "^4.4.3" }, "peerDependencies": { "ag-grid-community": "34.1.1", "react": "^18.2.0", "react-dom": "^18.3.1" }, "optionalPeers": ["ag-grid-community"] }],
+    "@piiq/workspace-plugin-sdk": ["@piiq/workspace-plugin-sdk@file:../packages/plugin-sdk", { "dependencies": { "zod": "4.4.3" }, "peerDependencies": { "ag-grid-community": "34.1.1", "react": "^18.2.0", "react-dom": "^18.3.1" }, "optionalPeers": ["ag-grid-community"] }],
 
     "@pkgr/core": ["@pkgr/core@0.3.6", "", {}, "sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA=="],
 
