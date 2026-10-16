@@ -67,6 +67,7 @@ export default defineConfig({
         VITE_UI_SHOW_CHANGELOG: "false",
         VITE_AI_COPILOT_ENABLED: "true",
         VITE_AI_COPILOT_OPENBB_COPILOT: "false",
+        VITE_AI_COPILOT_AI_ENHANCEMENTS: "false",
       },
     },
   ],

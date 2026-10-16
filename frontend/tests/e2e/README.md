@@ -22,7 +22,7 @@ On Linux, install Chromium's system dependencies with `bun run playwright instal
 
 Playwright starts or reuses the frontend at `http://127.0.0.1:1420` and API at `http://127.0.0.1:8000`. The source backend runner starts Redis through `docker/docker-compose.e2e.yml`, applies migrations to SQLite, provisions the `Browser Tests` organization, and runs the API and worker. Database and uploaded files are stored in a temporary directory under ignored `backend/.e2e/`; stopping the runner removes the directory and its Redis container. Existing source servers must use the same organization and account configuration.
 
-The frontend server command prepares `fixtures/plugins.json`, which installs, typechecks, and builds the example using its own dependencies. Source configuration enables external agents and disables the hosted OpenBB Copilot. Reused frontend servers need the same prepared selection and configuration.
+The frontend server command prepares `fixtures/plugins.json`, which installs, typechecks, and builds the example using its own dependencies. Source configuration enables external agents and disables the hosted OpenBB Copilot and AI file enhancements. Reused frontend servers need the same prepared selection and configuration.
 
 The account setup uses `admin_cli/openbb-admin` to create `playwright@example.com` with password `WorkspaceTest123!`, then signs in through the UI. CLI credentials stay in ignored `frontend/playwright/.cache/admin.json`; browser authentication stays in `frontend/playwright/.auth/user.json`. These credentials are for the local test environment.
 
