@@ -18,13 +18,13 @@ export function buildPluginImports(): Plugin {
     configureServer(server) {
       server.watcher.add(imports);
     },
-    handleHotUpdate(context) {
+    hotUpdate(context) {
       if (context.file !== imports) return;
-      const module = context.server.moduleGraph.getModuleById(
+      const module = this.environment.moduleGraph.getModuleById(
         "\0virtual:workspace-plugins",
       );
-      if (module) context.server.moduleGraph.invalidateModule(module);
-      context.server.ws.send({ type: "full-reload" });
+      if (module) this.environment.moduleGraph.invalidateModule(module);
+      this.environment.hot.send({ type: "full-reload" });
       return [];
     },
   };
