@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parseArgs, promisify } from "node:util";
 import {
@@ -85,14 +85,17 @@ export async function prepareFrontend(manifestPath?: string, root = workspace) {
 }`);
     }
     await mkdir(join(temporary, "bundles"), { recursive: true });
+    const bundles = join(output, "bundles");
+    await mkdir(bundles, { recursive: true });
+    // Keep watched directories in place when replacing the selected bundles.
+    for (const entry of await readdir(bundles)) {
+      await rm(join(bundles, entry), { recursive: true, force: true });
+    }
+    await cp(join(temporary, "bundles"), bundles, { recursive: true });
     await writeFile(
-      join(temporary, "index.js"),
+      join(output, "index.js"),
       `export default [${imports.join(",\n")}];\n`,
     );
-    await rm(output, { recursive: true, force: true });
-    await mkdir(output, { recursive: true });
-    await cp(join(temporary, "bundles"), join(output, "bundles"), { recursive: true });
-    await cp(join(temporary, "index.js"), join(output, "index.js"));
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
