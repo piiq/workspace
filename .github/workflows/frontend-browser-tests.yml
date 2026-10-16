@@ -6,9 +6,22 @@ on:
     paths:
       - 'packages/plugin-sdk/src/**'
       - 'packages/plugin-sdk/package.json'
+      - 'packages/plugin-sdk/bun.lock'
+      - 'scripts/prepare-frontend.ts'
+      - 'examples/plugins/basic-widget/**'
+      - 'frontend/plugin-build.ts'
+      - 'frontend/vite.config.ts'
+      - 'frontend/src/main.tsx'
+      - 'frontend/package.json'
+      - 'frontend/bun.lock'
       - 'frontend/tests/e2e/**'
       - 'frontend/playwright.config.ts'
       - 'frontend/src/lib/plugins/**'
+      - 'frontend/src/lib/widgetData.ts'
+      - 'frontend/src/hooks/useWidgetDataExport.ts'
+      - 'frontend/src/components/AI/hooks/useGetCopilotWidgets.tsx'
+      - 'frontend/src/components/AI/hooks/useFunctionCall.tsx'
+      - 'frontend/src/components/AI/hooks/mcp/useMcpExecutor.ts'
       - 'frontend/src/components/Widgets/index.ts'
       - 'frontend/src/components/Widget.tsx'
       - 'frontend/src/components/Widgets/charting/RawDataTable.tsx'
@@ -59,6 +72,16 @@ jobs:
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install SDK runtime dependencies
+        working-directory: packages/plugin-sdk
+        run: bun install --frozen-lockfile --production
+
+      - name: Cache example plugin dependencies
+        uses: actions/cache@v4
+        with:
+          path: examples/plugins/basic-widget/node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-node24-bun-${{ steps.setup-bun.outputs.bun-version }}-plugins-${{ hashFiles('packages/plugin-sdk/package.json', 'examples/plugins/basic-widget/package.json', 'examples/plugins/basic-widget/bun.lock') }}
 
       - name: Install Chromium
         run: bun run playwright install --with-deps chromium

@@ -6,7 +6,9 @@ on:
       - 'packages/plugin-sdk/src/**'
       - 'packages/plugin-sdk/biome.json'
       - 'scripts/build-plugin.ts'
+      - 'scripts/prepare-frontend.ts'
       - 'scripts/biome.json'
+      - 'frontend/plugin-build.ts'
       - 'examples/plugins/basic-widget/src/**'
       - 'examples/plugins/basic-widget/build.ts'
       - 'examples/plugins/basic-widget/assets/**'
@@ -48,7 +50,10 @@ jobs:
 
       - name: Lint plugin build command
         working-directory: scripts
-        run: biome ci build-plugin.ts
+        run: biome ci build-plugin.ts prepare-frontend.ts
+
+      - name: Lint plugin Vite integration
+        run: biome ci --config-path=../scripts plugin-build.ts
 
       - name: Lint example plugin
         working-directory: examples/plugins/basic-widget
@@ -64,5 +69,5 @@ jobs:
       - name: Check spelling
         uses: crate-ci/typos@master
         with:
-          files: frontend/src frontend/CHANGELOG.md packages/plugin-sdk/src scripts/build-plugin.ts examples/plugins/basic-widget/src examples/plugins/basic-widget/build.ts
+          files: frontend/src frontend/CHANGELOG.md frontend/plugin-build.ts packages/plugin-sdk/src scripts/build-plugin.ts scripts/prepare-frontend.ts examples/plugins/basic-widget/src examples/plugins/basic-widget/build.ts
           config: frontend/_typos.toml

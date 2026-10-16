@@ -102,3 +102,23 @@ bun scripts/build-plugin.ts --help
 `--entry` selects a module other than `src/index.tsx`; repeat `--asset` for multiple files or directories. Plugin projects can call the SDK helper from their own build scripts without this command.
 
 For a project outside this checkout, set its SDK dependency to the local `packages/plugin-sdk/` path or a tarball produced by `bun pm pack` in that directory. Install and typecheck in the plugin project, then call its build script. No imports from Workspace source files or stores are required.
+
+## Including plugins in a frontend build
+
+From the Workspace root, prepare the administrator's selection before starting Vite or building the frontend:
+
+```sh
+bun scripts/prepare-frontend.ts --manifest /path/to/plugins.json
+cd frontend
+bun run build
+```
+
+Manifest paths resolve beside `plugins.json`. A build selection accepts `source.path` for a local project, `source.repository` and `source.ref` for a Git checkout, or `source.dist` for compiled output. Source projects use Bun and their own `bun.lock`, `typecheck` script, and `build` script; the build script calls the SDK helper. Repository selections require dependencies accessible from the cloned project, including its SDK dependency. Preparation runs installation, typechecking, and building in that project without changing Workspace's manifests or lockfiles. Runtime selections are left out of this build.
+
+Preparation validates descriptors and copies `plugin.json`, the entry module, and every declared asset into ignored `.build/plugins/bundles/<scope>/<package>/`. Missing files, incompatible API versions, duplicate selections, and failed source commands fail preparation. `.build/plugins/index.js` supplies the selected descriptors and module imports to Vite through `virtual:workspace-plugins`.
+
+Vite serves the compiled files at `/plugins/<scope>/<package>/` during development and copies them to that directory in `dist/`. Entry modules retain their own `import.meta.url`, so asset URLs resolve beside the compiled module in both cases. The loader loads stylesheets and awaits registration before mounting Workspace. Loading or registration failures appear on affected widgets; other plugins and core widgets remain available.
+
+Use `bun run dev` after preparation for source development. Re-run preparation and reload Workspace when changing the selection. To remove all selected plugins, run `bun scripts/prepare-frontend.ts` from the repository root. A checkout with no prepared output also uses an empty selection.
+
+The frontend Dockerfile includes the same prepared output from the repository root context. Prepare plugins on the host, then run `docker build -f frontend/Dockerfile -t workspace-frontend:dev .`. Plugin repositories and their dependency installations are not needed inside that image build.
