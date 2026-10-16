@@ -12,6 +12,7 @@
     }
   },
   "include": [
+    "plugin-build.ts",
     "vite.config.ts",
     "postcss.config.cjs",
     "src/lib/runtimeConfigSchema.ts"

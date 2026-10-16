@@ -7,6 +7,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import webfontDownload from "vite-plugin-webfont-dl";
 import { defineConfig } from "vitest/config";
+import { buildPluginAssets, buildPluginImports } from "./plugin-build.ts";
 import {
   buildLockedConfig,
   type LockedConfig,
@@ -330,6 +331,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
+      buildPluginImports(),
       webfontDownload([], { assetsSubfolder: "assets/fonts" }),
       react(),
       VitePWA({
@@ -412,6 +414,7 @@ export default defineConfig(({ mode }) => {
       mdPlugin({ mode: [Mode.MARKDOWN, Mode.REACT] }),
       viteStaticCopy({
         targets: [
+          ...buildPluginAssets(),
           {
             src: ["./src/lib/widgets.json", "./src/lib/sources.json"],
             dest: "assets/data",

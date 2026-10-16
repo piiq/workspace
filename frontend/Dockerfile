@@ -9,7 +9,10 @@ COPY frontend/package.json frontend/bun.lock ./
 COPY packages/plugin-sdk/ /app/packages/plugin-sdk/
 RUN bun install --frozen-lockfile
 COPY frontend/ .
-RUN bun run build:runtime
+RUN --mount=type=bind,target=/context \
+    if [ -d /context/.build/plugins ]; then \
+      mkdir -p /app/.build && cp -R /context/.build/plugins /app/.build/plugins; \
+    fi && bun run build:runtime
 
 FROM nginx:stable
 

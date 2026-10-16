@@ -2,6 +2,11 @@
 
 declare const __LOCKED_CONFIG__: import("~/lib/runtimeConfigSchema").LockedConfig;
 
+declare module "virtual:workspace-plugins" {
+  const plugins: import("~/lib/plugins/buildLoader").BuiltPlugin[];
+  export default plugins;
+}
+
 // See more: https://www.npmjs.com/package/vite-plugin-markdown#type-declarations
 declare module "*.md" {
   // "unknown" would be more detailed depends on how you structure frontmatter
@@ -37,4 +42,3 @@ declare module "*.md" {
     toc,
   };
 }
-

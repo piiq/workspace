@@ -68,6 +68,12 @@ export class PluginRegistry {
     });
   }
 
+  recordPluginFailure(name: string, error: unknown) {
+    if (this.plugins.has(name)) return;
+    this.failPlugin(name, error);
+    this.emit();
+  }
+
   registerBuiltins(entries: BuiltinRenderer[]) {
     const ids = new Set<string>();
     for (const entry of entries) {

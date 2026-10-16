@@ -32,6 +32,7 @@ import {
   TOOLTIP_SKIP_DELAY_MS,
 } from "./lib/constants";
 import { getEnabledIdentityProviders } from "./lib/onPremFeatureFlags";
+import { loadBuiltPlugins } from "./lib/plugins/buildLoader";
 import { getConfig } from "./lib/runtimeConfig";
 import { useShallowAuthStore } from "./lib/state/auth";
 import { useShallowThemeStore } from "./lib/state/theme";
@@ -418,7 +419,8 @@ if ("serviceWorker" in navigator) {
   registerSW({ immediate: true });
 }
 
-function bootstrap() {
+async function bootstrap() {
+  await loadBuiltPlugins();
   const config = getConfig();
 
   // Apply branding from runtime config
