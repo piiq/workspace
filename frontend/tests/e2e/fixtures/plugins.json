@@ -1,0 +1,5 @@
+{
+  "plugins": [
+    { "mode": "build", "source": { "path": "../../../../examples/plugins/basic-widget" } }
+  ]
+}

@@ -8,6 +8,8 @@ on:
       - 'packages/plugin-sdk/package.json'
       - 'packages/plugin-sdk/bun.lock'
       - 'scripts/build-plugin.ts'
+      - 'scripts/prepare-frontend.ts'
+      - 'frontend/plugin-build.ts'
       - 'examples/plugins/basic-widget/**'
       - 'frontend/src/**'
       - 'frontend/tests/**'

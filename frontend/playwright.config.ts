@@ -49,7 +49,10 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "bun run dev --host 127.0.0.1",
+      command: "bun ../scripts/prepare-frontend.ts --manifest tests/e2e/fixtures/plugins.json && " +
+        (process.env.PLAYWRIGHT_FRONTEND_BUILD === "true"
+          ? "bun run build && bun run preview --host 127.0.0.1 --port 1420"
+          : "bun run dev --host 127.0.0.1"),
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
@@ -62,7 +65,8 @@ export default defineConfig({
         VITE_UI_SHOW_ONBOARDING_QUESTIONS: "false",
         VITE_UI_SHOW_TOS: "false",
         VITE_UI_SHOW_CHANGELOG: "false",
-        VITE_AI_COPILOT_ENABLED: "false",
+        VITE_AI_COPILOT_ENABLED: "true",
+        VITE_AI_COPILOT_OPENBB_COPILOT: "false",
       },
     },
   ],
