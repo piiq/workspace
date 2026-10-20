@@ -78,6 +78,31 @@ describe("parseStringArray", () => {
 });
 
 describe("getConfig", () => {
+  it("keeps runtime plugins disabled when no settings are supplied", () => {
+    expect(getConfig().plugins).toEqual({ runtimeEnabled: false, manifestUrl: "" });
+  });
+
+  it("reads runtime plugin settings from environment variables", () => {
+    vi.stubEnv("VITE_RUNTIME_PLUGINS_ENABLED", "true");
+    vi.stubEnv("VITE_PLUGINS_MANIFEST_URL", "https://plugins.test/plugins.json");
+    expect(getConfig().plugins).toEqual({
+      runtimeEnabled: true,
+      manifestUrl: "https://plugins.test/plugins.json",
+    });
+  });
+
+  it("reads deployment plugin settings and applies a build-time lock", () => {
+    window.__APP_CONFIG__ = {
+      ...getConfig(),
+      plugins: { runtimeEnabled: true, manifestUrl: "/plugins.json" },
+    };
+    (globalThis as Record<string, unknown>).__LOCKED_CONFIG__ = {
+      plugins: { runtimeEnabled: false },
+    };
+    _resetConfig();
+    expect(getConfig().plugins).toEqual({ runtimeEnabled: false, manifestUrl: "/plugins.json" });
+  });
+
   it("reads from window.__APP_CONFIG__ when valid", () => {
     window.__APP_CONFIG__ = {
       urls: { backend: "https://test.example.com", ai: "https://ai.example.com", platform: "", database: "" },
@@ -88,6 +113,7 @@ describe("getConfig", () => {
       services: {},
       data: {},
       mcp: {},
+      plugins: {},
       analytics: {},
       whiteLabel: {},
     };
@@ -165,6 +191,7 @@ describe("getConfig", () => {
       services: {},
       data: {},
       mcp: {},
+      plugins: {},
       analytics: {},
       whiteLabel: {},
     };
@@ -240,6 +267,7 @@ describe("locked config fields", () => {
       services: {},
       data: { allowHtmlJsExecution: true },
       mcp: {},
+      plugins: {},
       analytics: {},
       whiteLabel: {},
     };
@@ -267,6 +295,7 @@ describe("locked config fields", () => {
       services: {},
       data: { allowHtmlJsExecution: true },
       mcp: {},
+      plugins: {},
       analytics: {},
       whiteLabel: {},
     };
@@ -286,6 +315,7 @@ describe("locked config fields", () => {
       services: {},
       data: { allowHtmlJsExecution: true },
       mcp: {},
+      plugins: {},
       analytics: {},
       whiteLabel: {},
     };

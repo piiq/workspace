@@ -3,7 +3,7 @@
 declare const __LOCKED_CONFIG__: import("~/lib/runtimeConfigSchema").LockedConfig;
 
 declare module "virtual:workspace-plugins" {
-  const plugins: import("~/lib/plugins/buildLoader").BuiltPlugin[];
+  const plugins: import("~/lib/plugins/loadPlugin").PluginBundle[];
   export default plugins;
 }
 

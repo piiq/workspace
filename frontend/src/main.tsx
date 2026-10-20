@@ -33,6 +33,7 @@ import {
 } from "./lib/constants";
 import { getEnabledIdentityProviders } from "./lib/onPremFeatureFlags";
 import { loadBuiltPlugins } from "./lib/plugins/buildLoader";
+import { loadRuntimePlugins } from "./lib/plugins/runtimeLoader";
 import { getConfig } from "./lib/runtimeConfig";
 import { useShallowAuthStore } from "./lib/state/auth";
 import { useShallowThemeStore } from "./lib/state/theme";
@@ -421,6 +422,7 @@ if ("serviceWorker" in navigator) {
 
 async function bootstrap() {
   await loadBuiltPlugins();
+  await loadRuntimePlugins();
   const config = getConfig();
 
   // Apply branding from runtime config

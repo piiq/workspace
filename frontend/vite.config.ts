@@ -177,6 +177,10 @@ export default defineConfig(({ mode }) => {
         mcp: {
           defaultServerEnabled: env.VITE_MCP_DEFAULT_SERVER_ENABLED,
         },
+        plugins: {
+          runtimeEnabled: env.VITE_RUNTIME_PLUGINS_ENABLED,
+          manifestUrl: env.VITE_PLUGINS_MANIFEST_URL,
+        },
         analytics: {
           posthogKey: env.VITE_POSTHOG_KEY,
           posthogUrl: env.VITE_POSTHOG_URL,

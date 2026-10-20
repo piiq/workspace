@@ -108,6 +108,10 @@ function buildConfigFromEnv(): RuntimeConfig {
     mcp: {
       defaultServerEnabled: e.VITE_MCP_DEFAULT_SERVER_ENABLED,
     },
+    plugins: {
+      runtimeEnabled: e.VITE_RUNTIME_PLUGINS_ENABLED,
+      manifestUrl: e.VITE_PLUGINS_MANIFEST_URL,
+    },
     analytics: {
       posthogKey: e.VITE_POSTHOG_KEY,
       posthogUrl: e.VITE_POSTHOG_URL,

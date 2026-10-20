@@ -15,6 +15,7 @@
     "ui.showCopilotSwitcher",
     "ui.showMarketplace",
     "mcp.defaultServerEnabled",
+    "plugins.*",
     "data.allowHtmlJsExecution"
   ],
   "authentication": {

@@ -1,0 +1,18 @@
+services:
+  plugins:
+    image: nginx:alpine
+    ports:
+      - "${PLUGINS_PORT:-8090}:80"
+    environment:
+      WORKSPACE_ORIGIN: "${WORKSPACE_ORIGIN:-http://127.0.0.1:1420}"
+    volumes:
+      - type: bind
+        source: ./plugins/nginx.conf.template
+        target: /etc/nginx/templates/default.conf.template
+        read_only: true
+      - type: bind
+        source: "${PLUGINS_ROOT:?Set PLUGINS_ROOT to the directory containing plugins.json and compiled plugin bundles}"
+        target: /usr/share/nginx/html
+        read_only: true
+        bind:
+          create_host_path: false

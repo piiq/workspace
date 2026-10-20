@@ -45,6 +45,8 @@ set -euo pipefail
 : "${UI_SHOW_MARKETPLACE:=true}"
 
 : "${MCP_DEFAULT_SERVER_ENABLED:=true}"
+: "${RUNTIME_PLUGINS_ENABLED:=false}"
+: "${PLUGINS_MANIFEST_URL:=}"
 : "${DATA_ALLOW_HTML_JS_EXECUTION:=true}"
 
 # --- Locked-value notice (DEBUG only) ----------------------------------------
@@ -104,6 +106,10 @@ window.__APP_CONFIG__ = {
   },
   mcp: {
     defaultServerEnabled: ${MCP_DEFAULT_SERVER_ENABLED}
+  },
+  plugins: {
+    runtimeEnabled: ${RUNTIME_PLUGINS_ENABLED},
+    manifestUrl: "${PLUGINS_MANIFEST_URL}"
   },
   analytics: {},
   whiteLabel: {}

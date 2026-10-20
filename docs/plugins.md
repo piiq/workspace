@@ -122,3 +122,44 @@ Vite serves the compiled files at `/plugins/<scope>/<package>/` during developme
 Use `bun run dev` after preparation for source development. Re-run preparation and reload Workspace when changing the selection. To remove all selected plugins, run `bun scripts/prepare-frontend.ts` from the repository root. A checkout with no prepared output also uses an empty selection.
 
 The frontend Dockerfile includes the same prepared output from the repository root context. Prepare plugins on the host, then run `docker build -f frontend/Dockerfile -t workspace-frontend:dev .`. Plugin repositories and their dependency installations are not needed inside that image build.
+
+## Installing plugins at runtime
+
+The frontend image writes `config.js` from container environment variables at startup. Use the same image with different settings for each deployment:
+
+```sh
+docker run --rm -p 8080:80 \
+  -e BACKEND_URL=http://127.0.0.1:8000 \
+  -e RUNTIME_PLUGINS_ENABLED=true \
+  -e PLUGINS_MANIFEST_URL=http://127.0.0.1:8090/plugins.json \
+  workspace-frontend:dev
+```
+
+`PLUGINS_MANIFEST_URL` is fetched by the user's browser, so use a URL reachable from that browser. Changing these environment variables and recreating the container requires no application rebuild. Runtime loading is disabled by default. With runtime loading disabled, Workspace skips the manifest and loads bundled plugins. A build can lock `plugins.runtimeEnabled` to `false` through its existing locked configuration policy.
+
+`VITE_RUNTIME_PLUGINS_ENABLED` and `VITE_PLUGINS_MANIFEST_URL` in `frontend/.env` are development/build fallbacks. For a frontend built with `bun run build:runtime` and served outside the container, set `plugins.runtimeEnabled` and `plugins.manifestUrl` in the deployed `config.js`.
+
+The [example manifest](../docker/plugins/plugins.example.json) selects the basic widget's generated descriptor. Deployment manifests belong with the deployment configuration; plugin source projects keep their own repositories.
+
+Descriptor URLs resolve beside the manifest. Entry modules and stylesheet URLs resolve beside their descriptor. Redirected manifests and descriptors use their final response URL. Build selections in a runtime manifest are ignored. Both loaders use the same registration code, supported API version, host dependencies, and registry; duplicate registrations cannot replace an installed renderer.
+
+The [plugin server Compose service](../docker/docker-compose.plugins.yml) uses nginx Alpine with the [nginx configuration](../docker/plugins/nginx.conf.template). It serves `PLUGINS_ROOT` through a read-only mount and sets CORS and `Cache-Control: no-store` headers.
+
+After building the example, run from the Workspace root:
+
+```sh
+mkdir -p .build/runtime-plugins/basic-widget
+cp docker/plugins/plugins.example.json .build/runtime-plugins/plugins.json
+cp -R examples/plugins/basic-widget/dist/. .build/runtime-plugins/basic-widget/
+PLUGINS_ROOT="$PWD/.build/runtime-plugins" \
+WORKSPACE_ORIGIN=http://127.0.0.1:8080 \
+docker compose -f docker/docker-compose.plugins.yml up
+```
+
+`PLUGINS_ROOT` is an absolute path containing `plugins.json` and compiled plugin bundles. Keep that directory in place when replacing its contents. Source repositories can live anywhere; deploy their compiled `dist/` output into named subdirectories and reference their descriptors in the manifest. The nginx configuration and Compose service belong to Workspace; deployment selections and compiled bundles stay outside tracked configuration.
+
+`PLUGINS_PORT` defaults to `8090`. Set `WORKSPACE_ORIGIN` to the Workspace browser origin; use `http://127.0.0.1:1420` for Vite development. The manifest in this example is available at `http://127.0.0.1:8090/plugins.json`. Cross-origin modules need CORS headers and JavaScript MIME types; nginx supplies these through its configuration. Use HTTPS plugin URLs for an HTTPS deployment. Same-origin hosting through the frontend nginx can use a relative manifest URL.
+
+Replace plugin files and the manifest, then reload Workspace to apply changes. Keep HTTP caching disabled for these mutable URLs, as in the example, so a reload retrieves replacement code and stylesheets. No Workspace rebuild is required. Removing a selection preserves saved widget settings and shows its unavailable diagnostic; restoring it and reloading recovers the widget. Descriptor or manifest request failures are logged with their URL. An incompatible descriptor or failed module produces a diagnostic for its widgets while other plugins and core widgets remain usable.
+
+Runtime modules are administrator-trusted application code running in the Workspace page for every deployment user. They can access the same browser data and application interfaces as Workspace. User backend declarations can reference installed renderer IDs but cannot select executable URLs. Bundling fixes the plugin code at application build time; it does not isolate that code.

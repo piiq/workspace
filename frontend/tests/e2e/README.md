@@ -27,13 +27,22 @@ The frontend server command prepares `fixtures/plugins.json`, which installs, ty
 The account setup uses `admin_cli/openbb-admin` to create `playwright@example.com` with password `WorkspaceTest123!`, then signs in through the UI. CLI credentials stay in ignored `frontend/playwright/.cache/admin.json`; browser authentication stays in `frontend/playwright/.auth/user.json`. These credentials are for the local test environment.
 
 ```bash
-bun run test:e2e auth.spec.ts
-bun run test:e2e data-conectors.spec.ts
-bun run test:e2e plugins.spec.ts
+bun run playwright test tests/e2e/auth.spec.ts
+bun run playwright test tests/e2e/data-conectors.spec.ts
+bun run playwright test tests/e2e/plugins.spec.ts
 bun run playwright test tests/e2e --ui
 ```
 
-Set `PLAYWRIGHT_FRONTEND_BUILD=true` to build the frontend once and run against Vite's production preview instead of the source server. The plugin scenarios check parameters, saved selection, stylesheet URLs, agent data export, and MCP-triggered refresh through compiled output. The omission/restoration scenario runs against the source server, changing preparation and reopening the saved dashboard with a usable core widget beside it; changing a production selection requires another build.
+Set `PLAYWRIGHT_FRONTEND_BUILD=true` to build the frontend once with `build:runtime` and run against Vite's production preview instead of the source server. The plugin scenarios check parameters, saved selection, stylesheet URLs, agent data export, and MCP-triggered refresh through compiled output. Bundled omission/restoration runs against the source server, changing preparation and reopening the saved dashboard with a usable core widget beside it; changing a production selection requires another build.
+
+Run the same scenarios with runtime loading:
+
+```sh
+PLAYWRIGHT_PLUGIN_MODE=runtime bun run playwright test tests/e2e/plugins.spec.ts
+PLAYWRIGHT_PLUGIN_MODE=runtime PLAYWRIGHT_FRONTEND_BUILD=true bun run playwright test tests/e2e/plugins.spec.ts
+```
+
+Runtime mode builds the example and prepares an empty bundled selection. Each scenario starts a separate HTTP origin serving the descriptor, module, stylesheet, and administrator manifest with CORS and caching disabled. The fixture supplies browser configuration with runtime loading enabled and the test API URL. The scenarios also cover removal/reinstallation, incompatible descriptors, failed modules, and replacement code after a reload, without rebuilding Workspace. Bundled scenarios run with runtime loading disabled; a separate scenario verifies that a runtime selection cannot replace a bundled plugin.
 
 `PLAYWRIGHT_API_URL` selects the local API URL, including its listening port. `PLAYWRIGHT_REDIS_PORT` selects Redis's host port (default `16379`). `PLAYWRIGHT_EMAIL` and `PLAYWRIGHT_PASSWORD` select the test account. Source login settings disable registration, forgotten-password links, and identity providers.
 
@@ -56,4 +65,4 @@ Set `PLAYWRIGHT_PLUGIN_TESTS=true` to run plugin scenarios against a deployment 
 
 Tests run headlessly in Chromium with one worker and no retries. Dashboard persistence checks wait up to 30 seconds for the Workspace sidebar after reloading or reopening, then assert the saved content. Failure traces and screenshots are stored in `test-results/`; the HTML report is in `playwright-report/`. Use `bun run playwright show-report` to inspect it.
 
-The `Frontend Local Browser Tests` workflow runs these tests manually and on pull requests affecting the browser tests or their configuration, plugin SDK, registry, widget dispatch, or shared table integration, and uploads the HTML report. Pull requests run frontend typechecking and unit tests for relevant frontend and SDK changes, and backend tests for relevant backend changes.
+The `Frontend Local Browser Tests` workflow runs the source suite and runtime plugin scenarios manually and on pull requests affecting the browser tests or their configuration, plugin SDK, loaders, application configuration, registry, widget dispatch, or shared table integration, and uploads the HTML report. Pull requests run frontend typechecking and unit tests for relevant frontend and SDK changes, and backend tests for relevant backend changes.

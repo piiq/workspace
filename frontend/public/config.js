@@ -86,6 +86,10 @@ window.__APP_CONFIG__ = {
   mcp: {
     defaultServerEnabled: true,
   },
+  plugins: {
+    runtimeEnabled: false,
+    manifestUrl: "",
+  },
   analytics: {
     posthogKey: "phc_qgW2kepNXdY7q1ZIuV2RT5WFXRDcTCkYlB66ukrOH30",
     posthogUrl: "https://info.openbb.dev",
