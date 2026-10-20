@@ -50,8 +50,11 @@ export default defineConfig({
     },
     {
       command: "bun ../scripts/prepare-frontend.ts --manifest tests/e2e/fixtures/plugins.json && " +
+        (process.env.PLAYWRIGHT_PLUGIN_MODE === "runtime"
+          ? "bun ../scripts/prepare-frontend.ts && "
+          : "") +
         (process.env.PLAYWRIGHT_FRONTEND_BUILD === "true"
-          ? "bun run build && bun run preview --host 127.0.0.1 --port 1420"
+          ? "bun run build:runtime && bun run preview --host 127.0.0.1 --port 1420"
           : "bun run dev --host 127.0.0.1"),
       url: baseURL,
       reuseExistingServer: !process.env.CI,
@@ -68,6 +71,8 @@ export default defineConfig({
         VITE_AI_COPILOT_ENABLED: "true",
         VITE_AI_COPILOT_OPENBB_COPILOT: "false",
         VITE_AI_COPILOT_AI_ENHANCEMENTS: "false",
+        VITE_RUNTIME_PLUGINS_ENABLED: "false",
+        VITE_PLUGINS_MANIFEST_URL: "",
       },
     },
   ],

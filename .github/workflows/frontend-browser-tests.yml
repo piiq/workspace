@@ -17,6 +17,8 @@ on:
       - 'frontend/tests/e2e/**'
       - 'frontend/playwright.config.ts'
       - 'frontend/src/lib/plugins/**'
+      - 'frontend/src/lib/runtimeConfig.ts'
+      - 'frontend/src/lib/runtimeConfigSchema.ts'
       - 'frontend/src/lib/widgetData.ts'
       - 'frontend/src/hooks/useWidgetDataExport.ts'
       - 'frontend/src/components/AI/hooks/useGetCopilotWidgets.tsx'
@@ -88,6 +90,9 @@ jobs:
 
       - name: Run local browser tests
         run: bun run test:e2e
+
+      - name: Run runtime plugin browser tests
+        run: PLAYWRIGHT_PLUGIN_MODE=runtime bun run playwright test tests/e2e/plugins.spec.ts
 
       - name: Upload test results
         if: always()
