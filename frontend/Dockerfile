@@ -20,6 +20,7 @@ ENV NGINX_PORT=80
 
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+COPY --chmod=755 lite/render-frontend-config.full.sh /docker-entrypoint.d/40-render-frontend-config.sh
 
 EXPOSE ${NGINX_PORT}
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,5 @@
+{
+  "plugins": [
+    { "mode": "runtime", "descriptorUrl": "basic-widget/plugin.json" }
+  ]
+}
