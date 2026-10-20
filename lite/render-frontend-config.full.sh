@@ -91,6 +91,8 @@ csv_json_array() {
 : "${DATA_ALLOW_HTML_JS_EXECUTION:=true}"
 
 : "${MCP_DEFAULT_SERVER_ENABLED:=true}"
+: "${RUNTIME_PLUGINS_ENABLED:=false}"
+: "${PLUGINS_MANIFEST_URL:=}"
 
 : "${POSTHOG_KEY:=}"
 : "${POSTHOG_URL:=}"
@@ -183,6 +185,10 @@ window.__APP_CONFIG__ = {
   },
   mcp: {
     defaultServerEnabled: ${MCP_DEFAULT_SERVER_ENABLED}
+  },
+  plugins: {
+    runtimeEnabled: ${RUNTIME_PLUGINS_ENABLED},
+    manifestUrl: "${PLUGINS_MANIFEST_URL}"
   },
   analytics: {
     posthogKey: "${POSTHOG_KEY}",

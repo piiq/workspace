@@ -84,6 +84,10 @@ export const mockConfig = {
   mcp: {
     defaultServerEnabled: true,
   },
+  plugins: {
+    runtimeEnabled: false,
+    manifestUrl: "",
+  },
   analytics: {
     posthogKey: "",
     posthogUrl: "",

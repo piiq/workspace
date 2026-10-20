@@ -119,6 +119,10 @@ export const RuntimeConfigSchema = z.object({
   mcp: z.object({
     defaultServerEnabled: boolField(true),
   }),
+  plugins: z.object({
+    runtimeEnabled: boolField(false),
+    manifestUrl: z.string().default(""),
+  }),
   analytics: z.object({
     posthogKey: z.string().default(""),
     posthogUrl: z.string().default(""),
