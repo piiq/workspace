@@ -7,7 +7,6 @@ import type {
   StoredFile,
   WidgetMetadataItem,
 } from "~/lib/state/backendConnector";
-import type { TVState } from "~/lib/state/charting";
 import type { Chat } from "~/lib/state/copilot";
 import type { FeatureFlags, Usage } from "~/lib/state/featureFlags";
 import type { McpServer } from "~/lib/state/mcpTools";
@@ -56,7 +55,6 @@ export interface DashSyncT {
   usage?: Usage;
   copilot_chats?: Chat[];
   questions_history?: string[];
-  trading_view?: TVState;
   pro_display_settings?: DisplaySettings;
   single_widgets: SingleWidget[];
   file_widgets: StoredFile[];
@@ -112,7 +110,6 @@ export interface ProLoginResponse {
   copilot_chats: Chat[];
   questions_history: string[];
   mcp_servers: McpServer[];
-  trading_view: TVState;
   enabled_widget_bundles: EnabledBundles;
   developer_onboarding_info: null | DeveloperOnboardingQuestions;
   moved_to_developer: boolean;

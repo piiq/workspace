@@ -1,19 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { createRef } from "react";
 import { describe, expect, it } from "vitest";
-import type { ChartingLibraryWidget } from "~/lib/types/charting";
 import TVChartUnavailable from "~/components/Widgets/TVChartContainer/TVChartUnavailable";
 
 describe("TVChartUnavailable", () => {
-  it("explains that charts are unavailable and leaves the chart ref empty", () => {
-    const chartRef = createRef<ChartingLibraryWidget>();
-
-    render(<TVChartUnavailable ref={chartRef} extraClassName="h-full" />);
+  it("explains how to enable charts", () => {
+    render(<TVChartUnavailable extraClassName="h-full" />);
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Advanced charts are unavailable in this workspace. Choose another chart widget.",
+      "Install the TradingView plugin and connect a UDF-compatible datafeed.",
     );
     expect(screen.getByRole("alert")).toHaveClass("h-full");
-    expect(chartRef.current).toBeNull();
   });
 });

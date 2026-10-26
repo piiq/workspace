@@ -4,7 +4,7 @@
 
 ## Registration
 
-Use `definePlugin(packageJson, declarations)` to take the plugin name and version from its `package.json`. Declare renderer metadata and components together: `name`, `title`, optional `description`, `kind` (`content` or `table`), input/parameter/state JSON schemas, and optional capability names. `createPluginDescriptor(plugin, { entry, assets })` produces serializable metadata from those declarations.
+Use `definePlugin(packageJson, declarations)` to take the plugin name and version from its `package.json`. Declare renderer metadata and components together: `name`, `title`, optional `description`, `kind` (`content` or `table`), input/parameter/state JSON schemas, and optional capability names. `createPluginDescriptor(plugin, { entry, assets, styles })` produces serializable metadata from those declarations.
 
 `kind: "table"` describes the renderer's content and does not select a table library. A renderer that needs the host's AG Grid table context declares `wrapper: "ag-grid"`. A renderer using its own table library, such as Perspective, omits that field. These settings belong to plugin registration; backend `widgets.json` declarations reference renderers through their existing `type` field.
 
@@ -30,7 +30,7 @@ The host keeps these fixed bindings for existing widget definitions:
 | `ssrm_advanced` | `@piiq/ag-enterprise/advanced-server-side-table` |
 | `chart-highcharts` | `@piiq/highcharts/chart` |
 
-A renderer registered under the saved ID takes precedence over its binding. Licensed renderers use their built-in implementations while those registrations exist; after extraction, the same definitions resolve through the bindings. An absent plugin does not invalidate a saved definition.
+A renderer registered under the saved ID takes precedence over its binding. An absent plugin does not invalidate a saved definition.
 
 These bindings do not install plugins or refer to filesystem locations. Plugin authors choose their own package and renderer names and use those qualified IDs in widget declarations, such as `@example/perspective/table`. The fixed aliases apply to existing widget types; independent plugins do not need an entry in this mapping.
 
@@ -38,11 +38,11 @@ These bindings do not install plugins or refer to filesystem locations. Plugin a
 
 `api.host` supplies the application's React, ReactDOM, ReactDOM client, and JSX runtime. Plugins use these bindings to share the application's hooks. `host.useTheme()` follows the application's light/dark theme. The core SDK has no AG Grid imports; plugins using other rendering libraries do not need to install AG Grid.
 
-`host.ui` exposes the application's Button, Icon, Tooltip, WidgetShell, and RawDataTable. These components load lazily and require a React Suspense boundary. WidgetShell uses the existing draggable card, loading/error display, parameter controls, data publication, and a `toolbar` slot. A plugin supplies its library-specific content as children. RawDataTable uses the host's existing grid, column processing, and widget context.
+`host.ui` exposes the application's Button, Icon, Tooltip, WidgetShell, and RawDataTable. These components load lazily and require a React Suspense boundary. WidgetShell uses the existing draggable card, loading/error display, parameter controls, data publication, CSV/XLSX downloads for array data, and a `toolbar` slot. A plugin supplies its library-specific content as children. RawDataTable uses the host's existing grid, column processing, and widget context.
 
 Renderer declarations can include a Toolbar component. The host provides these hooks inside a widget's renderer:
 
-- `useWidgetContext()` returns the widget instance ID, renderer ID, endpoint configuration, parameters, saved plugin state, and reactive theme. `setParameters()` merges parameter values into the widget's stored parameters; `setState()` merges values into `storage.pluginState`. Both persist through the host's widget update path.
+- `useWidgetContext()` returns the widget instance ID, renderer ID, endpoint configuration, parameters, `options` from the widget's `data` field, saved plugin state, and reactive theme. `setParameters()` merges parameter values into the widget's stored parameters; `setState()` merges values into `storage.pluginState`. Both persist through the host's widget update path.
 - `useWidgetData<Data>(options?)` uses the application's fetcher, authentication, query cache, and refresh handling. Endpoint query values, optional `options.query`, and stored parameters merge in that order. Stored parameters take precedence; change them with `setParameters()`. It preserves endpoint headers and method, applies the widget's `data.dataKey`, and returns data, loading/fetching/error state, refresh time, and `refetch()`. Options support POST bodies, text responses, and disabling the query.
 - `useWidgetDataExport({ data, enabled, lastUpdated, ... })` publishes data and widget metadata for agents independently of an active chat. It records columns and the parameters used for the response; Copilot selection remains in the consumer. WidgetShell publishes its `data` prop through the same hook. Use one publication path for a given payload.
 - `useWidgetLifecycle({ refresh, exportData?, dispose? })` registers callbacks for the mounted instance. `refresh` can use the data hook's `refetch`. `exportData` returns `{ data, columns? }` for agent requests; without that callback, requests use published data. Callbacks follow renderer updates and are removed on unmount, which also calls `dispose`. Native widget callbacks are separate from the iframe bridge. Backend widget requests with matching parameters use the export callback; requests with different parameters fetch the endpoint. Destructive MCP tools refresh matching mounted widgets using the backend's existing `mcp_tool` mapping. A refresh failure reports a widget error while preserving the tool result.
@@ -71,7 +71,7 @@ Build-time plugins are included in the application build. Changes to a plugin's 
 
 ## Building a plugin
 
-`@piiq/workspace-plugin-sdk/build` exports `buildPlugin({ root, entry, assets })`, using Bun's bundler. `root` defaults to the working directory; `entry` names the definition module, and `assets` contains project-relative files or directories. The helper writes `dist/plugin.json`, `dist/entry.js`, and assets, and returns the validated descriptor. Keep `dist/` and `node_modules/` ignored in each plugin repository.
+`@piiq/workspace-plugin-sdk/build` exports `buildPlugin({ root, entry, assets, styles })`, using Bun's bundler. `root` defaults to the working directory; `entry` names the definition module, and `assets` contains project-relative files or directories. The helper writes `dist/plugin.json`, `dist/entry.js`, and assets, and returns the validated descriptor. `assets` lists every copied file. The generated descriptor's `styles` lists stylesheets loaded into the Workspace page. The build helper uses all CSS assets by default; an explicit `styles` array selects host stylesheets independently of copied library assets. Use `styles: []` for libraries that load their own CSS inside an iframe. Keep `dist/` and `node_modules/` ignored in each plugin repository.
 
 Default-export a `PluginDefinition` created with `definePlugin(packageJson, declarations)` from the entry module. Its name/version must match the project's `package.json`. The build imports this module in Bun to generate the descriptor from the same declarations used during registration. Put browser initialization in `setup(host)` or the renderer component. Build failures exit with an error; install the plugin's dependencies and run its TypeScript check before building.
 
@@ -163,3 +163,11 @@ docker compose -f docker/docker-compose.plugins.yml up
 Replace plugin files and the manifest, then reload Workspace to apply changes. Keep HTTP caching disabled for these mutable URLs, as in the example, so a reload retrieves replacement code and stylesheets. No Workspace rebuild is required. Removing a selection preserves saved widget settings and shows its unavailable diagnostic; restoring it and reloading recovers the widget. Descriptor or manifest request failures are logged with their URL. An incompatible descriptor or failed module produces a diagnostic for its widgets while other plugins and core widgets remain usable.
 
 Runtime modules are administrator-trusted application code running in the Workspace page for every deployment user. They can access the same browser data and application interfaces as Workspace. User backend declarations can reference installed renderer IDs but cannot select executable URLs. Bundling fixes the plugin code at application build time; it does not isolate that code.
+
+## Advanced Charts
+
+Advanced Charts is supplied by a separately licensed `@piiq/tradingview` plugin. The `charting` and `advanced_charting` renderer IDs resolve to `@piiq/tradingview/chart`. Install its compiled bundle through either loader using the same preparation and deployment commands as other plugins. Its private repository owns library sources, integration code, dependency installation, and build instructions. Workspace builds without that repository or its assets.
+
+Connect the widget to a UDF-compatible datafeed through its `endpoint`. The plugin forwards endpoint headers, endpoint query settings, and widget parameters to that feed. The widget's `data.defaultSymbol` supplies a startup symbol when `params.symbol` has no value. Layouts, templates, settings, drawings, and chart parameters are saved with the widget. Removing the plugin preserves that state and displays its unavailable diagnostic.
+
+The standalone `/app/charting` page accepts a datafeed URL and ticker, for example `/app/charting?datafeed=https%3A%2F%2Fdata.example%2Fudf&ticker=AAPL`. This page keeps chart state while it is open; use a dashboard widget for saved layouts. Packaged-provider charts require replacing their data source with a supplied UDF feed.

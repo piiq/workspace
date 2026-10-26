@@ -45,7 +45,6 @@ import { getConfig } from "~/lib/runtimeConfig";
 import { useAppStore } from "~/lib/state/app";
 import { useAuthStore, useShallowAuthStore } from "~/lib/state/auth";
 import { useBackendConnectorStore } from "~/lib/state/backendConnector";
-import { useTradingViewStore } from "~/lib/state/charting";
 import { useCopilotStore } from "~/lib/state/copilot";
 import { useFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useMcpToolsStore } from "~/lib/state/mcpTools";
@@ -861,10 +860,6 @@ export async function loginSuccess(data: ProLoginResponse) {
     } catch (err) {
       console.error("Error fetching user chats:", err);
     }
-  }
-
-  if (data.trading_view) {
-    useTradingViewStore.getState().updateTVState(data.trading_view);
   }
 
   useBackendConnectorStore.getState().updateBackendConnector({

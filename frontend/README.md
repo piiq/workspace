@@ -20,7 +20,7 @@ src/
 ├── components/             # React components by domain
 │   ├── AI/                 # AI/Copilot features
 │   ├── Auth/               # Authentication
-│   ├── Charting/           # TradingView integration
+│   ├── Charting/           # Chart renderers and controls
 │   ├── DataConnectors/     # External data sources
 │   ├── ds/                 # Design system (atoms, molecules)
 │   ├── General/            # Shared UI components
@@ -50,7 +50,7 @@ tests/
 |----------|---------|
 | [TESTING.md](./TESTING.md) | Testing guide, TDD workflow, patterns |
 | [REVIEW.md](./REVIEW.md) | PR review checklist |
-| [CLAUDE.md](./CLAUDE.md) | Claude Code agent rules |
+| [AGENTS.md](../AGENTS.md) | Agent instructions |
 
 ## Getting started
 
@@ -76,21 +76,7 @@ bun install
 bun run build
 ```
 
-With `VITE_TRADINGVIEW_ENABLED` unset or false, Advanced Charts widgets display an unavailable message, and chart exports and Copilot data are disabled. The library's JavaScript and static assets are excluded from the build.
-
-To include the vendored library:
-
-```bash
-npm run build:with-tradingview
-```
-
-The build-time flag also works with other build modes:
-
-```bash
-VITE_TRADINGVIEW_ENABLED=true npm run build:runtime
-```
-
-The library is included when `VITE_TRADINGVIEW_ENABLED=true`. Changing this flag requires a rebuild. The flag also applies to the development server.
+Advanced Charts is supplied by the optional `@piiq/tradingview` plugin. See [plugin installation](../docs/plugins.md) for bundled and runtime loading. Chart widgets require a connected UDF-compatible datafeed; Workspace includes no default chart feed.
 
 ```bash
 bun run preview
