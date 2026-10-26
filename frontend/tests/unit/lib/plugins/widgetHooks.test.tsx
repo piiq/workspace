@@ -11,6 +11,7 @@ import { PluginRegistry } from "~/lib/plugins/registry";
 import { useCopilotDataStore } from "~/lib/state/copilotData";
 import { useThemeStore } from "~/lib/state/theme";
 import { exportWidgetData, getWidgetData, refreshWidgetData } from "~/lib/widgetData";
+import { mockConfig } from "../../../mocks/runtimeConfig";
 
 const originalTheme = useThemeStore.getState().theme;
 afterEach(() => {
@@ -20,6 +21,56 @@ afterEach(() => {
 });
 
 describe("plugin widget hooks", () => {
+  it("supplies identity headers and widget options to renderers using their own datafeed", () => {
+    const previous = localStorage.getItem("auth-storage");
+    const sendEmail = mockConfig.authentication.sendUserEmailAsHeader;
+    mockConfig.authentication.sendUserEmailAsHeader = true;
+    localStorage.setItem(
+      "auth-storage",
+      JSON.stringify({ state: { user: { email: "chart@example.test" } } }),
+    );
+    const widget: WidgetT = {
+      id: "direct-feed",
+      widgetId: "charting",
+      type: "advanced_charting",
+      name: "Chart",
+      endpoint: {
+        url: "https://data.test/udf",
+        method: "GET",
+        headers: { "X-Data-Key": "key" },
+        query: { provider: "custom" },
+      },
+      data: { defaultSymbol: "MSFT" },
+    };
+    function Feed() {
+      const context = pluginHost.useWidgetContext();
+      return (
+        <output>
+          {JSON.stringify({ endpoint: context.endpoint, options: context.options })}
+        </output>
+      );
+    }
+    try {
+      render(
+        <WidgetContext.Provider value={{ widget }}>
+          <Feed />
+        </WidgetContext.Provider>,
+      );
+      expect(JSON.parse(screen.getByRole("status").textContent!)).toEqual({
+        endpoint: {
+          ...widget.endpoint,
+          headers: { "X-Data-Key": "key", "X-OpenBB-User": "chart@example.test" },
+        },
+        options: { defaultSymbol: "MSFT" },
+      });
+      expect(widget.endpoint.headers).toEqual({ "X-Data-Key": "key" });
+    } finally {
+      mockConfig.authentication.sendUserEmailAsHeader = sendEmail;
+      if (previous === null) localStorage.removeItem("auth-storage");
+      else localStorage.setItem("auth-storage", previous);
+    }
+  });
+
   it("fetches, publishes, saves state, and refreshes a registered renderer", async () => {
     const fetchData = vi.fn(async (_url: string, _options?: RequestInit) =>
       Response.json({ result: [{ price: fetchData.mock.calls.length * 10 }] }),

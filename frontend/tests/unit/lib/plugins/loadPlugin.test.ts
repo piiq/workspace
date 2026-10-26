@@ -68,10 +68,16 @@ describe("plugin registration", () => {
     const registry = new PluginRegistry();
     const api = createPluginApi({} as PluginHost, registry);
     const plugin = selection();
-    plugin.descriptor.assets = ["assets/style.css", "assets/image.svg"];
+    plugin.descriptor.assets = [
+      "assets/style.css",
+      "vendor/library.css",
+      "assets/image.svg",
+    ];
+    plugin.descriptor.styles = ["assets/style.css"];
     const loaded = loadPlugin(plugin, api, registry);
     await waitFor(() => expect(document.querySelector("link")).not.toBeNull());
     const link = document.querySelector("link")!;
+    expect(document.querySelectorAll('link[rel="stylesheet"]')).toHaveLength(1);
     expect(link.getAttribute("href")).toContain(
       "/plugins/test/example/assets/style.css",
     );
@@ -96,7 +102,7 @@ describe("plugin registration", () => {
       plugin.load = async () => {
         throw new Error("Missing entry.js");
       };
-    if (failure === "stylesheet") plugin.descriptor.assets = ["missing.css"];
+    if (failure === "stylesheet") plugin.descriptor.styles = ["missing.css"];
     if (failure === "missing-registration")
       plugin.load = async () => ({ register() {} });
     if (failure === "wrong-identity") plugin.descriptor.version = "2.0.0";

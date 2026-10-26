@@ -390,6 +390,7 @@ export default function EllipsisDropdownMenu(props: EllipsisDropdownMenuProps) {
         hide={isMobile}
       >
         <DropdownMenuPrimitive.Trigger
+          aria-label="Options"
           className={cn("obb-small-navbar-btn", {
             "opacity-30": isPreview,
           })}

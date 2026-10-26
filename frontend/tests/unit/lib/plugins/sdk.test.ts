@@ -30,6 +30,7 @@ describe("plugin SDK", () => {
     const descriptor = createPluginDescriptor(plugin, {
       entry: "entry.js",
       assets: ["assets/chart.css"],
+      styles: ["assets/chart.css"],
     });
     expect(descriptor).toEqual({
       name: "@example/price-chart",
@@ -37,6 +38,7 @@ describe("plugin SDK", () => {
       apiVersion: 1,
       entry: "entry.js",
       assets: ["assets/chart.css"],
+      styles: ["assets/chart.css"],
       renderers: [
         {
           name: "chart",

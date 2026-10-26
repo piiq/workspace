@@ -9,18 +9,25 @@ import { useCallback, useEffect, useRef } from "react";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useJsonData } from "~/lib/api";
 import { useShallowThemeStore } from "~/lib/state/theme";
+import { convertHeadersToRecord } from "~/lib/utils/widgetParams";
 import { registerWidgetLifecycle } from "~/lib/widgetData";
 
 export function usePluginWidgetContext(): WidgetContext {
   const { widget, updateWidget } = useWidgetContext();
   const theme = useShallowThemeStore((state) => state.theme);
   if (!widget) throw new Error("Plugin widget hooks require a WidgetProvider.");
+  const endpoint = widget.endpoint;
+  const request =
+    endpoint && convertHeadersToRecord({ ...endpoint.headers }, { ...endpoint.query });
 
   return {
     id: widget.id,
     rendererId: widget.type,
-    endpoint: widget.endpoint,
+    endpoint: endpoint
+      ? { ...endpoint, headers: request.headers, query: request.newParams }
+      : undefined,
     parameters: widget.storage?.params ?? {},
+    options: widget.data,
     state: widget.storage?.pluginState ?? {},
     theme,
     setParameters: (parameters) =>

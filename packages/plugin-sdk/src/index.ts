@@ -49,6 +49,7 @@ export const pluginDescriptorSchema = z
     agGridCapabilities: z.array(agGridCapabilityMetadataSchema).default([]),
     entry: z.string().min(1),
     assets: z.array(z.string().min(1)).default([]),
+    styles: z.array(z.string().min(1)).default([]),
   })
   .superRefine((descriptor, context) => {
     const names = new Set<string>();
@@ -98,6 +99,7 @@ export interface WidgetContext {
     query?: Record<string, unknown>;
   };
   parameters: Record<string, unknown>;
+  options?: Record<string, unknown>;
   state: Record<string, unknown>;
   theme: WidgetTheme;
   setParameters: (parameters: Record<string, unknown>) => void;
@@ -217,7 +219,7 @@ export function definePlugin<
 
 export function createPluginDescriptor<Definition extends PluginDefinition>(
   plugin: Definition,
-  output: { entry: string; assets?: string[] },
+  output: { entry: string; assets?: string[]; styles?: string[] },
 ): PluginDescriptor {
   return pluginDescriptorSchema.parse({ ...plugin, ...output });
 }
