@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "build:with-tradingview": "VITE_TRADINGVIEW_ENABLED=true vite build",
     "build:runtime": "vite build --mode runtime",
     "build:snowflake": "vite build --mode snowflake",
     "build2": "tsc && vite build",

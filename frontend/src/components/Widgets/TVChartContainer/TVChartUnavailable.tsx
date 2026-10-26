@@ -1,17 +1,13 @@
-import { forwardRef, memo } from "react";
-import type {
-  ChartingLibraryWidget,
-  TVChartContainerProps,
-} from "~/lib/types/charting";
-
-const TVChartUnavailable = forwardRef<ChartingLibraryWidget, TVChartContainerProps>(
-  ({ extraClassName }, _ref) => (
+export default function TVChartUnavailable({
+  extraClassName,
+  message = "Advanced charts are unavailable in this workspace. Install the TradingView plugin and connect a UDF-compatible datafeed.",
+}: {
+  extraClassName?: string;
+  message?: string;
+}) {
+  return (
     <div role="alert" data-testid="tv-chart-unavailable" className={extraClassName}>
-      Advanced charts are unavailable in this workspace. Choose another chart widget.
+      {message}
     </div>
-  ),
-);
-
-TVChartUnavailable.displayName = "TVChartUnavailable";
-
-export default memo(TVChartUnavailable);
+  );
+}

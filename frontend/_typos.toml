@@ -18,5 +18,3 @@ Bund = "Bund"
 consts = "consts"
 BSE = "BSE"
 
-[files]
-extend-exclude = ["frontend/src/lib/charting_library", "frontend/src/lib/state/main.json"]

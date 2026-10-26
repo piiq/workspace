@@ -17,7 +17,6 @@ import {
   type WidgetMetadata,
   type WidgetMetadataItem,
 } from "~/lib/state/backendConnector";
-import type { TVState } from "~/lib/state/charting";
 import {
   type AIMessage,
   type Chat,
@@ -328,19 +327,6 @@ export async function getCopilotChat(chatUuid: string): Promise<Chat | null> {
     .get(`/pro/copilot-chats/${chatUuid}`)
     .catch((_e: AxiosError) => ({ data: null }));
   return data;
-}
-
-export async function postUserTVState(tvState: TVState): Promise<{ status: number }> {
-  try {
-    const { status } = await apiClient
-      .post("/pro/tv-state", tvState)
-      .catch((e: AxiosError) => {
-        return { status: e?.response?.status || 500 };
-      });
-    return { status };
-  } catch (e) {
-    return { status: e?.response?.status || 500 };
-  }
 }
 
 export async function getUser(): Promise<ProUserResponse> {

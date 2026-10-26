@@ -11,7 +11,6 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
   testIgnore: process.env.PLAYWRIGHT_HOSTED_TESTS === "true" ? [] : [
-    "**/charting.spec.ts",
     "**/dashboards-templates.spec.ts",
     "**/news.spec.ts",
     "**/onboarding-questions.spec.ts",

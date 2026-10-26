@@ -15,20 +15,18 @@ export interface PluginBundle {
 
 async function loadStyles(descriptor: PluginDescriptor, baseUrl: string) {
   await Promise.all(
-    descriptor.assets
-      .filter((asset) => asset.endsWith(".css"))
-      .map(
-        (asset) =>
-          new Promise<void>((resolve, reject) => {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = new URL(asset, new URL(baseUrl, document.baseURI)).href;
-            link.onload = () => resolve();
-            link.onerror = () =>
-              reject(new Error(`Could not load plugin stylesheet: ${link.href}`));
-            document.head.append(link);
-          }),
-      ),
+    descriptor.styles.map(
+      (asset) =>
+        new Promise<void>((resolve, reject) => {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = new URL(asset, new URL(baseUrl, document.baseURI)).href;
+          link.onload = () => resolve();
+          link.onerror = () =>
+            reject(new Error(`Could not load plugin stylesheet: ${link.href}`));
+          document.head.append(link);
+        }),
+    ),
   );
 }
 

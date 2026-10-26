@@ -30,16 +30,6 @@ export default defineConfig(({ mode }) => {
   const APP_DESCRIPTION = env.VITE_WL_DESCRIPTION;
   const APP_SHORT_NAME = env.VITE_WL_SHORT_NAME;
   const IS_SNOWFLAKE = env.VITE_SNOWFLAKE_NATIVE_APP === "true";
-  const isTradingViewEnabled = env.VITE_TRADINGVIEW_ENABLED === "true";
-  if (
-    isTradingViewEnabled &&
-    !existsSync(path.resolve(import.meta.dirname, "src/lib/charting_library/package.json"))
-  ) {
-    throw new Error(
-      "VITE_TRADINGVIEW_ENABLED requires the licensed library in src/lib/charting_library. Install it or disable VITE_TRADINGVIEW_ENABLED.",
-    );
-  }
-
   // ── Build the locked-config overlay from the deployment's policy ──
   // Two ways to supply the policy (which fields are locked, to what values):
   //   - VITE_LOCKED_CONFIG_PROFILE: names a strict, in-repo profile in
@@ -285,17 +275,6 @@ export default defineConfig(({ mode }) => {
       preserveSymlinks: true,
       dedupe: ["react", "react-dom", "ag-grid-community"],
       alias: [
-        ...(!isTradingViewEnabled
-          ? [
-              {
-                find: /^.*\/TVChartContainer\/TVChartContainerFunc$/,
-                replacement: path.resolve(
-                  import.meta.dirname,
-                  "src/components/Widgets/TVChartContainer/TVChartUnavailable.tsx",
-                ),
-              },
-            ]
-          : []),
         { find: "~", replacement: path.resolve(import.meta.dirname, "src") },
       ],
     },
@@ -315,7 +294,6 @@ export default defineConfig(({ mode }) => {
           "**/*.spec.ts",
           "**/*.spec.tsx",
           "**/*config*",
-          "**/charting_library/**",
           "**/public/assets/js/**",
           "**/coverage/**",
         ],
@@ -346,7 +324,6 @@ export default defineConfig(({ mode }) => {
           cacheId: "openbb-workspace",
           maximumFileSizeToCacheInBytes: 15000000, // 15mb
           cleanupOutdatedCaches: true,
-          globIgnores: ["**/charting_library/**"],
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.mode === "navigate",
@@ -423,14 +400,6 @@ export default defineConfig(({ mode }) => {
             src: ["./src/lib/widgets.json", "./src/lib/sources.json"],
             dest: "assets/data",
           },
-          ...(isTradingViewEnabled
-            ? [
-                {
-                  src: "./src/lib/charting_library/**/*",
-                  dest: "assets/js/charting_library",
-                },
-              ]
-            : []),
           {
             src: "./node_modules/vscode-oniguruma/release/onig.wasm",
             dest: "assets/wasm",

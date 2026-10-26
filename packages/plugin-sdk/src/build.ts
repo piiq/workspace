@@ -16,6 +16,8 @@ export interface BuildPluginOptions {
   entry: string;
   /** Files or directories copied to dist at their project-relative paths. */
   assets?: string[];
+  /** Stylesheets loaded in the Workspace page. Defaults to all CSS assets. */
+  styles?: string[];
 }
 
 const hostModules = {
@@ -136,7 +138,12 @@ ${await bundle.text()}
     .map((path) => relative(output, path).replaceAll("\\", "/"))
     .filter((path) => path !== "entry.js")
     .sort();
-  const descriptor = createPluginDescriptor(plugin, { entry: "entry.js", assets });
+  const styles = options.styles ?? assets.filter((asset) => asset.endsWith(".css"));
+  const descriptor = createPluginDescriptor(plugin, {
+    entry: "entry.js",
+    assets,
+    styles,
+  });
   await writeFile(
     join(output, "plugin.json"),
     `${JSON.stringify(descriptor, null, 2)}\n`,

@@ -58,4 +58,3 @@ ai_artifacts
 storybook-static/
 
 # TradingView Advanced Charts (proprietary, not redistributable)
-src/lib/charting_library/

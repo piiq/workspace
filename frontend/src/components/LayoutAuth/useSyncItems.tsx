@@ -11,7 +11,6 @@ import {
   useBackendConnectorStore,
   useShallowBackendConnectorStore,
 } from "~/lib/state/backendConnector";
-import { useShallowTradingViewStore } from "~/lib/state/charting";
 import { useShallowCopilotStore } from "~/lib/state/copilot";
 import { useCopilotDataStore } from "~/lib/state/copilotData";
 import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
@@ -49,7 +48,6 @@ export default function useSyncItems() {
       updateBackendConnector: state.updateBackendConnector,
     }),
   );
-  const updateTVState = useShallowTradingViewStore((state) => state.updateTVState);
   const updateOnlySharedItems = useSharedAppStore(
     (state) => state.updateOnlySharedItems,
   );
@@ -107,7 +105,6 @@ export default function useSyncItems() {
 
         if (data.entity_theme_settings) updateThemeSettings(data.entity_theme_settings);
 
-        updateTVState(data.trading_view);
         checkNewBundles(data.feature_entitlements.tier === "pro");
         updateThemeState(data.pro_display_settings || {});
         updateBackendConnector({

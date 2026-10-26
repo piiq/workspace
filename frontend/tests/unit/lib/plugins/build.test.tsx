@@ -36,10 +36,14 @@ async function createProject() {
     recursive: true,
     filter: (path) => !["node_modules", "dist"].includes(path.split("/").at(-1) ?? ""),
   });
-  await mkdir(join(directory, "node_modules"));
-  for (const dependency of ["@piiq", "react", "react-dom"]) {
+  await mkdir(join(directory, "node_modules/@piiq"), { recursive: true });
+  await symlink(
+    join(root, "packages/plugin-sdk"),
+    join(directory, "node_modules/@piiq/workspace-plugin-sdk"),
+  );
+  for (const dependency of ["react", "react-dom"]) {
     await symlink(
-      join(example, "node_modules", dependency),
+      join(root, "frontend/node_modules", dependency),
       join(directory, "node_modules", dependency),
     );
   }
@@ -125,6 +129,7 @@ describe("independent plugin builds", () => {
       version: "0.1.0",
       entry: "entry.js",
       assets: ["assets/style.css"],
+      styles: ["assets/style.css"],
       renderers: [{ name: "table", capabilities: ["data-export", "refresh"] }],
     });
     expect(await readFile(join(directory, "dist/assets/style.css"), "utf8")).toContain(
@@ -154,6 +159,23 @@ describe("independent plugin builds", () => {
     await callbacks.refresh();
     expect(refetch).toHaveBeenCalledOnce();
   }, 15000);
+
+  it("copies library CSS without marking it for loading in the host page", async () => {
+    const directory = await createProject();
+    await run(
+      "bun",
+      [
+        "-e",
+        `import { buildPlugin } from "@piiq/workspace-plugin-sdk/build"; await buildPlugin({ root: ${JSON.stringify(directory)}, entry: "src/index.tsx", assets: ["assets"], styles: [] });`,
+      ],
+      { cwd: directory },
+    );
+    const descriptor = JSON.parse(
+      await readFile(join(directory, "dist/plugin.json"), "utf8"),
+    );
+    expect(descriptor.assets).toEqual(["assets/style.css"]);
+    expect(descriptor.styles).toEqual([]);
+  });
 
   it("shares React, JSX, ReactDOM, and AG modules and resolves emitted assets beside entry.js", async () => {
     const directory = await createProject();

@@ -88,7 +88,6 @@
       "src/**",
       "tests/**",
       "!node_modules",
-      "!src/lib/charting_library",
       "!src/components/Widgets/Terminal.tsx",
       "!src/components/Update.tsx",
       "!src/lib/utils/index.ts",

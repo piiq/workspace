@@ -1,117 +1,76 @@
-import { render, screen } from "@testing-library/react";
+import { definePlugin, type PluginHost } from "@piiq/workspace-plugin-sdk";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { useWidgetContext } from "~/components/Widget.context";
+import { widgetRegistry } from "~/lib/plugins/registry";
+import { PluginWidgetShell } from "~/lib/plugins/ui";
 import NewCharting from "~/routes/newCharting";
 
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
-  return {
-    ...actual,
-    useSearchParams: () => [new URLSearchParams({ ticker: "AAPL" }), vi.fn()],
-  };
-});
+vi.unmock("~/components/General/Table/Chart/hooks/useChartOptions");
 
-vi.mock("~/components/Widgets/TvChart", () => ({
-  default: ({
-    ticker,
-    secondTickers,
-  }: {
-    ticker: string;
-    secondTickers: string[];
-  }) => (
-    <div data-testid="tv-chart">
-      <span data-testid="main-ticker">{ticker}</span>
-      <span data-testid="second-tickers">{secondTickers.join(",")}</span>
-    </div>
-  ),
-}));
-
-describe("NewCharting", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("renders TvChart component", () => {
+describe("standalone Advanced Charts", () => {
+  it("reports a missing plugin", () => {
     render(
       <BrowserRouter>
         <NewCharting />
       </BrowserRouter>,
     );
-
-    expect(screen.getByTestId("tv-chart")).toBeInTheDocument();
-  });
-
-  it("passes ticker from URL params to TvChart", () => {
-    render(
-      <BrowserRouter>
-        <NewCharting />
-      </BrowserRouter>,
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Install a compatible @piiq/tradingview plugin",
     );
-
-    expect(screen.getByTestId("main-ticker")).toHaveTextContent("AAPL");
   });
 
-  it("has proper container styling", () => {
-    const { container } = render(
-      <BrowserRouter>
-        <NewCharting />
-      </BrowserRouter>,
+  it("passes the supplied endpoint and URL parameters to the registered renderer", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/app/charting?ticker=MSFT&secondTickers=GOOG",
     );
-
-    const chartContainer = container.firstChild as HTMLElement;
-    expect(chartContainer).toHaveClass("mx-[22px]", "my-[10px]", "rounded");
-  });
-});
-
-describe("NewCharting with multiple tickers", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("handles multiple second tickers", async () => {
-    vi.doMock("react-router-dom", async () => {
-      const actual = await vi.importActual("react-router-dom");
-      return {
-        ...actual,
-        useSearchParams: () => [
-          new URLSearchParams({
-            ticker: "AAPL",
-            secondTickers: "MSFT,GOOGL,AMZN",
-          }),
-          vi.fn(),
+    const plugin = definePlugin(
+      { name: "@piiq/tradingview", version: "0.1.0" },
+      {
+        renderers: [
+          {
+            name: "chart",
+            title: "Chart",
+            Component() {
+              const { widget } = useWidgetContext();
+              return (
+                <PluginWidgetShell data={[]}>
+                  <div role="status">
+                    {JSON.stringify({
+                      endpoint: widget.endpoint,
+                      parameters: widget.storage.params,
+                    })}
+                  </div>
+                </PluginWidgetShell>
+              );
+            },
+          },
         ],
-      };
-    });
-
-    render(
-      <BrowserRouter>
-        <NewCharting />
-      </BrowserRouter>,
+      },
     );
-
-    expect(screen.getByTestId("tv-chart")).toBeInTheDocument();
-  });
-});
-
-describe("NewCharting without ticker", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.doMock("react-router-dom", async () => {
-      const actual = await vi.importActual("react-router-dom");
-      return {
-        ...actual,
-        useSearchParams: () => [new URLSearchParams(), vi.fn()],
-      };
-    });
-  });
-
-  it("handles missing ticker gracefully", () => {
+    await widgetRegistry.registerPlugin(plugin, {} as PluginHost);
     render(
-      <BrowserRouter>
-        <NewCharting />
-      </BrowserRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <BrowserRouter>
+          <NewCharting />
+        </BrowserRouter>
+      </QueryClientProvider>,
     );
-
-    expect(screen.getByTestId("tv-chart")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Connect a UDF-compatible datafeed",
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Datafeed URL" }), {
+      target: { value: "https://data.test/udf" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Connect datafeed" }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      '"url":"https://data.test/udf"',
+    );
+    expect(screen.getByRole("status")).toHaveTextContent('"symbol":"MSFT"');
+    expect(screen.getByRole("status")).toHaveTextContent('"secondTickers":["GOOG"]');
   });
 });

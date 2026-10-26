@@ -60,7 +60,6 @@ const WatchlistFC = lazy(() => import("./Equity/Watchlist"));
 const GroupedFinancialsFC = lazy(() => import("./GroupedFinancials"));
 const IframeFC = lazy(() => import("./Iframe"));
 const YouTubeFC = lazy(() => import("./YouTube"));
-const ChartingFC = lazy(() => import("./Misc/Charting"));
 const MarkdownEditorFC = lazy(() => import("./Misc/Editing/MarkdownEditor"));
 const RSSViewerFC = lazy(() => import("./RssViewer"));
 const XMLViewerFC = lazy(() => import("./XmlViewer"));
@@ -100,11 +99,9 @@ export const AgGridComponents = {
 } as const;
 
 export const NonAgGridComponents = {
-  charting: "Charting",
   chart: "Chart",
   "chart-highcharts": "ChartHighcharts",
   "chart-vegalite": "ChartVegaLite",
-  advanced_charting: "Charting",
   clock: "ClockWidget",
   metric: "MetricWidget",
   file_viewer: "FileViewerWidget",
@@ -181,7 +178,6 @@ export const Widgets = {
   GroupedFinancials: GroupedFinancialsFC,
   Iframe: IframeFC,
   YouTube: YouTubeFC,
-  Charting: ChartingFC,
   MarkdownEditor: MarkdownEditorFC,
   RSSViewer: RSSViewerFC,
   XMLViewer: XMLViewerFC,
