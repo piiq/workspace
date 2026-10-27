@@ -224,6 +224,14 @@ export async function downloadData(
           : [Object.values(gd || {})],
       };
 
+  return downloadTableData({ columns, data }, title, type);
+}
+
+export async function downloadTableData(
+  { columns, data }: { columns: string[]; data: unknown[][] },
+  title = "data",
+  type: "csv" | "excel" = "csv",
+) {
   const headers = columns;
   const rows = data.map((row: any) =>
     row.map((cell: any) => {
@@ -250,7 +258,7 @@ export async function downloadData(
     const workbook = new ExcelJS.Workbook();
 
     const wb = workbook.addWorksheet("Sheet1");
-    wb.columns = headers.map((header) => ({ header, key: header }));
+    wb.columns = headers.map((header) => ({ header }));
     for (const row of data) wb.addRow(row);
 
     const wbout = await workbook.xlsx.writeBuffer();
