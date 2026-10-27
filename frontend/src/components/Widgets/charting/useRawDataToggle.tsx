@@ -10,7 +10,9 @@ import RawDataTable from "./RawDataTable";
 type RawQueryResult = {
   data?: unknown;
   isLoading: boolean;
-  error?: unknown;
+  error?: Error | null;
+  dataUpdatedAt: number;
+  refetch: (options?: { throwOnError?: boolean }) => Promise<{ data?: unknown }>;
 };
 
 type QueryFn = (
@@ -19,6 +21,11 @@ type QueryFn = (
 ) => RawQueryResult;
 
 const RAW_DATA_STALE_TIME = 0;
+
+function getRawData(response: unknown) {
+  if (!response) return null;
+  return (response as { results?: unknown }).results ?? response;
+}
 
 /**
  * Shared raw-data toggle for chart widgets. When the widget has `raw: true`,
@@ -71,16 +78,18 @@ export function useRawDataToggle({
     data: rawResponse,
     isLoading: rawLoading,
     error: rawError,
+    dataUpdatedAt: rawLastUpdated,
+    refetch,
   } = useQueryFn(rawDataOptions, {
     enabled: showTable,
     staleTime: RAW_DATA_STALE_TIME,
   });
 
-  const rawData = useMemo(() => {
-    if (!rawResponse) return null;
-    const response = rawResponse as { results?: unknown };
-    return response?.results ?? rawResponse;
-  }, [rawResponse]);
+  const rawData = useMemo(() => getRawData(rawResponse), [rawResponse]);
+  const rawRefetch = useCallback(async () => {
+    const result = await refetch({ throwOnError: true });
+    return getRawData(result.data);
+  }, [refetch]);
 
   const toggle = useMemo<ReactNode>(() => {
     if (!hasRawFlag) return null;
@@ -117,5 +126,7 @@ export function useRawDataToggle({
     rawData,
     rawLoading,
     rawError,
+    rawLastUpdated,
+    rawRefetch,
   };
 }
