@@ -1,7 +1,7 @@
 import type { WidgetShellProps } from "@piiq/workspace-plugin-sdk";
 import { type SVGAttributes, useMemo } from "react";
 import { downloadData } from "~/components/Charting/utils";
-import DraggableCard from "~/components/DraggableCard";
+import DraggableCard, { SetLoadingOnResize } from "~/components/DraggableCard";
 import { useWidgetParamsPositions } from "~/components/General/Table/NavBar/QueryParams";
 import Icon from "~/components/Icon";
 import type { IconId } from "~/components/Icon.types";
@@ -41,7 +41,7 @@ export function PluginWidgetShell({
       elementBelowNavbar={renderBelowNavbarRows}
       extraNavbarElements={toolbar}
     >
-      {children}
+      <SetLoadingOnResize>{children}</SetLoadingOnResize>
     </DraggableCard>
   );
 }

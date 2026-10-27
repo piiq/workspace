@@ -1,12 +1,14 @@
 import type {
+  ChartDataResult,
   WidgetContext,
   WidgetDataOptions,
   WidgetDataResult,
   WidgetLifecycle,
 } from "@piiq/workspace-plugin-sdk";
 import get from "lodash/get";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useWidgetContext } from "~/components/Widget.context";
+import { useRawDataToggle } from "~/components/Widgets/charting/useRawDataToggle";
 import { useJsonData } from "~/lib/api";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { convertHeadersToRecord } from "~/lib/utils/widgetParams";
@@ -111,4 +113,51 @@ export function usePluginWidgetLifecycle(lifecycle: WidgetLifecycle): void {
       }),
     [widget.id],
   );
+}
+
+export function usePluginChartData<Data = unknown>(): ChartDataResult<Data> {
+  const { widget } = useWidgetContext();
+  const theme = useShallowThemeStore((state) => state.theme);
+  if (!widget) throw new Error("Plugin widget hooks require a WidgetProvider.");
+
+  const options = useMemo(() => {
+    const params = Object.fromEntries(
+      Object.entries({
+        ...widget.endpoint?.query,
+        ...widget.storage?.params,
+      }).filter(([, value]) => value !== "" && value !== undefined),
+    );
+    params.theme = theme;
+    return {
+      url: widget.endpoint?.url,
+      endpointHeaders: widget.endpoint?.headers ?? {},
+      method: widget.endpoint?.method ?? "GET",
+      params,
+    };
+  }, [widget.endpoint, widget.storage?.params, theme]);
+
+  const raw = useRawDataToggle({ baseOptions: options });
+  const query = useJsonData<Data>(options, {
+    enabled: !raw.showTable,
+    staleTime: widget.staleTime ?? 1000 * 60 * 15,
+  });
+  const refetch = useCallback(async () => {
+    if (raw.showTable) {
+      return ((await raw.rawRefetch()) ?? undefined) as Data | unknown[] | undefined;
+    }
+    return (await query.refetch({ throwOnError: true })).data;
+  }, [raw.showTable, raw.rawRefetch, query.refetch]);
+
+  return {
+    data: (raw.showTable ? (raw.rawData ?? undefined) : query.data) as
+      | Data
+      | unknown[]
+      | undefined,
+    showTable: raw.showTable,
+    toggle: raw.toggle,
+    isLoading: raw.showTable ? raw.rawLoading : query.isLoading,
+    error: raw.showTable ? (raw.rawError ?? null) : query.error,
+    lastUpdated: raw.showTable ? raw.rawLastUpdated : query.dataUpdatedAt,
+    refetch,
+  };
 }

@@ -16,6 +16,7 @@ import {
   useServerSideRequest,
 } from "./serverSideTable";
 import {
+  usePluginChartData,
   usePluginWidgetContext,
   usePluginWidgetData,
   usePluginWidgetLifecycle,
@@ -33,6 +34,7 @@ export const pluginHost: AgGridPluginHost = {
   useTheme: () => useShallowThemeStore((state) => state.theme),
   useWidgetContext: usePluginWidgetContext,
   useWidgetData: usePluginWidgetData,
+  useChartData: usePluginChartData,
   useWidgetDataExport,
   useWidgetLifecycle: usePluginWidgetLifecycle,
   ui: {

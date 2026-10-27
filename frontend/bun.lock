@@ -90,8 +90,6 @@
         "framer-motion": "^11.3.31",
         "fuse.js": "^7.0.0",
         "hast-util-to-jsx-runtime": "^2.3.6",
-        "highcharts": "^11.4.8",
-        "highcharts-react-official": "^3.2.1",
         "html-react-parser": "^5.1.7",
         "html-to-image": "^1.11.11",
         "input-otp": "^1.4.2",
@@ -2487,10 +2485,6 @@
     "hermes-estree": ["hermes-estree@0.25.1", "", {}, "sha512-0wUoCcLp+5Ev5pDW2OriHC2MJCbwLwuRx+gAqMTOkGKJJiBCLjtrvy4PWUGn6MIVefecRpzoOZ/UV6iGdOr+Cw=="],
 
     "hermes-parser": ["hermes-parser@0.25.1", "", { "dependencies": { "hermes-estree": "0.25.1" } }, "sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA=="],
-
-    "highcharts": ["highcharts@11.4.8", "", {}, "sha512-5Tke9LuzZszC4osaFisxLIcw7xgNGz4Sy3Jc9pRMV+ydm6sYqsPYdU8ELOgpzGNrbrRNDRBtveoR5xS3SzneEA=="],
-
-    "highcharts-react-official": ["highcharts-react-official@3.2.2", "", { "peerDependencies": { "highcharts": ">=6.0.0", "react": ">=16.8.0" } }, "sha512-2kkWOB6RpdR26fmAJkrtJFG9xWFUDGKWyat88tW3fa/3l/Jc7D5ZfwTng2MZsdiKIH32AFy0Pr75udUe7uN6LA=="],
 
     "highlight.js": ["highlight.js@10.7.3", "", {}, "sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A=="],
 

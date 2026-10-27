@@ -97,12 +97,6 @@ vi.mock("~/lib/utils", () => ({
   formatDate: vi.fn(),
 }));
 
-// Mock the entire ChartHighcharts component
-vi.mock("~/components/Widgets/charting/ChartHighcharts", () => ({
-  default: vi.fn().mockImplementation(() => null),
-}));
-
-// Mock any other components that might use Highcharts
 vi.mock("~/components/Charting/FinancialMetricsTabs", () => ({
   default: vi.fn().mockImplementation(() => null),
 }));

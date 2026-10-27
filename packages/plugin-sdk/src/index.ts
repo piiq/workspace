@@ -127,6 +127,16 @@ export interface WidgetDataResult<Data = unknown> {
   refetch: () => Promise<void>;
 }
 
+export interface ChartDataResult<Data = unknown> {
+  data: Data | unknown[] | undefined;
+  showTable: boolean;
+  toggle: ReactNode;
+  isLoading: boolean;
+  error: Error | null;
+  lastUpdated: number;
+  refetch: () => Promise<Data | unknown[] | undefined>;
+}
+
 export interface WidgetDataExportOptions {
   data: unknown;
   enabled: boolean;
@@ -162,6 +172,7 @@ export interface PluginHost {
   useWidgetData: <Data = unknown>(
     options?: WidgetDataOptions,
   ) => WidgetDataResult<Data>;
+  useChartData?: <Data = unknown>() => ChartDataResult<Data>;
   useWidgetDataExport: (options: WidgetDataExportOptions) => void;
   useWidgetLifecycle: (lifecycle: WidgetLifecycle) => void;
   ui: {
