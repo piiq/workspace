@@ -14,7 +14,6 @@ import type {
   AgTooltipRendererResult,
   AgTreemapSeriesTooltipRendererParams,
 } from "ag-charts-community";
-import { AgChartsEnterpriseModule } from "ag-charts-enterprise";
 import type {
   ChartType,
   ChartTypeExCombo,
@@ -22,7 +21,6 @@ import type {
   Column,
   GridChartContext,
 } from "ag-grid-community";
-import { AllEnterpriseModule, ModuleRegistry } from "ag-grid-enterprise";
 import dayjs from "dayjs";
 import type { WidgetColumnDefT, WidgetT } from "~/components/types";
 import { CHART_TYPE_TO_SERIES_TYPE } from "~/lib/constants";
@@ -33,8 +31,6 @@ import { getWidgetStorage } from "../hooks";
 import type { AgGridElement, ChartDataT } from "../hooks/types";
 import { getSelectedRangeData } from "../hooks/useCreateChart";
 import { customChartWidgetIds } from "./AgChartView";
-
-ModuleRegistry.registerModules([AllEnterpriseModule.with(AgChartsEnterpriseModule)]);
 
 type ToolTipRendererParams<
   T = any,

@@ -2,7 +2,7 @@ import type {
   AgChartOptions,
   AgChartTheme,
   AgChartThemeName,
-} from "ag-charts-enterprise";
+} from "ag-charts-community";
 import { AgCharts } from "ag-charts-react";
 import cloneDeep from "lodash/cloneDeep";
 import get from "lodash/get";
@@ -21,6 +21,7 @@ import { ColorPicker } from "~/components/ds/molecules/ColorPicker";
 import { cn } from "~/components/ds/utils";
 import Tooltip from "~/components/Tooltip";
 import { type DispatchAction, useStateReducer } from "~/hooks/useStateReducer";
+import { useAgEnterprise } from "~/lib/plugins/agGrid";
 import {
   type ChartThemePalette,
   type ChartThemeParams,
@@ -347,6 +348,7 @@ function initializer(state: ChartSettingsState): ChartSettingsState {
 }
 
 export function ChartSettings() {
+  const enterprise = useAgEnterprise();
   const theme = useShallowThemeStore((state) => state.theme);
   const [themesState, dispatch] = useStateReducer<ChartSettingsState>(
     { themeMode: theme },
@@ -630,7 +632,7 @@ export function ChartSettings() {
       },
     };
 
-    if (backgroundImage.enabled && backgroundImage.url) {
+    if (enterprise && backgroundImage.enabled && backgroundImage.url) {
       const imageConfig: any = { ...backgroundImage };
 
       options.background = {
@@ -648,7 +650,7 @@ export function ChartSettings() {
     }
 
     return options;
-  }, [state, themesState.themeMode]);
+  }, [state, themesState.themeMode, enterprise]);
 
   const [debouncedChartOptions] = useDebounceValue(chartOptions, 300);
 
@@ -999,171 +1001,175 @@ export function ChartSettings() {
         </div>
       </SettingsMenu>
 
-      <SettingsMenu
-        title="Crosshair Settings"
-        canCollapse={true}
-        tooltip="Crosshair settings control the appearance of crosshair labels that appear when hovering over chart data points to show precise values."
-      >
-        <div className="grid w-full grid-cols-[1fr_2fr] items-center gap-x-4 gap-y-2">
-          <TooltipLabel tooltip="Background colour of crosshair labels">
-            Crosshair Label Background:
-          </TooltipLabel>
-          <ColorPicker
-            value={
-              state.crosshairLabelBackgroundColor ||
-              (themesState.themeMode === "dark" ? "#2a2a31" : "#f6f6f6")
-            }
-            onChange={handleInputChange("crosshairLabelBackgroundColor")}
-            className="w-full"
-          />
+      {enterprise && (
+        <SettingsMenu
+          title="Crosshair Settings"
+          canCollapse={true}
+          tooltip="Crosshair settings control the appearance of crosshair labels that appear when hovering over chart data points to show precise values."
+        >
+          <div className="grid w-full grid-cols-[1fr_2fr] items-center gap-x-4 gap-y-2">
+            <TooltipLabel tooltip="Background colour of crosshair labels">
+              Crosshair Label Background:
+            </TooltipLabel>
+            <ColorPicker
+              value={
+                state.crosshairLabelBackgroundColor ||
+                (themesState.themeMode === "dark" ? "#2a2a31" : "#f6f6f6")
+              }
+              onChange={handleInputChange("crosshairLabelBackgroundColor")}
+              className="w-full"
+            />
 
-          <TooltipLabel tooltip="Colour for text in crosshair labels">
-            Crosshair Label Text:
-          </TooltipLabel>
-          <ColorPicker
-            value={
-              state.crosshairLabelTextColor ||
-              (themesState.themeMode === "dark" ? "#ffffff" : "#000000")
-            }
-            onChange={handleInputChange("crosshairLabelTextColor")}
-            className="w-full"
-          />
-        </div>
-      </SettingsMenu>
-
-      <SettingsMenu
-        title="Background Image"
-        canCollapse={true}
-        tooltip="Background image settings allow you to add a company logo or watermark behind your chart visualization."
-      >
-        <div className="w-full space-y-4">
-          <div className="flex items-center justify-between">
-            <Label
-              className="font-medium cursor-help"
-              title="Add a background image to your chart"
-            >
-              Enable company image
-            </Label>
-            <Switch
-              checked={state.backgroundImage.enabled ?? false}
-              onCheckedChange={(checked) => {
-                dispatch((prev) => ({
-                  ...prev,
-                  [prev.themeMode]: {
-                    ...prev[prev.themeMode],
-                    backgroundImage: {
-                      ...(prev[prev.themeMode].backgroundImage || {}),
-                      enabled: checked,
-                      ...(checked &&
-                        !state.backgroundImage.url && { url: getImageURL() }),
-                    },
-                  },
-                }));
-              }}
+            <TooltipLabel tooltip="Colour for text in crosshair labels">
+              Crosshair Label Text:
+            </TooltipLabel>
+            <ColorPicker
+              value={
+                state.crosshairLabelTextColor ||
+                (themesState.themeMode === "dark" ? "#ffffff" : "#000000")
+              }
+              onChange={handleInputChange("crosshairLabelTextColor")}
+              className="w-full"
             />
           </div>
+        </SettingsMenu>
+      )}
 
-          <div className="grid w-full grid-cols-[1fr_2fr] items-center gap-x-4 gap-y-3">
-            <TooltipLabel tooltip="URL or base64 data URI for the background image">
-              Image URL:
-            </TooltipLabel>
-            <Input
-              ref={(el) => (inputRefs.current["backgroundImage.url"] = el)}
-              type="text"
-              defaultValue={state.backgroundImage.url}
-              onChange={handleInputChange("backgroundImage.url")}
-              placeholder="Enter image URL or base64 data"
-              className="w-full"
-            />
+      {enterprise && (
+        <SettingsMenu
+          title="Background Image"
+          canCollapse={true}
+          tooltip="Background image settings allow you to add a company logo or watermark behind your chart visualization."
+        >
+          <div className="w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <Label
+                className="font-medium cursor-help"
+                title="Add a background image to your chart"
+              >
+                Enable company image
+              </Label>
+              <Switch
+                checked={state.backgroundImage.enabled ?? false}
+                onCheckedChange={(checked) => {
+                  dispatch((prev) => ({
+                    ...prev,
+                    [prev.themeMode]: {
+                      ...prev[prev.themeMode],
+                      backgroundImage: {
+                        ...(prev[prev.themeMode].backgroundImage || {}),
+                        enabled: checked,
+                        ...(checked &&
+                          !state.backgroundImage.url && { url: getImageURL() }),
+                      },
+                    },
+                  }));
+                }}
+              />
+            </div>
 
-            <TooltipLabel tooltip="Transparency level of the background image (0 = transparent, 1 = opaque)">
-              Opacity:
-            </TooltipLabel>
-            <Input
-              ref={(el) => (inputRefs.current["backgroundImage.opacity"] = el)}
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              className="w-full !pl-3"
-              defaultValue={state.backgroundImage.opacity || "1"}
-              onChange={handleInputChange("backgroundImage.opacity", false)}
-            />
+            <div className="grid w-full grid-cols-[1fr_2fr] items-center gap-x-4 gap-y-3">
+              <TooltipLabel tooltip="URL or base64 data URI for the background image">
+                Image URL:
+              </TooltipLabel>
+              <Input
+                ref={(el) => (inputRefs.current["backgroundImage.url"] = el)}
+                type="text"
+                defaultValue={state.backgroundImage.url}
+                onChange={handleInputChange("backgroundImage.url")}
+                placeholder="Enter image URL or base64 data"
+                className="w-full"
+              />
 
-            <TooltipLabel tooltip="Width of the background image in pixels (leave empty for auto-sizing)">
-              Width:
-            </TooltipLabel>
-            <Input
-              ref={(el) => (inputRefs.current["backgroundImage.width"] = el)}
-              type="number"
-              className="w-full"
-              defaultValue={state.backgroundImage.width || "50"}
-              onChange={handleInputChange("backgroundImage.width", false)}
-              placeholder="Auto if empty"
-            />
+              <TooltipLabel tooltip="Transparency level of the background image (0 = transparent, 1 = opaque)">
+                Opacity:
+              </TooltipLabel>
+              <Input
+                ref={(el) => (inputRefs.current["backgroundImage.opacity"] = el)}
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                className="w-full !pl-3"
+                defaultValue={state.backgroundImage.opacity || "1"}
+                onChange={handleInputChange("backgroundImage.opacity", false)}
+              />
 
-            <TooltipLabel tooltip="Height of the background image in pixels (leave empty for auto-sizing)">
-              Height:
-            </TooltipLabel>
-            <Input
-              ref={(el) => (inputRefs.current["backgroundImage.height"] = el)}
-              type="number"
-              className="w-full"
-              defaultValue={state.backgroundImage.height || "50"}
-              onChange={handleInputChange("backgroundImage.height", false)}
-              placeholder="Auto if empty"
-            />
+              <TooltipLabel tooltip="Width of the background image in pixels (leave empty for auto-sizing)">
+                Width:
+              </TooltipLabel>
+              <Input
+                ref={(el) => (inputRefs.current["backgroundImage.width"] = el)}
+                type="number"
+                className="w-full"
+                defaultValue={state.backgroundImage.width || "50"}
+                onChange={handleInputChange("backgroundImage.width", false)}
+                placeholder="Auto if empty"
+              />
 
-            <TooltipLabel tooltip="Snap the image to a corner or the center of the chart">
-              Position:
-            </TooltipLabel>
-            <div className="flex items-center gap-3">
-              <div className="relative flex h-10 w-20 items-center justify-center rounded border border-general-border-primary bg-general-bg-primary">
-                {(["nw", "ne", "sw", "se"] as const).map((corner) => {
-                  const isActive = bgImagePosition === corner;
-                  return (
-                    <button
-                      key={corner}
-                      type="button"
-                      style={{
-                        top: corner[0] === "n" ? -8 : "auto",
-                        bottom: corner[0] === "s" ? -8 : "auto",
-                        left: corner[1] === "w" ? -8 : "auto",
-                        right: corner[1] === "e" ? -8 : "auto",
-                        position: "absolute",
-                      }}
-                      onClick={() => handleBgImagePositionChange(corner)}
-                      aria-label={`Position ${corner}`}
-                      aria-pressed={isActive}
-                      className={cn(
-                        "h-4 w-4 rounded border transition-colors",
-                        isActive
-                          ? "bg-brand-main border-brand-main"
-                          : "bg-general-bg-primary border-general-border-primary hover:bg-general-bg-secondary",
-                      )}
-                    />
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => handleBgImagePositionChange("center")}
-                  aria-label="Position center"
-                  aria-pressed={bgImagePosition === "center"}
-                  className={cn(
-                    "h-4 w-4 rounded border transition-colors",
-                    bgImagePosition === "center"
-                      ? "bg-brand-main border-brand-main"
-                      : "bg-general-bg-primary border-general-border-primary hover:bg-general-bg-secondary",
-                  )}
-                />
+              <TooltipLabel tooltip="Height of the background image in pixels (leave empty for auto-sizing)">
+                Height:
+              </TooltipLabel>
+              <Input
+                ref={(el) => (inputRefs.current["backgroundImage.height"] = el)}
+                type="number"
+                className="w-full"
+                defaultValue={state.backgroundImage.height || "50"}
+                onChange={handleInputChange("backgroundImage.height", false)}
+                placeholder="Auto if empty"
+              />
+
+              <TooltipLabel tooltip="Snap the image to a corner or the center of the chart">
+                Position:
+              </TooltipLabel>
+              <div className="flex items-center gap-3">
+                <div className="relative flex h-10 w-20 items-center justify-center rounded border border-general-border-primary bg-general-bg-primary">
+                  {(["nw", "ne", "sw", "se"] as const).map((corner) => {
+                    const isActive = bgImagePosition === corner;
+                    return (
+                      <button
+                        key={corner}
+                        type="button"
+                        style={{
+                          top: corner[0] === "n" ? -8 : "auto",
+                          bottom: corner[0] === "s" ? -8 : "auto",
+                          left: corner[1] === "w" ? -8 : "auto",
+                          right: corner[1] === "e" ? -8 : "auto",
+                          position: "absolute",
+                        }}
+                        onClick={() => handleBgImagePositionChange(corner)}
+                        aria-label={`Position ${corner}`}
+                        aria-pressed={isActive}
+                        className={cn(
+                          "h-4 w-4 rounded border transition-colors",
+                          isActive
+                            ? "bg-brand-main border-brand-main"
+                            : "bg-general-bg-primary border-general-border-primary hover:bg-general-bg-secondary",
+                        )}
+                      />
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => handleBgImagePositionChange("center")}
+                    aria-label="Position center"
+                    aria-pressed={bgImagePosition === "center"}
+                    className={cn(
+                      "h-4 w-4 rounded border transition-colors",
+                      bgImagePosition === "center"
+                        ? "bg-brand-main border-brand-main"
+                        : "bg-general-bg-primary border-general-border-primary hover:bg-general-bg-secondary",
+                    )}
+                  />
+                </div>
+                <span className="text-xs text-ds-text-caption">
+                  Click a corner or center to place the image
+                </span>
               </div>
-              <span className="text-xs text-ds-text-caption">
-                Click a corner or center to place the image
-              </span>
             </div>
           </div>
-        </div>
-      </SettingsMenu>
+        </SettingsMenu>
+      )}
     </div>
   );
 

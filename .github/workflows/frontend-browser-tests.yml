@@ -27,7 +27,7 @@ on:
       - 'frontend/src/components/Widgets/index.ts'
       - 'frontend/src/components/Widget.tsx'
       - 'frontend/src/components/Widgets/charting/RawDataTable.tsx'
-      - 'frontend/src/components/General/Table/hooks/useTableContext.tsx'
+      - 'frontend/src/components/General/Table/**'
       - '.github/workflows/frontend-browser-tests.yml'
 
 concurrency:

@@ -1,5 +1,4 @@
-import type { ChartRef, ColDef, IRowNode, RowNode } from "ag-grid-enterprise";
-import "ag-grid-enterprise";
+import type { ChartRef, ColDef, IRowNode, RowNode } from "ag-grid-community";
 import { usePostHog } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";

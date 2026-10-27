@@ -10,6 +10,7 @@ import dayjs from "dayjs";
 import { isCopilotAvailable } from "~/components/AI/hooks/useCopilotAvailable";
 import type { AgGridEvents } from "~/components/General/Table/hooks/types";
 import type { WidgetColumnDefT, WidgetContextType } from "~/components/types";
+import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import type { Widget } from "~/lib/state/app";
 import { useFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { formatNumber } from "~/lib/utils/utils";
@@ -720,9 +721,10 @@ export function getColumnDefs(
     }
 
     // Process sparkline configuration if present
-    const sparklineConfig = colDef?.sparkline
-      ? processSparklineConfig(colDef, colDef.sparkline, fullData)
-      : {};
+    const sparklineConfig =
+      hasAgEnterprise() && colDef?.sparkline
+        ? processSparklineConfig(colDef, colDef.sparkline, fullData)
+        : {};
 
     const cellClass = getCellClass(colDef?.align);
 
@@ -806,15 +808,16 @@ export function getColumnDefs(
         decimalPlacesToUse: decimalPlaces,
         ...colDef?.renderFnParams,
       },
-      ...(widget?.storage?.enableAdvanced && {
-        enableRowGroup: chartDataType === "category",
-        enableValue: dataType === "number",
-        enablePivot: chartDataType === "category" || dataType === "number",
-        ...(dataType === "number" && {
-          allowedAggFuncs: ["sum", "min", "max", "avg", "count", "first", "last"],
-          defaultAggFunc: "sum",
+      ...(hasAgEnterprise() &&
+        widget?.storage?.enableAdvanced && {
+          enableRowGroup: chartDataType === "category",
+          enableValue: dataType === "number",
+          enablePivot: chartDataType === "category" || dataType === "number",
+          ...(dataType === "number" && {
+            allowedAggFuncs: ["sum", "min", "max", "avg", "count", "first", "last"],
+            defaultAggFunc: "sum",
+          }),
         }),
-      }),
     } as ColDef;
 
     newColumnDefs.push(columnConfig);
@@ -1038,6 +1041,7 @@ export const getContextMenuItems = (
   params: GetContextMenuItemsParams,
   props?: GetContextMenuItemsProps,
 ): (DefaultMenuItem | MenuItemDef)[] => {
+  if (!hasAgEnterprise()) return [];
   const {
     widgetId = null,
     enableChart = true,
@@ -1114,6 +1118,7 @@ export function onPivotModeChanged(
   event: AgGridEvents,
   updateWidget: WidgetContextType["updateWidget"],
 ) {
+  if (!hasAgEnterprise()) return;
   const isPivotMode = event.api.isPivotMode();
   const openedToolPanel = event.api.getOpenedToolPanel();
   queueMicrotask(() => {

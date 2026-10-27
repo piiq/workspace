@@ -13,17 +13,14 @@ import type {
   StateUpdatedEvent,
   VirtualColumnsChangedEvent,
 } from "ag-grid-community";
-import "ag-grid-enterprise";
-import { useShallowAppStore, type Widget } from "~/lib/state/app";
-
-import "ag-grid-enterprise";
 import type { AgGridReact } from "ag-grid-react";
 import isEqual from "lodash.isequal";
-
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useCallbackRef } from "~/hooks/useRefHooks";
+import { hasAgEnterprise } from "~/lib/plugins/agGrid";
+import { useShallowAppStore, type Widget } from "~/lib/state/app";
 import { isSSRMType } from "~/lib/utils";
 import { ensureAgGrid, someTruthy } from "../utils";
 import { doAutoFitColumns, ignoreSources } from "./constants";
@@ -147,7 +144,7 @@ export const useUpdateColumnState = (
       const sources = params?.sources || [];
       const widget = getWidget();
 
-      const isPivotMode = params.api?.isPivotMode();
+      const isPivotMode = hasAgEnterprise() && params.api?.isPivotMode();
       const stateKey = getStateKey(widget, isPivotMode);
 
       const chartEnabled = widget?.storage?.chartView?.enabled;
@@ -545,7 +542,7 @@ export function useApplyColumnState() {
         });
 
         if (currentFilterModel) params.api.setFilterModel(currentFilterModel);
-        if (savedColumnState?.groupColIds?.length > 0) {
+        if (hasAgEnterprise() && savedColumnState?.groupColIds?.length > 0) {
           const groupColIds = savedColumnState?.groupColIds;
           params.api?.setRowGroupColumns(groupColIds);
         }
@@ -630,7 +627,7 @@ export function useApplyColumnState() {
 
         const columnState = getSavedColumnState(currentColumnState, savedColumnState);
 
-        if (savedColumnState?.sideBar?.openToolPanel)
+        if (hasAgEnterprise() && savedColumnState?.sideBar?.openToolPanel)
           params.api.openToolPanel(savedColumnState?.sideBar?.openToolPanel);
 
         queueMicrotask(() =>

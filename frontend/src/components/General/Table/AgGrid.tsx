@@ -1,11 +1,10 @@
+import * as HoverCard from "@radix-ui/react-hover-card";
 import type {
   GetMainMenuItemsParams,
   IHeaderParams,
   MenuItemDef,
   WithoutGridCommon,
 } from "ag-grid-community";
-import "ag-grid-enterprise";
-import * as HoverCard from "@radix-ui/react-hover-card";
 import { provideGlobalGridOptions } from "ag-grid-community";
 import type { AgGridReact } from "ag-grid-react";
 import clsx from "clsx";
@@ -27,6 +26,7 @@ import { useCellOnClickHandler } from "~/components/General/Table/hooks/useCellO
 import Icon from "~/components/Icon";
 import type { WidgetColumnDefT } from "~/components/types";
 import { useWidgetContext } from "~/components/Widget.context";
+import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import {
   formatNumber,
   formatNumberMagnitude,
@@ -42,7 +42,6 @@ import {
   isLink,
 } from "./AgGridUtils";
 import CellOnHover, { type CellOnHoverProps } from "./CellRenderers/CellOnHover";
-import { getOpenBBChartTheme } from "./Chart/themes";
 import type {
   CellHoverCardProps,
   CellOnClickedProps,
@@ -248,6 +247,7 @@ export const CustomHeader = memo(
           clickTimeout.current = null;
 
           // Handle double click: select the full column
+          if (!hasAgEnterprise()) return;
           const currentSelection = props.api.getCellRanges();
           const column =
             props.api.getAllGridColumns()[
@@ -729,18 +729,13 @@ export function getMainMenuItems(params: GetMainMenuItemsParams<AgGridReact>) {
 export function setGlobalGridOptions() {
   return provideGlobalGridOptions({
     paginationPageSize: 100,
-    cellSelection: true,
     rowSelection: { enableClickSelection: true, mode: "singleRow", checkboxes: false },
-    enableCharts: true,
     rowBuffer: 10,
     suppressAnimationFrame: true,
     rowHeight: 32,
     headerHeight: 32,
-    getMainMenuItems: getMainMenuItems,
     animateRows: false,
     tooltipShowDelay: 1000,
-    getChartToolbarItems: (_) => [],
-    columnMenu: "legacy",
     suppressColumnMoveAnimation: true,
     maintainColumnOrder: true,
     suppressFieldDotNotation: true,
@@ -765,7 +760,7 @@ export function setGlobalGridOptions() {
       clearCellSelection(params);
     },
     onCellDoubleClicked: (params) => {
-      if (params?.node) {
+      if (hasAgEnterprise() && params?.node) {
         const allColumns = params.api
           .getAllDisplayedColumns()
           // @ts-expect-error - colId property exists but not in types
@@ -782,10 +777,6 @@ export function setGlobalGridOptions() {
       if (params.type !== "columnMenu") {
         return;
       }
-    },
-    customChartThemes: {
-      "openbb-dark": getOpenBBChartTheme("dark"),
-      "openbb-light": getOpenBBChartTheme("light"),
     },
   });
 }
