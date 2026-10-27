@@ -15,7 +15,6 @@ const AgGridFileFC = lazy(() => import("../General/Table/AgGridFile"));
 const AgGridSQLFC = lazy(() => import("../General/Table/AgGridSQL"));
 const AgGridTableFC = lazy(() => import("../General/Table/AgGridTable"));
 const ChartFC = lazy(() => import("./Chart"));
-const ChartHighchartsFC = lazy(() => import("./charting/ChartHighcharts"));
 const ChartVegaLiteFC = lazy(() => import("./charting/ChartVegaLite"));
 
 const MetricWidgetFC = lazy(() => import("./Metric"));
@@ -96,7 +95,6 @@ export const AgGridComponents = {
 
 export const NonAgGridComponents = {
   chart: "Chart",
-  "chart-highcharts": "ChartHighcharts",
   "chart-vegalite": "ChartVegaLite",
   clock: "ClockWidget",
   metric: "MetricWidget",
@@ -136,7 +134,6 @@ export const Widgets = {
   AgGridSQL: AgGridSQLFC,
   AgGridTable: AgGridTableFC,
   Chart: ChartFC,
-  ChartHighcharts: ChartHighchartsFC,
   ChartVegaLite: ChartVegaLiteFC,
   MetricWidget: MetricWidgetFC,
   FileViewerWidget: FileViewerWidgetFC,
