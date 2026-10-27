@@ -53,6 +53,8 @@ Renderer declarations can include a Toolbar component. The host provides these h
 
 Declare `agGridCapabilities` alongside renderers, using `AgGridCapabilityDefinition` for `name`, `title`, AG `modules`, and an optional `configureGrid(options)` function. Descriptor generation retains capability metadata and excludes executable grid configuration and modules. Registration installs modules through the host's Community registry before exposing renderers or capabilities. The host applies registered configuration functions to its shared grid options. Keep changes specific to the grid behaviour the capability supports.
 
+`getAgGridUi(host)` exposes the shared table shell, SQL editor, request handling, saved settings, and data publication through the `agGridUi` interface. A server-side renderer supplies its datasource hook to the interface's `ServerSideTable` component. The host also shares AG Charts Community and Charts Core with plugin bundles so chart modules use the same registries.
+
 ## Configuration files
 
 | File | Contents |
@@ -75,7 +77,7 @@ Build-time plugins are included in the application build. Changes to a plugin's 
 
 Default-export a `PluginDefinition` created with `definePlugin(packageJson, declarations)` from the entry module. Its name/version must match the project's `package.json`. The build imports this module in Bun to generate the descriptor from the same declarations used during registration. Put browser initialization in `setup(host)` or the renderer component. Build failures exit with an error; install the plugin's dependencies and run its TypeScript check before building.
 
-The generated browser module exports `register(api)`. It evaluates the compiled plugin using that API's React, ReactDOM, JSX runtime, and optional AG Community exports, then awaits `api.registerPlugin()`. Plugins can use ordinary imports from `react`, `react-dom`, `react-dom/client`, `react/jsx-runtime`, and `ag-grid-community`; these dependencies come from the host during registration. Other dependencies are bundled from the plugin project. The Bun build helper is a separate SDK export and is not included in browser code.
+The generated browser module exports `register(api)`. It evaluates the compiled plugin using that API's React, ReactDOM, JSX runtime, and optional AG Community exports, then awaits `api.registerPlugin()`. Plugins can use ordinary imports from `react`, `react-dom`, `react-dom/client`, `react/jsx-runtime`, `ag-grid-community`, `ag-charts-community`, and `ag-charts-core`; these dependencies come from the host during registration. Other dependencies are bundled from the plugin project. The Bun build helper is a separate SDK export and is not included in browser code.
 
 Assets listed in the build options keep their project-relative paths under `dist/`. Imported file assets receive generated names and are included in the descriptor. Use `new URL(assetPath, import.meta.url)` for URLs relative to `entry.js`. Load descriptor assets relative to `plugin.json`; CSS assets accompany the plugin's JavaScript. The same output can be copied into a Workspace build or served for runtime loading.
 
@@ -163,11 +165,3 @@ docker compose -f docker/docker-compose.plugins.yml up
 Replace plugin files and the manifest, then reload Workspace to apply changes. Keep HTTP caching disabled for these mutable URLs, as in the example, so a reload retrieves replacement code and stylesheets. No Workspace rebuild is required. Removing a selection preserves saved widget settings and shows its unavailable diagnostic; restoring it and reloading recovers the widget. Descriptor or manifest request failures are logged with their URL. An incompatible descriptor or failed module produces a diagnostic for its widgets while other plugins and core widgets remain usable.
 
 Runtime modules are administrator-trusted application code running in the Workspace page for every deployment user. They can access the same browser data and application interfaces as Workspace. User backend declarations can reference installed renderer IDs but cannot select executable URLs. Bundling fixes the plugin code at application build time; it does not isolate that code.
-
-## Advanced Charts
-
-Advanced Charts is supplied by a separately licensed `@piiq/tradingview` plugin. The `charting` and `advanced_charting` renderer IDs resolve to `@piiq/tradingview/chart`. Install its compiled bundle through either loader using the same preparation and deployment commands as other plugins. Its private repository owns library sources, integration code, dependency installation, and build instructions. Workspace builds without that repository or its assets.
-
-Connect the widget to a UDF-compatible datafeed through its `endpoint`. The plugin forwards endpoint headers, endpoint query settings, and widget parameters to that feed. The widget's `data.defaultSymbol` supplies a startup symbol when `params.symbol` has no value. Layouts, templates, settings, drawings, and chart parameters are saved with the widget. Removing the plugin preserves that state and displays its unavailable diagnostic.
-
-The standalone `/app/charting` page accepts a datafeed URL and ticker, for example `/app/charting?datafeed=https%3A%2F%2Fdata.example%2Fudf&ticker=AAPL`. This page keeps chart state while it is open; use a dashboard widget for saved layouts. Packaged-provider charts require replacing their data source with a supplied UDF feed.
