@@ -1,3 +1,7 @@
+import type {
+  ServerSideDataSourceConfig as SSRMGridConfig,
+  UseServerSideDataSource,
+} from "@piiq/workspace-plugin-sdk/ag-grid";
 import {
   lazy,
   memo,
@@ -40,11 +44,7 @@ import {
   triggerCustomEvent,
   useEventListener,
 } from "~/lib/utils";
-import {
-  AgGridSSRTableProvider,
-  type SSRMGridConfig,
-  useSSRMGridOptions,
-} from "./AgGridSSRM";
+import { AgGridSSRTableProvider } from "./AgGridSSRM";
 import { ChartViewButton, ChartViewElement } from "./Chart/AgChartView";
 import { useChartToolPanelAction } from "./Chart/hooks/useChartOptions";
 import {
@@ -113,7 +113,11 @@ interface PromptWidgetState {
   pendingFixPrompt: string | null;
 }
 
-export default function AgGridSSRMAdvanced() {
+export default function AgGridSSRMAdvanced({
+  useDataSource,
+}: {
+  useDataSource: UseServerSideDataSource;
+}) {
   const { widget, isPreview, updateWidget } = useWidgetContext();
   const isMobile = useIsMobile();
 
@@ -201,7 +205,7 @@ export default function AgGridSSRMAdvanced() {
     [onRunComplete],
   );
 
-  const ssrmGridOptions = useSSRMGridOptions(promptValue, ssrmGridConfig);
+  const ssrmGridOptions = useDataSource(promptValue, ssrmGridConfig);
 
   // Auto metadata update hook
   const triggerMetadataUpdate = useAutoMetadataUpdate(

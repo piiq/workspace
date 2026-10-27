@@ -1,4 +1,6 @@
 import type { AgGridPluginHost } from "@piiq/workspace-plugin-sdk/ag-grid";
+import * as agCharts from "ag-charts-community";
+import * as agChartsCore from "ag-charts-core";
 import * as agGrid from "ag-grid-community";
 import * as react from "react";
 import { lazy } from "react";
@@ -8,6 +10,11 @@ import * as reactDomClient from "react-dom/client";
 import { useWidgetDataExport } from "~/hooks/useWidgetDataExport";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { createPluginApi } from "./api";
+import {
+  ServerSideTable,
+  useServerSideContext,
+  useServerSideRequest,
+} from "./serverSideTable";
 import {
   usePluginWidgetContext,
   usePluginWidgetData,
@@ -20,6 +27,9 @@ export const pluginHost: AgGridPluginHost = {
   reactDomClient,
   jsxRuntime,
   agGrid,
+  agCharts,
+  agChartsCore,
+  agGridUi: { ServerSideTable, useServerSideContext, useServerSideRequest },
   useTheme: () => useShallowThemeStore((state) => state.theme),
   useWidgetContext: usePluginWidgetContext,
   useWidgetData: usePluginWidgetData,

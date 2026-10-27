@@ -118,7 +118,10 @@ export const US_EXCHANGES = [
 export const DEFAULT_TICKER_EXCHANGE = "NASDAQ";
 
 export const isSSRMType = (type?: WidgetVizType) =>
-  type === "ssrm_table" || type === "ssrm_advanced";
+  type === "ssrm_table" ||
+  type === "ssrm_advanced" ||
+  type === "@piiq/ag-enterprise/server-side-table" ||
+  type === "@piiq/ag-enterprise/advanced-server-side-table";
 
 export const isOmniType = (type?: WidgetVizType) => type === "omni";
 

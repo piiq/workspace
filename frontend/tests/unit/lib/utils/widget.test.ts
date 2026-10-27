@@ -261,6 +261,12 @@ describe("Widget Utility Functions", () => {
   });
 
   describe("isSSRMType", () => {
+    it.each([
+      "@piiq/ag-enterprise/server-side-table",
+      "@piiq/ag-enterprise/advanced-server-side-table",
+    ] as const)("recognizes %s", (id) => {
+      expect(isSSRMType(id)).toBe(true);
+    });
     it("should return true for ssrm_table type", () => {
       expect(isSSRMType("ssrm_table" as any)).toBe(true);
     });
