@@ -1,3 +1,4 @@
+import type { ColumnState, GridState } from "ag-grid-community";
 import posthog from "posthog-js";
 import { Suspense, useMemo, useSyncExternalStore } from "react";
 import { ErrorBoundary } from "react-error-boundary";
@@ -6,14 +7,18 @@ import { Button } from "~/components/ds/atoms/Button";
 import { useWidgetParamsPositions } from "~/components/General/Table/NavBar/QueryParams";
 import { FILE_EXTENSIONS } from "~/lib/constants";
 import { useTabContext } from "~/lib/contexts/TabContext";
+import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import { widgetRegistry } from "~/lib/plugins/registry";
 import { useAppStore } from "~/lib/state/app";
 import { getCleanWidgetId } from "~/lib/utils";
 import WIDGETS from "~/lib/widgets.json";
 import EmptyDashboardCTA from "./General/EmptyDashboardCTA";
 import SearchResultsNotFound from "./General/SearchResultsNotFound";
+import type { SavedState } from "./General/Table/hooks/types";
 import { Table } from "./General/Table/hooks/useTableContext";
+import { getStateKey } from "./General/Table/hooks/useUpdateColumnState";
 import RenderIfVisible from "./RenderIfVisible";
+import type { WidgetT } from "./types";
 import { useWidgetContext, WidgetProvider } from "./Widget.context";
 import Widgets, { getWidgetComponent, isAgGridWidget } from "./Widgets";
 
@@ -139,6 +144,10 @@ export function WidgetComponent() {
   const cleanWidgetId = getCleanWidgetId(widget.widgetId, widget.connectionType);
   const widgetType = widget?.type ?? widgetFromJSON?.type;
 
+  if (!hasAgEnterprise() && requiresAgEnterprise(widget, cleanWidgetId)) {
+    return renderUnavailableWidget("@piiq/ag-enterprise/server-side-table");
+  }
+
   if (widgetType?.startsWith("@")) {
     return renderDeclaredWidget(widgetType);
   }
@@ -208,10 +217,42 @@ export function WidgetComponent() {
   );
 }
 
+function requiresAgEnterprise(widget: WidgetT, rendererId: string) {
+  if (rendererId === "ag_chart_from_table" || rendererId === "ag_grid_sql") return true;
+  if (widget.storage?.chartView?.enabled || widget.storage?.isPivotMode) return true;
+  const state = widget.data?.table?.columnState?.[getStateKey(widget)];
+  if (Array.isArray(state)) {
+    if (
+      (state as ColumnState[]).some(
+        (column) => column.rowGroup || column.pivot || column.aggFunc,
+      )
+    )
+      return true;
+  } else if (state) {
+    const saved = state as GridState & Partial<SavedState>;
+    if (
+      saved.groupColIds?.length ||
+      saved.rowGroup?.groupColIds?.length ||
+      saved.pivot?.pivotMode ||
+      saved.pivot?.pivotColIds?.length ||
+      saved.aggregation?.aggregationModel?.length
+    )
+      return true;
+  }
+  return widget.data?.table?.columnsDefs?.some(
+    (column) => column.rowGroup || column.pivot || column.aggFunc || column.sparkline,
+  );
+}
+
 function renderDeclaredWidget(rendererId: string) {
   const component = loadWidgetComponent(rendererId);
   if (component) return component;
+  return renderUnavailableWidget(rendererId);
+}
+
+function renderUnavailableWidget(rendererId: string) {
   const state = widgetRegistry.getRendererState(rendererId);
+  if (state.status === "pending") throw state.ready;
   return (
     <DraggableCard>
       <SearchResultsNotFound

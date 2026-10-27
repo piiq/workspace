@@ -2,7 +2,7 @@ import type {
   IToolPanelParams,
   ModelUpdatedEvent,
   ToolPanelDef,
-} from "ag-grid-enterprise";
+} from "ag-grid-community";
 
 import {
   type ChangeEvent,

@@ -8,7 +8,7 @@ import type {
   AgChartThemePalette,
   AgPieSeriesThemeableOptions,
   AgWaterfallSeriesItemOptions,
-} from "ag-charts-enterprise";
+} from "ag-charts-community";
 import {
   colorSchemeDark,
   colorSchemeLight,
@@ -17,7 +17,7 @@ import {
   iconSetMaterial,
   iconSetQuartz,
   themeAlpine,
-} from "ag-grid-enterprise";
+} from "ag-grid-community";
 import cloneDeep from "lodash/cloneDeep";
 import { useCallback, useMemo, useRef } from "react";
 import { useWidgetContext } from "~/components/Widget.context";
@@ -357,8 +357,12 @@ export function useAgThemes(theme: ThemeT) {
 
     return {
       themePalette,
+      // AG Grid captures custom themes at grid creation; charts need both modes to switch themes.
       customChartThemes: updatedThemes,
-      chartThemes: [chartTheme],
+      chartThemes: [
+        chartTheme,
+        ...Object.keys(updatedThemes).filter((name) => name !== chartTheme),
+      ],
     };
   }, [
     defaultChartThemesRef,

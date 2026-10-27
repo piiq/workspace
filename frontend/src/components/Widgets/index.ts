@@ -13,8 +13,6 @@ const MarkdownFC = lazy(() => import("./custom/Markdown"));
 const AgChartFromTableFC = lazy(() => import("../General/Table/AgChartFromTable"));
 const AgGridFileFC = lazy(() => import("../General/Table/AgGridFile"));
 const AgGridSQLFC = lazy(() => import("../General/Table/AgGridSQL"));
-const AgGridSSRMFC = lazy(() => import("../General/Table/AgGridSSRM"));
-const AgGridSSRMAdvancedFC = lazy(() => import("../General/Table/AgGridSSRMAdvanced"));
 const AgGridTableFC = lazy(() => import("../General/Table/AgGridTable"));
 const ChartFC = lazy(() => import("./Chart"));
 const ChartHighchartsFC = lazy(() => import("./charting/ChartHighcharts"));
@@ -74,8 +72,6 @@ export const AgGridComponents = {
   ag_grid_file: "AgGridFile",
   ag_grid_sql: "AgGridSQL",
   ag_grid_table: "AgGridTable",
-  ssrm_table: "AgGridSSRM",
-  ssrm_advanced: "AgGridSSRMAdvanced",
   analyst_estimates: "AnalystEstimates",
   financial_statements: "GroupedFinancials",
   watchlist: "Watchlist",
@@ -138,8 +134,6 @@ export const Widgets = {
   AgChartFromTable: AgChartFromTableFC,
   AgGridFile: AgGridFileFC,
   AgGridSQL: AgGridSQLFC,
-  AgGridSSRM: AgGridSSRMFC,
-  AgGridSSRMAdvanced: AgGridSSRMAdvancedFC,
   AgGridTable: AgGridTableFC,
   Chart: ChartFC,
   ChartHighcharts: ChartHighchartsFC,

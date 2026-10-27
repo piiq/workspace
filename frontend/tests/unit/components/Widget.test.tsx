@@ -16,7 +16,11 @@ vi.mock("~/components/Widgets/Metric", () => ({
   default: () => <span>Metric content</span>,
 }));
 
-function renderWidget(type: string, widgetId = "example-data") {
+function renderWidget(
+  type: string,
+  widgetId = "example-data",
+  overrides: Record<string, unknown> = {},
+) {
   return render(
     <WidgetTestWrapper
       widgetOverrides={{
@@ -27,6 +31,7 @@ function renderWidget(type: string, widgetId = "example-data") {
         connectionType: "advanced-backend",
         endpoint: { url: "https://data.example/rows", method: "GET" },
         storage: { params: { symbol: "AAPL" }, pluginState: { expanded: true } },
+        ...overrides,
       }}
     >
       <Suspense fallback={<span>Loading renderer</span>}>
@@ -39,6 +44,48 @@ function renderWidget(type: string, widgetId = "example-data") {
 const host = {} as PluginHost;
 
 describe("widget renderer availability", () => {
+  it("reports the Enterprise requirement for a direct database SQL table", () => {
+    renderWidget("custom", "ag_grid_sql");
+    expect(screen.getByText("Widget renderer unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Install a compatible @piiq\/ag-enterprise plugin/),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("ag-grid-wrapper")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { storage: { params: {}, chartView: { enabled: true } } },
+    { storage: { params: {}, isPivotMode: true } },
+    {
+      data: {
+        table: { columnState: { default: { rowGroup: { groupColIds: ["symbol"] } } } },
+      },
+    },
+    {
+      data: {
+        table: { columnsDefs: [{ field: "price", sparkline: { type: "line" } }] },
+      },
+    },
+  ])("keeps an Enterprise-dependent table unavailable without changing its state", (overrides) => {
+    renderWidget("table", "saved-table", overrides);
+    expect(screen.getByText("Widget renderer unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Install a compatible @piiq\/ag-enterprise plugin/),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("ag-grid-wrapper")).not.toBeInTheDocument();
+  });
+
+  it("does not treat a chart saved in another table state as an active Enterprise view", async () => {
+    renderWidget("metric", "metric-data", {
+      storage: { params: {}, period: "quarter", chartModel: { chartType: "line" } },
+      data: {
+        table: { columnState: { annual: { rowGroup: { groupColIds: ["symbol"] } } } },
+      },
+    });
+    expect(await screen.findByText("Metric content")).toBeInTheDocument();
+    expect(screen.queryByText("Widget renderer unavailable")).not.toBeInTheDocument();
+  });
+
   it("shows a widget-local diagnostic instead of substituting a table", () => {
     renderWidget("@test/absent/chart");
     expect(screen.getByText("Widget renderer unavailable")).toBeInTheDocument();

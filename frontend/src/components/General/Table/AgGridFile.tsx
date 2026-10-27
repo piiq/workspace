@@ -16,7 +16,12 @@ import { ChartViewButton, ChartViewElement } from "./Chart/AgChartView";
 import useChartOptions, {
   useChartToolPanelAction,
 } from "./Chart/hooks/useChartOptions";
-import { AgGridProvider, getSideBarOptions, useAgGridContext } from "./hooks";
+import {
+  AgGridProvider,
+  getSideBarOptions,
+  useAgExportFuncs,
+  useAgGridContext,
+} from "./hooks";
 import type { AgGridEvents } from "./hooks/types";
 import { useColumnVisibility } from "./hooks/useColumnVisibility";
 import { useCopilotFilteredWidgetData } from "./hooks/useCopilotFilteredData";
@@ -188,6 +193,7 @@ async function getExcelData(
 export default function AgGridFile() {
   const { widget, updateWidget } = useWidgetContext();
   const gridRef = useAgGridContext()?.gridRef;
+  const exportFns = useAgExportFuncs();
   const decimalDigits = useShallowThemeStore((state) => state.decimalDigits);
 
   const chartView = widget.storage?.chartView?.enabled;
@@ -374,18 +380,7 @@ export default function AgGridFile() {
         )
       }
       loading={isLoading}
-      exportFns={{
-        csvFunction: (title = "report") => {
-          gridRef.current?.api.exportDataAsCsv({
-            fileName: `${title}.csv`,
-          });
-        },
-        excelFunction: (title = "report") => {
-          gridRef.current?.api.exportDataAsExcel({
-            fileName: `${title}.xlsx`,
-          });
-        },
-      }}
+      exportFns={exportFns}
       extraNavbarElements={!!widget?.storage?.chartView && <ChartViewButton />}
       error={error || rowData?.length === 0}
       errorMessage={error?.message}

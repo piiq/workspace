@@ -11,6 +11,7 @@ import type { IconId } from "~/components/Icon.types";
 import type { WidgetColumnDefT } from "~/components/types";
 import { getDisplayLanguage } from "~/components/ui/monacoLanguageUtils";
 import { inSnowflakeNativeApp } from "~/lib/constants";
+import { useAgEnterprise } from "~/lib/plugins/agGrid";
 import { EditorLanguages } from "~/lib/types/app";
 import {
   CELL_DATA_TYPES,
@@ -884,6 +885,7 @@ function TableWithSection() {
 }
 
 function TableSection() {
+  const enterprise = useAgEnterprise();
   const { enableCharts, showAll, chartViewEnabled, chartType } = useWidgetConfigContext(
     (s) => ({
       enableCharts: s.config.enableCharts,
@@ -901,12 +903,14 @@ function TableSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Checkbox
-        id="enable-charts"
-        label="Enable Charts"
-        checked={enableCharts}
-        onCheckedChange={handleWidgetConfigChange("enableCharts")}
-      />
+      {enterprise && (
+        <Checkbox
+          id="enable-charts"
+          label="Enable Charts"
+          checked={enableCharts}
+          onCheckedChange={handleWidgetConfigChange("enableCharts")}
+        />
+      )}
 
       <Checkbox
         id="show-all"
@@ -915,14 +919,16 @@ function TableSection() {
         onCheckedChange={handleWidgetConfigChange("showAll")}
       />
 
-      <Checkbox
-        id="chart-view-enabled"
-        label="Chart View Enabled by Default"
-        checked={chartViewEnabled}
-        onCheckedChange={handleWidgetConfigChange("chartViewEnabled")}
-      />
+      {enterprise && (
+        <Checkbox
+          id="chart-view-enabled"
+          label="Chart View Enabled by Default"
+          checked={chartViewEnabled}
+          onCheckedChange={handleWidgetConfigChange("chartViewEnabled")}
+        />
+      )}
 
-      {chartViewEnabled && (
+      {enterprise && chartViewEnabled && (
         <Select
           label="Default Chart Type"
           value={chartType}

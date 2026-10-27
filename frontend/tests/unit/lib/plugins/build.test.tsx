@@ -179,10 +179,16 @@ describe("independent plugin builds", () => {
 
   it("shares React, JSX, ReactDOM, and AG modules and resolves emitted assets beside entry.js", async () => {
     const directory = await createProject();
-    await symlink(
-      join(root, "frontend/node_modules/ag-grid-community"),
-      join(directory, "node_modules/ag-grid-community"),
-    );
+    for (const dependency of [
+      "ag-grid-community",
+      "ag-charts-community",
+      "ag-charts-core",
+    ]) {
+      await symlink(
+        join(root, "frontend/node_modules", dependency),
+        join(directory, "node_modules", dependency),
+      );
+    }
     await writeFile(
       join(directory, "assets/mark.svg"),
       '<svg xmlns="http://www.w3.org/2000/svg"/>',
@@ -196,12 +202,22 @@ import * as ReactDOM from "react-dom";
 import * as Client from "react-dom/client";
 import * as JSX from "react/jsx-runtime";
 import * as AG from "ag-grid-community";
+import * as Charts from "ag-charts-community";
+import * as ChartsCore from "ag-charts-core";
 import image from "../assets/mark.svg";
 import packageJson from "../package.json";
 const context = React.createContext(null);
 export default definePlugin(packageJson, {
   setup(host) {
-    if (React.createContext !== host.react.createContext || ReactDOM.createPortal !== host.reactDom.createPortal || Client.createRoot !== host.reactDomClient.createRoot || JSX.jsx !== host.jsxRuntime.jsx || AG.ModuleRegistry !== host.agGrid.ModuleRegistry) throw new Error("Host dependency instances differ");
+    if (
+      React.createContext !== host.react.createContext ||
+      ReactDOM.createPortal !== host.reactDom.createPortal ||
+      Client.createRoot !== host.reactDomClient.createRoot ||
+      JSX.jsx !== host.jsxRuntime.jsx ||
+      AG.ModuleRegistry !== host.agGrid.ModuleRegistry ||
+      Charts.AgCharts !== host.agCharts.AgCharts ||
+      ChartsCore.EventEmitter !== host.agChartsCore.EventEmitter
+    ) throw new Error("Host dependency instances differ");
   },
   renderers: [{ name: "image", title: "Image", Component: () => JSX.jsx(context.Provider, { value: null, children: JSX.jsx("img", { src: new URL(image, import.meta.url).href }) }) }],
 });
@@ -211,7 +227,9 @@ export default definePlugin(packageJson, {
     const { host } = createHost();
     const registry = new PluginRegistry();
     const agGrid = await import("ag-grid-community");
-    const gridHost = { ...host, agGrid };
+    const agCharts = await import("ag-charts-community");
+    const agChartsCore = await import("ag-charts-core");
+    const gridHost = { ...host, agGrid, agCharts, agChartsCore };
     await register(createPluginApi(gridHost, registry));
     const state = registry.getRendererState("@example/basic-widget/image");
     if (state.status !== "ready") throw new Error("Image renderer was not registered.");

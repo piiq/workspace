@@ -1,9 +1,10 @@
-import type { WithoutGridCommon } from "ag-grid-community";
-import type { IHeaderParams } from "ag-grid-enterprise";
+import type { ServerSideRunComplete } from "@piiq/workspace-plugin-sdk/ag-grid";
+import type { IHeaderParams, WithoutGridCommon } from "ag-grid-community";
 import type { AgGridReact } from "ag-grid-react";
 import dayjs from "dayjs";
 import type { AgGridSSRMOptions, WidgetColumnDefT, WidgetT } from "~/components/types";
 import { cleanSearchParams, convertHeadersToRecord } from "~/lib/api";
+import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import type { Widget } from "~/lib/state/app";
 import { parseValue } from "~/lib/utils";
 import { convertToReadableLabel } from "./AgGridUtils";
@@ -348,7 +349,7 @@ export function ensureAgGrid<T extends AgGridElement | AgGridReact | AgGridEvent
 }
 
 export function clearCellSelection(agGrid: AgGridElement | AgGridReact | AgGridEvents) {
-  if (!ensureAgGrid(agGrid)) return;
+  if (!hasAgEnterprise() || !ensureAgGrid(agGrid)) return;
   agGrid.api.clearCellSelection();
 }
 
@@ -431,12 +432,7 @@ export interface SSRResponse {
   error?: string;
 }
 
-export interface SSRMRunCompleteDetail {
-  requestSucceeded: boolean;
-  hasData: boolean;
-  rowCount: number;
-  rowData?: Record<string, any>[];
-}
+export type SSRMRunCompleteDetail = ServerSideRunComplete;
 
 export async function getSSRRows(
   endpoint: WidgetT["endpoint"],
@@ -468,22 +464,6 @@ export async function getSSRRows(
       return await res.json();
     })
     .catch(() => null);
-}
-
-export type QueryState = {
-  params: Record<string, string>;
-  body: Partial<AgGridSSRMOptions> | undefined;
-};
-
-export function getQueryState(
-  params: Record<string, string>,
-  ssmRequest: Partial<AgGridSSRMOptions> | undefined = {},
-  sqlQuery?: string,
-  disableCache = false,
-): QueryState {
-  const { query, ...restParams } = params || {};
-  if (sqlQuery) ssmRequest = { ...ssmRequest, query: sqlQuery, disableCache };
-  return { params: restParams, body: ssmRequest };
 }
 
 export function getNewQuery(

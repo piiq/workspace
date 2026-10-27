@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { widgetRegistry } from "~/lib/plugins/registry";
+
+afterEach(() => vi.restoreAllMocks());
+
 import {
   convertToReadableLabel,
   determineFilterType,
@@ -9,8 +13,8 @@ import {
   inferChartDataType,
   isBigNumber,
   isDate,
-  isDateTime,
   isDateorYearField,
+  isDateTime,
   isLink,
 } from "~/components/General/Table/AgGridUtils";
 
@@ -226,6 +230,9 @@ describe("inferChartDataType", () => {
 });
 
 describe("getColumnDefs", () => {
+  beforeEach(() =>
+    vi.spyOn(widgetRegistry, "hasAgGridCapability").mockReturnValue(true),
+  );
   const mockWidget = {
     widgetId: "test-widget",
     external: false,
@@ -334,9 +341,9 @@ describe("getColumnDefs", () => {
 
     // Columns with explicit defs but no formatterFn should get the global formatter
     const priceCol = result.find((col) => col.field === "price");
-    expect((priceCol?.cellRendererParams as any)?.widgetColDefs?.price?.formatterFn).toBe(
-      "percent",
-    );
+    expect(
+      (priceCol?.cellRendererParams as any)?.widgetColDefs?.price?.formatterFn,
+    ).toBe("percent");
 
     // Columns without explicit defs should also get the global formatter
     const volumeCol = result.find((col) => col.field === "volume");
@@ -351,9 +358,7 @@ describe("getColumnDefs", () => {
       ...mockWidget,
       data: {
         table: {
-          columnsDefs: [
-            { field: "price", headerName: "Price", formatterFn: "int" },
-          ],
+          columnsDefs: [{ field: "price", headerName: "Price", formatterFn: "int" }],
           formatterFn: "percent",
         },
       },
@@ -363,9 +368,9 @@ describe("getColumnDefs", () => {
 
     // Column-level formatterFn should take precedence
     const priceCol = result.find((col) => col.field === "price");
-    expect((priceCol?.cellRendererParams as any)?.widgetColDefs?.price?.formatterFn).toBe(
-      "int",
-    );
+    expect(
+      (priceCol?.cellRendererParams as any)?.widgetColDefs?.price?.formatterFn,
+    ).toBe("int");
   });
 
   it("does not apply formatterFn when global formatterFn is not set", () => {
@@ -462,6 +467,9 @@ describe("Edge Cases", () => {
 });
 
 describe("getColumnDefs sparkline valueGetter", () => {
+  beforeEach(() =>
+    vi.spyOn(widgetRegistry, "hasAgGridCapability").mockReturnValue(true),
+  );
   // AG Grid's agSparklineCellRenderer throws on a null cell value (null.length),
   // which crashes the whole widget via the error boundary. The renderer reads
   // params.value, which AG Grid computes from the TOP-LEVEL colDef.valueGetter —
@@ -500,9 +508,7 @@ describe("getColumnDefs sparkline valueGetter", () => {
   it("returns [] when the column field value is null and no dataField is set", () => {
     const valueGetter = getSparklineValueGetter({ type: "line" });
 
-    expect(valueGetter?.({ data: { symbol: "NUE", weekly_prices: null } })).toEqual(
-      [],
-    );
+    expect(valueGetter?.({ data: { symbol: "NUE", weekly_prices: null } })).toEqual([]);
   });
 
   it("returns [] when row data is missing", () => {

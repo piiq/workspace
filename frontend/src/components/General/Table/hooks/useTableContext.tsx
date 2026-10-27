@@ -1,4 +1,4 @@
-import type { AgChartThemeOverrides } from "ag-charts-enterprise";
+import type { AgChartThemeOverrides } from "ag-charts-community";
 import type {
   ChartRef,
   ColDef,
@@ -24,6 +24,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
+import { downloadTableData } from "~/components/Charting/utils";
 import type { ExtraActionT } from "~/components/DraggableCard/NavBar";
 import { AgGridSetLoadingOnResize } from "~/components/DraggableCard/SetLoadingOnResize";
 import { FormulasToolDef } from "~/components/General/Table/SubMenus/FormulasToolPanel";
@@ -31,9 +32,11 @@ import type { WidgetT } from "~/components/types";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useComposeRefs } from "~/hooks/useRefHooks";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import { configureAgGrid, hasAgEnterprise } from "~/lib/plugins/agGrid";
 import { widgetRegistry } from "~/lib/plugins/registry";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { cn, isSSRMType } from "~/lib/utils";
+import { getMainMenuItems } from "../AgGrid";
 import { createRangeChart, customChartWidgetIds } from "../Chart/AgChartView";
 import { useChartCloseButtonListener } from "../Chart/hooks/useChartOptions";
 import { useCreateChartData } from "../Chart/hooks/useCreateChartData";
@@ -91,10 +94,12 @@ export function useGridSync(rowData: any[], columnDefs: ColDef[]) {
         cellDataType: "number",
         valueGetter,
         headerTooltip: description.trim(),
-        enableValue: true,
-        enablePivot: true,
-        allowedAggFuncs: ["sum", "min", "max", "avg", "count", "first", "last"],
-        defaultAggFunc: "sum",
+        ...(hasAgEnterprise() && {
+          enableValue: true,
+          enablePivot: true,
+          allowedAggFuncs: ["sum", "min", "max", "avg", "count", "first", "last"],
+          defaultAggFunc: "sum",
+        }),
       } as ColDef<any, any>;
     });
     return formulaCols;
@@ -197,7 +202,10 @@ const Table: FC<TableProps> = memo((props: TableProps) => {
 
 Table.displayName = "AgGridProvider";
 
-export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
+export function useUpdateChartView(
+  chartThemeOverrides: AgChartThemeOverrides,
+  chartThemeName: string,
+) {
   const { gridState, gridRef, chartRef, ...agGrid } = useAgGridContext();
   const widget = useWidgetContext()?.widget;
 
@@ -216,7 +224,7 @@ export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
       if (!isSSRMType(widget?.type)) options.pagination = false;
 
       if (isUpdate) {
-        gridRef.current.api.updateGridOptions(options);
+        gridRef.current.api.updateGridOptions(configureAgGrid(options));
         const { chartContainer, ...rest } = chartParams;
         if (options.rowData) applyColumnState(gridRef.current, true);
 
@@ -228,7 +236,7 @@ export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
       }
 
       if (Object.keys(options).length > 0)
-        gridRef.current.api.updateGridOptions(options);
+        gridRef.current.api.updateGridOptions(configureAgGrid(options));
 
       chartRef.current = gridRef.current.api.createRangeChart(chartParams);
       if (options.rowData) applyColumnState(gridRef.current, true);
@@ -252,7 +260,8 @@ export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
   const setChartUpdate = useDebouncedCallback(setChartUpdateCb, 100);
 
   useEffect(() => {
-    if (!(gridState?.gridReady && widget?.storage?.chartView)) return;
+    if (!(hasAgEnterprise() && gridState?.gridReady && widget?.storage?.chartView))
+      return;
     const { chartView = {} } = widget.storage;
     const { chartView: tableChartView } = widget.data?.table ?? {};
 
@@ -359,6 +368,7 @@ export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
     const chartIds = gridApi.getChartModels().map((chart) => chart.chartId);
     const isUpdate = chartIds.includes(chartRef.current?.chartId);
     rangeChartParams.chartThemeOverrides = chartThemeOverrides;
+    rangeChartParams.chartThemeName = chartThemeName;
 
     const hasCustomChart =
       !widget.external && customChartWidgetIds.includes(widget?.widgetId);
@@ -387,6 +397,7 @@ export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
     gridRef.current.api.updateChart({
       type: "rangeChartUpdate",
       chartId,
+      chartThemeName,
       chartThemeOverrides: {
         common: {
           navigator: {
@@ -398,6 +409,7 @@ export function useUpdateChartView(chartThemeOverrides: AgChartThemeOverrides) {
     });
   }, [
     gridRef,
+    chartThemeName,
     widget?.storage?.chartNavigatorEnabled,
     widget?.storage?.chartMiniChartEnabled,
   ]);
@@ -427,8 +439,8 @@ export function useSyncTableData(gridOptions: GridOptions) {
     async (options: GridOptions, chartViewEnabled?: boolean) => {
       if (isFirstRender) return;
       if (!ensureAgGrid(gridRef.current)) return;
-      gridRef.current.api.clearCellSelection();
-      gridRef.current.api.updateGridOptions(options);
+      if (hasAgEnterprise()) gridRef.current.api.clearCellSelection();
+      gridRef.current.api.updateGridOptions(configureAgGrid(options));
 
       if (options?.rowData || isServerSide)
         applyColumnState(gridRef.current, chartViewEnabled);
@@ -540,7 +552,7 @@ export function useSyncTableData(gridOptions: GridOptions) {
       updateState.paginationPageSize = gridOptions?.paginationPageSize ?? pageSize;
     }
 
-    const newGridOptions = gridOptions || {};
+    const newGridOptions = configureAgGrid(gridOptions || {});
 
     if (!enableStats) newGridOptions.statusBar = undefined;
     if (isServerSide) updateState.rowData = undefined;
@@ -557,7 +569,7 @@ export function useSyncTableData(gridOptions: GridOptions) {
       isFirstServerSideRenderRef.current = false;
       return;
     }
-    const newGridOptions = gridOptions || {};
+    const newGridOptions = configureAgGrid(gridOptions || {});
 
     const rowData = gridState.rowData;
     const pageSize = gridRef.current?.api.paginationGetPageSize();
@@ -577,15 +589,17 @@ export function useSyncTableData(gridOptions: GridOptions) {
 
 const AgGridProvider = memo(
   forwardRef<AgGridElement, AgGridProps>((props, ref) => {
-    const { extraClassName, className = extraClassName, hideHeader, ...rest } = props;
+    const {
+      extraClassName,
+      className = extraClassName,
+      hideHeader,
+      gridOptions: callerGridOptions,
+      ...rest
+    } = props;
 
     const registryRevision = useSyncExternalStore(
       widgetRegistry.subscribe,
       widgetRegistry.getSnapshot,
-    );
-    const gridOptions = useMemo(
-      () => widgetRegistry.configureGrid(rest.gridOptions),
-      [rest.gridOptions, registryRevision],
     );
 
     const gridRef = useAgGridContext()?.gridRef;
@@ -603,6 +617,10 @@ const AgGridProvider = memo(
     const { agTheme, chartThemes, customChartThemes } = useAgThemes(theme);
 
     const createChartContainer = useCreateChart();
+    const gridOptions = useMemo(
+      () => callerGridOptions ?? {},
+      [callerGridOptions, registryRevision],
+    );
 
     const columnDefs = useGridSync(rest?.rowData, rest?.columnDefs);
 
@@ -642,7 +660,6 @@ const AgGridProvider = memo(
           )}
           theme={agTheme}
           ref={composeRefs}
-          createChartContainer={createChartContainer}
           pagination={
             rest?.rowModelType === "serverSide" ||
             (rest?.rowData?.length > 100 && (enablePagination ?? tablePagination))
@@ -656,9 +673,18 @@ const AgGridProvider = memo(
             rest?.rowModelType === "serverSide" ? rest?.paginationPageSize : undefined
           }
           noRowsOverlayComponent={NoRowsOverlay}
-          {...rest}
+          {...configureAgGrid(
+            {
+              ...gridOptions,
+              ...rest,
+              createChartContainer,
+              getMainMenuItems,
+              customChartThemes,
+              chartThemes,
+            },
+            true,
+          )}
           popupParent={rest?.popupParent ?? document.body}
-          gridOptions={gridOptions}
           rowData={rest?.rowModelType !== "serverSide" ? rest?.rowData : undefined}
           columnDefs={columnDefs}
           onGridReady={onGridReady}
@@ -667,9 +693,6 @@ const AgGridProvider = memo(
           onGridPreDestroyed={onGridPreDestroyed}
           onChartRangeSelectionChanged={onChartRangeSelectionChanged}
           onVirtualColumnsChanged={onVirtualColumnsChanged}
-          customChartThemes={customChartThemes}
-          chartThemes={chartThemes}
-          chartThemeOverrides={rest?.chartThemeOverrides}
           onChartDestroyed={onChartDestroyed}
           onModelUpdated={onModelUpdated}
           initialState={initialState}
@@ -694,11 +717,12 @@ const AgGridProvider = memo(
         onModelUpdated,
         createChartContainer,
         gridOptions,
+        registryRevision,
       ],
     );
 
     useSyncTableData(gridOptions);
-    useUpdateChartView(rest?.chartThemeOverrides);
+    useUpdateChartView(rest?.chartThemeOverrides, chartThemes[0]);
 
     return (
       <AgGridSetLoadingOnResize>
@@ -722,7 +746,30 @@ export function useAgExportFuncs() {
         gridRef.current?.api.exportDataAsCsv({ fileName: `${title}.csv` });
       },
       excelFunction: (title = "report") => {
-        gridRef.current?.api.exportDataAsExcel({ fileName: `${title}.xlsx` });
+        if (hasAgEnterprise()) {
+          gridRef.current?.api.exportDataAsExcel({ fileName: `${title}.xlsx` });
+          return;
+        }
+        const api = gridRef.current?.api;
+        if (!api) return;
+        const columns = api.getAllDisplayedColumns();
+        const headers = columns.map((column) =>
+          api.getDisplayNameForColumn(column, "csv"),
+        );
+        const rows = [];
+        api.forEachNodeAfterFilterAndSort((node) => {
+          if (!node.data) return;
+          rows.push(
+            columns.map((column) =>
+              api.getCellValue({
+                rowNode: node,
+                colKey: column,
+                useFormatter: column.getColDef().useValueFormatterForExport !== false,
+              }),
+            ),
+          );
+        });
+        downloadTableData({ columns: headers, data: rows }, title, "excel");
       },
     }),
     [gridRef],
@@ -784,6 +831,7 @@ export function useQuickActionsSettings(transpose?: boolean | undefined) {
 export function getSideBarOptions(storage: WidgetT["storage"]): SideBarDef | undefined {
   const isPivotMode = storage?.isPivotMode;
   const openedToolPanel = storage?.openedToolPanel;
+  if (!hasAgEnterprise()) return undefined;
   const sideBarToolPanels: ToolPanelDef[] = [];
 
   if (storage?.enableAdvanced) {

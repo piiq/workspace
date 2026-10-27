@@ -1,4 +1,4 @@
-import type { AgChartThemeOverrides } from "ag-charts-enterprise";
+import type { AgChartThemeOverrides } from "ag-charts-community";
 import type {
   GridState as AgGridState,
   CellClickedEvent,
@@ -18,7 +18,7 @@ import type {
   NewColumnsLoadedEvent,
   StateUpdatedEvent,
   VirtualColumnsChangedEvent,
-} from "ag-grid-enterprise";
+} from "ag-grid-community";
 
 import type {
   AgGridReact,

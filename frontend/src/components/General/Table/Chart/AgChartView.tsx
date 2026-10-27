@@ -7,6 +7,7 @@ import { useWidgetContext } from "~/components/Widget.context";
 import useIsMobile from "~/hooks/useIsMobile";
 import { useComposeRefs } from "~/hooks/useRefHooks";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import { useAgEnterprise } from "~/lib/plugins/agGrid";
 import { cn } from "~/lib/utils";
 import { useAgGridContext } from "../hooks";
 import type { ChartDataT } from "../hooks/types";
@@ -70,6 +71,7 @@ export const customChartWidgetIds = [
 ];
 
 export function ChartViewButton() {
+  const enterprise = useAgEnterprise();
   const isMobile = useIsMobile();
   const { widget: { storage: { chartView } = {} } = {}, updateWidget } =
     useWidgetContext();
@@ -141,6 +143,8 @@ export function ChartViewButton() {
       });
     }
   }, [gridState?.dataRevision]);
+
+  if (!enterprise) return null;
 
   const defaultMessage = `Switch to ${enabled ? "table" : "chart"} view`;
 

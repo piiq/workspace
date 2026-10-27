@@ -1,19 +1,29 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { downloadTableData } from "~/components/Charting/utils";
 import {
   AgGridContext,
   AgGridProvider,
   Table,
+  useAgExportFuncs,
   useAgGridContext,
   useGridSync,
+  useUpdateChartView,
 } from "~/components/General/Table/hooks/useTableContext";
 import { WidgetContext } from "~/components/Widget.context";
+import { widgetRegistry } from "~/lib/plugins/registry";
+
+const gridProps = vi.hoisted(() => vi.fn());
+afterEach(() => vi.restoreAllMocks());
 
 // Mock dependencies
+vi.mock("~/components/Charting/utils", () => ({ downloadTableData: vi.fn() }));
 vi.mock("ag-grid-react", () => ({
-  AgGridReact: ({ rowData, columnDefs, onGridReady }: any) => {
+  AgGridReact: (props: any) => {
+    gridProps(props);
+    const { rowData, columnDefs, onGridReady } = props;
     // Simulate calling onGridReady after mount
     setTimeout(() => {
       if (onGridReady) {
@@ -336,6 +346,52 @@ describe("Table Component", () => {
 });
 
 describe("AgGridProvider Component", () => {
+  it("removes Enterprise direct props and gridOptions when the capability is absent", () => {
+    vi.spyOn(widgetRegistry, "hasAgGridCapability").mockReturnValue(false);
+    renderWithProviders(
+      <Table>
+        <AgGridProvider
+          rowData={[{ price: 42 }]}
+          columnDefs={[{ field: "price" }]}
+          enableCharts
+          sideBar
+          gridOptions={{ statusBar: { statusPanels: [] }, pagination: true }}
+        />
+      </Table>,
+    );
+    const props = gridProps.mock.lastCall[0];
+    expect(props.enableCharts).toBeUndefined();
+    expect(props.sideBar).toBeUndefined();
+    expect(props.statusBar).toBeUndefined();
+    expect(props.pagination).toBe(true);
+  });
+
+  it("configures the merged direct props and gridOptions through the capability", () => {
+    vi.spyOn(widgetRegistry, "hasAgGridCapability").mockReturnValue(true);
+    const configure = vi
+      .spyOn(widgetRegistry, "configureGrid")
+      .mockImplementation((options) => ({ cellSelection: true, ...options }));
+    renderWithProviders(
+      <Table>
+        <AgGridProvider
+          rowData={[{ price: 42 }]}
+          columnDefs={[{ field: "price" }]}
+          enableCharts={false}
+          sideBar
+          gridOptions={{ enableCharts: true, pagination: true }}
+        />
+      </Table>,
+    );
+    expect(configure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enableCharts: false,
+        sideBar: true,
+        pagination: true,
+      }),
+    );
+    expect(gridProps.mock.lastCall[0].cellSelection).toBe(true);
+  });
+
   it("renders AgGridReact with row data", async () => {
     const rowData = [
       { id: 1, name: "Test 1" },
@@ -534,5 +590,100 @@ describe("Context Value Management", () => {
 
     expect(previousChartEnabledRef).toBeDefined();
     expect(previousChartEnabledRef.current).toBe(false);
+  });
+});
+
+describe("Community Excel export", () => {
+  it.each([
+    ["Double", "Price"],
+    ["Price", "Price"],
+    ["2024", "2023"],
+  ])("exports displayed columns %s and %s in display order", (formulaHeader, priceHeader) => {
+    vi.spyOn(widgetRegistry, "hasAgGridCapability").mockReturnValue(false);
+    const rowNode = { data: { price: 42, secret: "hidden" } };
+    const formulaColumn = {
+      getColDef: () => ({
+        headerName: formulaHeader,
+        valueGetter: ({ data }: { data: { price: number } }) => data.price * 2,
+        useValueFormatterForExport: false,
+      }),
+    };
+    const priceColumn = {
+      getColDef: () => ({ headerName: priceHeader, field: "price" }),
+    };
+    const columns = [formulaColumn, priceColumn];
+    const getCellValue = vi.fn(({ rowNode, colKey, useFormatter }) => {
+      const definition = colKey.getColDef();
+      if (definition.valueGetter) return definition.valueGetter(rowNode);
+      return useFormatter ? "$42.00" : rowNode.data[definition.field];
+    });
+    const api = {
+      getAllDisplayedColumns: () => columns,
+      getDisplayNameForColumn: vi.fn((column) => column.getColDef().headerName),
+      getCellValue,
+      forEachNodeAfterFilterAndSort: (callback) => callback(rowNode),
+    };
+    const context = createTestContext({ gridRef: { current: { api } as any } });
+    const { result } = renderHook(useAgExportFuncs, {
+      wrapper: ({ children }) => (
+        <AgGridContext.Provider value={context as any}>
+          {children}
+        </AgGridContext.Provider>
+      ),
+    });
+
+    result.current.excelFunction("Prices");
+
+    expect(downloadTableData).toHaveBeenCalledWith(
+      { columns: [formulaHeader, priceHeader], data: [[84, "$42.00"]] },
+      "Prices",
+      "excel",
+    );
+    expect(getCellValue).toHaveBeenNthCalledWith(1, {
+      rowNode,
+      colKey: formulaColumn,
+      useFormatter: false,
+    });
+    expect(getCellValue).toHaveBeenNthCalledWith(2, {
+      rowNode,
+      colKey: priceColumn,
+      useFormatter: true,
+    });
+    expect(api.getDisplayNameForColumn).toHaveBeenCalledWith(formulaColumn, "csv");
+  });
+});
+
+describe("integrated chart theme updates", () => {
+  it("updates an existing chart with the active theme name when the mode changes", () => {
+    const updateChart = vi.fn();
+    const context = createTestContext({
+      gridRef: { current: { api: { updateChart, isDestroyed: () => false } } as any },
+      chartRef: { current: { chartId: "chart-1" } as any },
+    });
+    const { rerender } = renderHook(({ name }) => useUpdateChartView({}, name), {
+      initialProps: { name: "openbb-dark" },
+      wrapper: ({ children }) => (
+        <WidgetContext.Provider value={{ widget: { storage: {} } } as any}>
+          <AgGridContext.Provider value={context as any}>
+            {children}
+          </AgGridContext.Provider>
+        </WidgetContext.Provider>
+      ),
+    });
+    expect(updateChart).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        chartId: "chart-1",
+        chartThemeName: "openbb-dark",
+      }),
+    );
+
+    rerender({ name: "openbb-light" });
+
+    expect(updateChart).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        chartId: "chart-1",
+        chartThemeName: "openbb-light",
+      }),
+    );
   });
 });

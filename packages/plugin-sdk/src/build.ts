@@ -26,6 +26,8 @@ const hostModules = {
   "react-dom/client": "reactDomClient",
   "react/jsx-runtime": "jsxRuntime",
   "ag-grid-community": "agGrid",
+  "ag-charts-community": "agCharts",
+  "ag-charts-core": "agChartsCore",
 } as const;
 
 async function listFiles(directory: string): Promise<string[]> {

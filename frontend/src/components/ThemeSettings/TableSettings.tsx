@@ -5,10 +5,8 @@ import {
   iconSetAlpine,
   iconSetMaterial,
   iconSetQuartz,
-  ModuleRegistry,
   themeAlpine,
 } from "ag-grid-community";
-import { AllEnterpriseModule } from "ag-grid-enterprise";
 import { AgGridReact } from "ag-grid-react";
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash.isequal";
@@ -22,6 +20,7 @@ import { Select } from "~/components/ds/atoms/Select";
 import { SpacingInput } from "~/components/ds/atoms/SpacingInput";
 import { ColorPicker } from "~/components/ds/molecules/ColorPicker";
 import { useStateReducer } from "~/hooks/useStateReducer";
+import { configureAgGrid, useAgEnterprise } from "~/lib/plugins/agGrid";
 import {
   type EntityThemeSettings,
   type ThemeDefaultParamsT,
@@ -35,8 +34,6 @@ import {
   getDefaultAgGridThemeParams,
 } from "../General/Table/hooks/constants";
 import { THEME_MODES, ThemeSettingsLayout } from "./ThemeSettingsLayout";
-
-ModuleRegistry.registerModules([AllEnterpriseModule]);
 
 interface IconSetOption {
   id: "iconSetQuartz" | "iconSetAlpine" | "iconSetMaterial";
@@ -334,6 +331,7 @@ export function TableSettings() {
   }, [state, themesState.themeMode]);
 
   const [debouncedGridTheme] = useDebounceValue(gridTheme, 300);
+  const enterprise = useAgEnterprise();
 
   const controls = (
     <div className="flex flex-col gap-6">
@@ -375,14 +373,18 @@ export function TableSettings() {
             onChange={handleInputChange("chromeBackgroundColor")}
             className="w-full"
           />
-          <Label htmlFor="header-background-color" className="justify-self-start">
-            Row Group Panel Background Color:
-          </Label>
-          <ColorPicker
-            value={state.headerBackgroundColor}
-            onChange={handleInputChange("headerBackgroundColor")}
-            className="w-full"
-          />
+          {enterprise && (
+            <>
+              <Label htmlFor="header-background-color" className="justify-self-start">
+                Row Group Panel Background Color:
+              </Label>
+              <ColorPicker
+                value={state.headerBackgroundColor}
+                onChange={handleInputChange("headerBackgroundColor")}
+                className="w-full"
+              />
+            </>
+          )}
           {/* <Label htmlFor="side-bar-bg-color" className="justify-self-start">
             Side Bar Background Color:
           </Label>
@@ -591,8 +593,7 @@ export function TableSettings() {
       theme={debouncedGridTheme}
       columnDefs={columnDefs}
       rowData={sampleData}
-      rowGroupPanelShow="always"
-      {...defaultGridProps}
+      {...configureAgGrid({ ...defaultGridProps, rowGroupPanelShow: "always" }, true)}
     />
   );
 

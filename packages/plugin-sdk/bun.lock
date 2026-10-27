@@ -8,11 +8,15 @@
         "zod": "4.4.3",
       },
       "peerDependencies": {
+        "ag-charts-community": "12.1.1",
+        "ag-charts-core": "12.1.1",
         "ag-grid-community": "34.1.1",
         "react": "^18.2.0",
         "react-dom": "^18.3.1",
       },
       "optionalPeers": [
+        "ag-charts-community",
+        "ag-charts-core",
         "ag-grid-community",
       ],
     },

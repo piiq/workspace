@@ -2,7 +2,7 @@ import type {
   AgChartOptions,
   AgLineSeriesOptions,
   AgRangeAreaSeriesOptions,
-} from "ag-charts-enterprise";
+} from "ag-charts-community";
 import { AgCharts } from "ag-charts-react";
 import type {
   ChartRangeSelectionChangedEvent,
@@ -92,10 +92,17 @@ export function AgChartFromTable() {
       agRef.current.api.updateChart({
         chartId: chartRef.chartId,
         type: "rangeChartUpdate",
+        chartThemeName: chartThemes[0],
         chartThemeOverrides: chartThemeOverridesRef.current,
       });
     }
-  }, [chartRef, chartViewEnabled, themePalette, widget.storage.chartBarFillEnabled]);
+  }, [
+    chartRef,
+    chartViewEnabled,
+    chartThemes,
+    themePalette,
+    widget.storage.chartBarFillEnabled,
+  ]);
 
   const onFirstDataRendered = (params: FirstDataRenderedEvent) => {
     if (isForecast) return;
@@ -107,6 +114,7 @@ export function AgChartFromTable() {
 
     const createRangeChartParams = {
       chartType: chartType ?? "groupedColumn",
+      chartThemeName: chartThemes[0],
       chartContainer: ref.current,
       suppressChartRanges: true,
       cellRange: {
