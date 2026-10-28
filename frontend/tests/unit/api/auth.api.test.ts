@@ -18,7 +18,6 @@ import {
   getApiSources,
   getCopilotChat,
   getDeveloperOnboardingQuestions,
-  getEnabledBundles,
   getFileWidgets,
   getSingleWidgets,
   getStoredFiles,
@@ -27,17 +26,14 @@ import {
   getUserChats,
   getWidgetMetadata,
   googleLogin,
-  isValidMainTicker,
   login,
   logout,
-  migrateDefaultTicker,
   patchWidgetMetadata,
   postApiSource,
   postFileWidget,
   postSingleWidget,
   postUserChats,
   postWidgetMetadata,
-  putEnabledBundles,
   putTier,
   registerUser,
   searchChats,
@@ -48,7 +44,6 @@ import {
   userHasEntity,
   validateUser,
 } from "~/api/auth.api";
-import { fetchQuerySymbols } from "~/lib/api/sdkComponents";
 
 // Mock the apiClient
 vi.mock("~/api/api", () => ({
@@ -65,9 +60,7 @@ vi.mock("~/api/api", () => ({
   },
 }));
 
-vi.mock("~/lib/api/sdkComponents", () => ({
-  fetchQuerySymbols: vi.fn(),
-}));
+
 
 describe("API Client Functions", () => {
   beforeEach(() => {
@@ -590,47 +583,6 @@ describe("API Client Functions", () => {
     });
   });
 
-  describe("migrateDefaultTicker", () => {
-    it("should migrate default ticker", async () => {
-      const mockResponse = {
-        results: [{ symbol: "AAPL", id: "AAPL", category: "equity" }],
-      };
-      // @ts-expect-error - axios type mock is not fully implemented for the sake of testing
-      fetchQuerySymbols.mockResolvedValue(mockResponse);
-
-      // @ts-expect-error - Ticker schema mock is not fully implemented for the sake of testing
-      const ticker = await migrateDefaultTicker({ symbol: "AAPL" });
-      expect(fetchQuerySymbols).toHaveBeenCalledWith({
-        queryParams: { q: "AAPL" },
-      });
-      expect(ticker).toEqual(mockResponse.results[0]);
-    });
-  });
-
-  describe("isValidMainTicker", () => {
-    it("should validate main ticker", () => {
-      const ticker = {
-        id: "testTickerId",
-        symbol: "testTickerSymbol",
-        name: "testTickerName",
-        exchange: "testTickerExchange",
-        exchange_name: "testTickerExchangeName",
-        category: "testTickerCategory",
-        type: "testTickerType",
-        currency: "testTickerCurrency",
-        country: "testTickerCountry",
-        industry: "testTickerIndustry",
-        sector: "testTickerSector",
-        cik: "testTickerCik",
-        cusip: "testTickerCusip",
-        isin: "testTickerIsin",
-        has_options: true,
-      };
-      const isValid = isValidMainTicker(ticker);
-      expect(isValid).toBe(true);
-    });
-  });
-
   describe("bookDemo", () => {
     it("should book a demo and return status", async () => {
       const mockResponse = { status: 201 };
@@ -744,31 +696,6 @@ describe("API Client Functions", () => {
       const data = await userHasEntity();
       expect(apiClient.get).toHaveBeenCalledWith("/pro/user-has-entity");
       expect(data).toEqual(mockResponse.data);
-    });
-  });
-
-  describe("getEnabledBundles", () => {
-    it("should return enabled bundles", async () => {
-      const mockResponse = { data: { bundles: ["bundle1"] } };
-      vi.spyOn(apiClient, "get").mockResolvedValue(mockResponse);
-
-      const data = await getEnabledBundles();
-      expect(apiClient.get).toHaveBeenCalledWith("/pro/enabled-bundles");
-      expect(data).toEqual(mockResponse.data);
-    });
-  });
-
-  describe("putEnabledBundles", () => {
-    it("should update enabled bundles and return success", async () => {
-      const mockResponse = { data: { success: true } };
-      vi.spyOn(apiClient, "put").mockResolvedValue(mockResponse);
-
-      const bundles = { bundles: ["bundle1"] };
-
-      // @ts-expect-error - the bundles schema is not fully implemented for the sake of testing
-      const response = await putEnabledBundles(bundles);
-      expect(apiClient.put).toHaveBeenCalledWith("/pro/enabled-bundles", bundles);
-      expect(response).toEqual(mockResponse.data);
     });
   });
 

@@ -3,13 +3,8 @@ import NoteBox from "~/components/InAppOnboarding/Walkthrough/Analyst/Descriptio
 const AddingWidgetsNote = () => {
   return (
     <>
-      You can view all the widgets available by clicking on this button.
-      <br />
-      <br />
-      For demo purposes, the Sandbox App (FMP Data) includes some sample datasets.
-      <br />
-      <br />
-      We'll now add the Earnings History widget for you.
+      You can view all the widgets available by clicking on this button. Connect a
+      backend or add your own declarations to make data widgets available.
       <NoteBox>
         <div>
           <strong>Widget</strong> — Component within a dashboard that displays specific

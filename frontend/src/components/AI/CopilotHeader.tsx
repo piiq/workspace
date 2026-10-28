@@ -10,7 +10,6 @@ import { useShallowCopilotStore } from "~/lib/state/copilot";
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import { useShallowSharedAppStore } from "~/lib/state/sharedApp";
 import { isTabPath } from "~/lib/utils/utils";
-import widgetsMetadata from "~/lib/widgets.json";
 import { Popover, PopoverTrigger } from "../ds/atoms/Popover";
 import { cn } from "../ds/utils";
 import Icon from "../Icon";
@@ -105,8 +104,7 @@ function DashboardButton() {
     const createWidgetData = (widget: WidgetT) => {
       const customName = widget.name;
       const widgetId = widget.widgetId;
-      const metadataName = widgetsMetadata[widgetId]?.name;
-      const name = customName || metadataName || widgetId || "Unnamed Widget";
+      const name = customName || widgetId || "Unnamed Widget";
       const copilotWidget = createCopilotWidget(widget.id, widget);
 
       return { uuid: widget.id, name, widget: copilotWidget };
@@ -132,7 +130,7 @@ function DashboardButton() {
     }
 
     return { hasTabs: true, widgetsByTab };
-  }, [getTabById, isWidgetSelected, widgetsMetadata, currentDashboardId]);
+  }, [getTabById, isWidgetSelected, currentDashboardId]);
 
   const { widgetData, totalWidgetCount, tabIds } = useMemo(() => {
     const widgetData = getWidgetsByTabs();
@@ -191,10 +189,9 @@ function DashboardButton() {
         const widget = finalWidgets.find((w) => w.id === widgetUuid);
         if (widget) {
           const widgetDataForContext = {
-            title:
-              widget.name || widgetsMetadata[widget.widgetId]?.name || "Unnamed Widget",
-            description: widgetsMetadata[widget.widgetId]?.description || "",
-            endpointUrl: widgetsMetadata[widget.widgetId]?.endpoint_url || "",
+            title: widget.name || widget.widgetId || "Unnamed Widget",
+            description: widget.description || "",
+            endpointUrl: widget.endpoint?.url || "",
             data: widget.data || null,
             lastUpdate: Date.now(),
             source: "header-button",
@@ -216,7 +213,6 @@ function DashboardButton() {
       addDataOnDashboardWidget,
       getTabById,
       currentDashboardId,
-      widgetsMetadata,
     ],
   );
 

@@ -127,7 +127,7 @@ const { mockGetWidgetInfo, mockCreateParamDefs, mockCurrentDateModifier } = vi.h
 vi.mock("~/lib/utils", () => ({
   createParamDefs: mockCreateParamDefs,
   currentDateModifier: mockCurrentDateModifier,
-  getJsonWidget: vi.fn(),
+  getWidgetDefinition: vi.fn(),
   getWidgetDataSource: vi.fn().mockReturnValue("unknown"),
   getWidgetInfo: mockGetWidgetInfo,
 }));

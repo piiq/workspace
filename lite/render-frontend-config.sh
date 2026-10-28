@@ -28,7 +28,6 @@ set -euo pipefail
 # self-hosting, even though the catalog annotates most as internal.
 : "${BACKEND_URL:=/api}"
 : "${AI_API_URL:=}"
-: "${PLATFORM_URL:=}"
 : "${DATABASE_API_URL:=}"
 
 : "${AUTHENTICATION_SEND_USER_EMAIL_AS_HEADER:=false}"
@@ -80,7 +79,6 @@ window.__APP_CONFIG__ = {
   urls: {
     backend: "${BACKEND_URL}",
     ai: "${AI_API_URL}",
-    platform: "${PLATFORM_URL}",
     database: "${DATABASE_API_URL}"
   },
   authentication: {

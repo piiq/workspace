@@ -127,12 +127,12 @@ vi.mock("~/lib/runtimeConfig", () => ({
       posthog: false,
       hubspotForms: false,
       email: true,
-      nixtla: true,
+      
       cloudflareWorker: true,
     },
     data: {
-      packageDataEnabled: true,
-      allowedDataVendors: [],
+      
+      
       allowedDbTypes: [],
       openDataPlatformInstallerEnabled: true,
       allowHtmlJsExecution: false,

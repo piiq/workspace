@@ -1,16 +1,14 @@
-import { debounce, isEqual } from "lodash";
-import { toast } from "sonner";
+import { isEqual } from "lodash";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import { shallow } from "zustand/shallow";
 import { createWithEqualityFn } from "zustand/traditional";
-import { logout, putEnabledBundles } from "~/api/auth.api";
+import { logout } from "~/api/auth.api";
 import { getConfig } from "~/lib/runtimeConfig";
 import type { Selector, Ticker } from "~/lib/state/app";
 import { useBackendConnectorStore } from "~/lib/state/backendConnector";
 import { useMcpToolsStore } from "~/lib/state/mcpTools";
 import { showNotification } from "~/lib/utils/toast";
-import WIDGET_BUNDLES from "~/lib/widget_bundles.json";
 import type { DeveloperOnboardingQuestions, ProLoginResponse } from "~/types/auth.type";
 import { useCopilotStore } from "./copilot";
 import { useDataConnectorStore } from "./dataConnector";
@@ -61,14 +59,8 @@ export interface AuthState {
   }) => void;
   identified: boolean;
   setIdentified: (value: boolean) => void;
-  checkNewBundles: (isProTier: boolean) => void;
-  debouncedEnabledBundles: () => Promise<void>;
-  disabledWidgets: string[];
-  toggleWidgetDisabled: (widgetId: string) => void;
   lastVisitedPage: string;
   updateLastVisitedPage: (value: string) => void;
-  enabledBundles: string[];
-  toggleBundle: (bundleId: string) => void;
   login: (data: ProLoginResponse) => Promise<boolean>;
   logout: () => void;
   tosAccepted: boolean;
@@ -102,40 +94,12 @@ type PromptHistory = {
 
 type TickerHistory = Ticker;
 
-const DEFAULT_ENABLED_BUNDLES = Object.keys(WIDGET_BUNDLES).filter(
-  (bundle) => WIDGET_BUNDLES[bundle].enabled_by_default,
-);
-
 function validateOnboarding(
   onboardingQuestions: DeveloperOnboardingQuestions | null,
 ): boolean {
   if (!onboardingQuestions) return false;
   if (onboardingQuestions.skipOnboarding) return true;
   return !!(onboardingQuestions.role && onboardingQuestions.organization);
-}
-
-function ensureNewBundles(
-  enabledBundles: string[],
-  disabledWidgets: string[],
-  isProTier: boolean,
-) {
-  const newEnabledBundles = [
-    ...(enabledBundles.length > 0 ? enabledBundles : DEFAULT_ENABLED_BUNDLES),
-  ];
-
-  // Makes sure any new bundles are enabled by default
-  for (const [bundleId, bundle] of Object.entries(WIDGET_BUNDLES)) {
-    // @ts-expect-error
-    if (!bundle.enabled_by_default || (bundle.pro_only && !isProTier)) continue;
-    if (
-      bundle.widgets.every((widgetId) => !disabledWidgets.includes(widgetId)) &&
-      !newEnabledBundles.includes(bundleId)
-    ) {
-      newEnabledBundles.push(bundleId);
-    }
-  }
-
-  return newEnabledBundles;
 }
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
@@ -155,91 +119,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         lastVisitedPage: "/app",
         updateLastVisitedPage: (value) => set({ lastVisitedPage: value }),
         onboardingQuestions: null,
-        checkNewBundles: (isProTier: boolean) => {
-          const { enabledBundles, disabledWidgets } = get();
-          const newEnabledBundles = ensureNewBundles(
-            enabledBundles,
-            disabledWidgets,
-            isProTier,
-          );
-
-          if (newEnabledBundles.length === enabledBundles.length) return;
-          set({ enabledBundles: newEnabledBundles });
-          get().debouncedEnabledBundles();
-        },
-        debouncedEnabledBundles: debounce(async () => {
-          const { enabledBundles, disabledWidgets } = get();
-          try {
-            await putEnabledBundles({
-              enabled_bundles: enabledBundles,
-              disabled_widgets: disabledWidgets,
-            });
-          } catch (error) {
-            console.error("Failed to save changes:", error);
-            // Optionally, show an error toast here
-            toast.error("Failed to save changes");
-          }
-        }, 2000),
-        disabledWidgets: [],
-        toggleWidgetDisabled: (widgetId: string) => {
-          set((state) => {
-            const isCurrentlyDisabled = state.disabledWidgets.includes(widgetId);
-            const newDisabledWidgets = isCurrentlyDisabled
-              ? state.disabledWidgets.filter((id) => id !== widgetId)
-              : [...state.disabledWidgets, widgetId];
-
-            const newEnabledBundles = [...state.enabledBundles];
-
-            if (isCurrentlyDisabled) {
-              // If we're enabling the widget, find its bundle and enable it if not already enabled
-              const bundleId = Object.keys(WIDGET_BUNDLES).find((id) =>
-                WIDGET_BUNDLES[id].widgets.includes(widgetId),
-              );
-              if (bundleId && !newEnabledBundles.includes(bundleId)) {
-                newEnabledBundles.push(bundleId);
-              }
-            }
-
-            return {
-              disabledWidgets: newDisabledWidgets,
-              enabledBundles: newEnabledBundles,
-            };
-          });
-          get().debouncedEnabledBundles();
-        },
-        enabledBundles: DEFAULT_ENABLED_BUNDLES,
-        toggleBundle: (bundleId: string) => {
-          set((state) => {
-            const currentlyEnabled = state.enabledBundles.includes(bundleId);
-            const newEnabledBundles = currentlyEnabled
-              ? state.enabledBundles.filter((id) => id !== bundleId)
-              : [...state.enabledBundles, bundleId];
-
-            if (currentlyEnabled) {
-              const bundle = WIDGET_BUNDLES[bundleId];
-              const newDisabledWidgets = new Set([
-                ...state.disabledWidgets,
-                ...bundle.widgets,
-              ]);
-              return {
-                enabledBundles: newEnabledBundles,
-                disabledWidgets: Array.from(newDisabledWidgets),
-                unsavedChanges: true,
-              };
-            }
-
-            const newDisabledWidgets = state.disabledWidgets.filter(
-              (widgetId) => !WIDGET_BUNDLES[bundleId].widgets.includes(widgetId),
-            );
-
-            return {
-              enabledBundles: newEnabledBundles,
-              disabledWidgets: newDisabledWidgets,
-              unsavedChanges: true,
-            };
-          });
-          get().debouncedEnabledBundles();
-        },
         showChangelog: false,
         updateShowChangelog: (value) => set({ showChangelog: value }),
         promptHistory: [],
@@ -280,16 +159,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         name: { first: "", last: "" },
         login: async (data: ProLoginResponse) => {
           const { sendMicrosoftIdToken, sendOktaIdToken } = getConfig().authentication;
-          const isProTier = data?.feature_entitlements?.tier === "pro";
-
-          const { enabled_bundles, disabled_widgets } = data.enabled_widget_bundles;
-
-          const enabledBundles = ensureNewBundles(
-            enabled_bundles,
-            disabled_widgets,
-            isProTier,
-          );
-
           const {
             lastVisitedPage = "/app/data-connectors",
             openaiApiKey,
@@ -315,9 +184,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               role: data.role,
               uuid: data.uuid,
             },
-            enabledBundles,
             isFirstLogin: data.is_first_login,
-            disabledWidgets: disabled_widgets,
             showChangelog: data.show_changelog,
             onboardingQuestions: data.developer_onboarding_info,
             lastVisitedPage,
@@ -359,7 +226,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             tosAccepted: user?.accepted_pro_tos,
             needsOnboarding: !isOnboardingValid,
           });
-          get().debouncedEnabledBundles();
 
           return isOnboardingValid;
         },

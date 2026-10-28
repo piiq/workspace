@@ -6,7 +6,6 @@ import type {
 } from "ag-grid-community";
 import { useCallback, useEffect, useMemo } from "react";
 import { useWidgetContext } from "~/components/Widget.context";
-import SOURCES from "~/lib/sources.json";
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import { extractColumns, useWidgetDataSource } from "~/lib/utils";
 import { handleWidgetMetadata } from "~/utils/dataConnectorsHelpers";
@@ -113,7 +112,7 @@ export function useCopilotFilteredWidgetData(
         endpointUrl: widget.endpoint?.url || "",
         metadata: {
           ...(metadata || {}),
-          ...(SOURCES?.[source]?.name ? { source: SOURCES[source].name } : {}),
+          ...(source ? { source } : {}),
           ...(withFilter ? { filter: JSON.stringify(filterModel) } : {}),
           ...(lastUpdated ? { lastUpdated } : {}),
           ...(fileType ? { fileType: fileType.toString() } : {}),

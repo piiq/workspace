@@ -8,7 +8,6 @@
  * Usage:
  *   import { mockConfig } from "tests/mocks/runtimeConfig";
  *   // in beforeEach or per-test:
- *   mockConfig.data.packageDataEnabled = false;
  */
 import { vi } from "vitest";
 
@@ -16,7 +15,6 @@ export const mockConfig = {
   urls: {
     backend: "http://localhost:3000",
     ai: "http://localhost:3000/ai",
-    platform: "",
     database: "",
   },
   authentication: {
@@ -71,12 +69,9 @@ export const mockConfig = {
     posthog: false,
     hubspotForms: false,
     email: true,
-    nixtla: true,
     cloudflareWorker: true,
   },
   data: {
-    packageDataEnabled: true,
-    allowedDataVendors: [] as string[],
     allowedDbTypes: [] as string[],
     openDataPlatformInstallerEnabled: true,
     allowHtmlJsExecution: false,

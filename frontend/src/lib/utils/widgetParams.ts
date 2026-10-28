@@ -8,7 +8,6 @@ import type {
 } from "~/components/types";
 import { getConfig } from "~/lib/runtimeConfig";
 import type { AuthStore } from "~/lib/state/auth";
-import { DEFAULT_TICKERS } from "~/lib/types";
 import { newParamDef, ParamsSchema } from "~/lib/types/app";
 import type { WidgetType } from "~/utils/zodForms";
 
@@ -306,7 +305,7 @@ export function createWidgetEndpoint(
 
 export function createWidgetInitParams(
   widget: WidgetT | WidgetJsonT,
-  mainTicker: Ticker = DEFAULT_TICKERS.AAPL,
+  mainTicker?: Ticker,
 ): Record<string, any> {
   const params = createParamDefs(widget) as ParamDef[];
   const storage = widget?.storage?.params ?? {};
@@ -329,7 +328,7 @@ export function createWidgetInitParams(
             : currentDateModifier(param.value);
         }
         if (param?.type === "ticker") {
-          value = mainTicker.symbol;
+          value = mainTicker?.symbol ?? value;
         }
         return [param.paramName, value];
       }),

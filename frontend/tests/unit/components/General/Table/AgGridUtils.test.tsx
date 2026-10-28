@@ -9,7 +9,6 @@ import {
   formatDate,
   formatTime,
   getColumnDefs,
-  getQuarterColumnDefs,
   inferChartDataType,
   isBigNumber,
   isDate,
@@ -382,52 +381,6 @@ describe("getColumnDefs", () => {
     expect(
       (priceCol?.cellRendererParams as any)?.widgetColDefs?.price?.formatterFn,
     ).toBeUndefined();
-  });
-});
-
-describe("getQuarterColumnDefs", () => {
-  it("groups columns by quarter", () => {
-    const rowData = [{ Index: "Revenue", "2024-01-15": 100, "2024-04-15": 110 }];
-    const columnDefs = [
-      { field: "Index", headerName: "Index" },
-      { field: "2024-01-15", headerName: "2024-01-15" },
-      { field: "2024-04-15", headerName: "2024-04-15" },
-    ];
-
-    const result = getQuarterColumnDefs(rowData, columnDefs as any);
-
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it("handles empty row data", () => {
-    const result = getQuarterColumnDefs([], []);
-    expect(result).toEqual([]);
-  });
-
-  it("preserves non-date columns", () => {
-    const rowData = [{ Index: "Revenue", text_column: "value" }];
-    const columnDefs = [
-      { field: "Index", headerName: "Index" },
-      { field: "text_column", headerName: "Text Column" },
-    ];
-
-    const result = getQuarterColumnDefs(rowData, columnDefs as any);
-    expect(result.some((col: any) => col.field === "Index")).toBe(true);
-  });
-
-  it("can reverse column order", () => {
-    const rowData = [{ Index: "Revenue", "2024-01-15": 100, "2024-04-15": 110 }];
-    const columnDefs = [
-      { field: "Index", headerName: "Index" },
-      { field: "2024-01-15", headerName: "2024-01-15" },
-      { field: "2024-04-15", headerName: "2024-04-15" },
-    ];
-
-    const normalResult = getQuarterColumnDefs(rowData, columnDefs as any, false);
-    const reversedResult = getQuarterColumnDefs(rowData, columnDefs as any, true);
-
-    // Both should have the same number of columns
-    expect(normalResult.length).toBe(reversedResult.length);
   });
 });
 

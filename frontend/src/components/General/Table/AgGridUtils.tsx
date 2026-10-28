@@ -843,47 +843,6 @@ export function getColumnDefs(
   return newColumnDefs;
 }
 
-export function getQuarterColumnDefs(
-  rowData: any[],
-  columnDefs: ColDef[],
-  reversed = false,
-): ColDef[] {
-  const indexCol = columnDefs.find((col) => col.headerName === "Index");
-
-  if (!indexCol) return columnDefs;
-
-  const newColumnDefs = [indexCol];
-
-  const years = Array.from(
-    new Set(
-      Object.keys(rowData[0])
-        .filter((key) => key !== "Index")
-        .map((date) => dayjs(date).format("YYYY")),
-    ),
-  ).sort((a, b) => (reversed ? Number(a) - Number(b) : Number(b) - Number(a)));
-
-  for (const date of years) {
-    const groupCol = {
-      headerName: date,
-      field: date,
-      children: columnDefs
-        .filter(
-          (col) =>
-            col.headerName !== "Index" && [col.field, col.headerName].includes(date),
-        )
-        .map((col) => {
-          return {
-            ...col,
-            headerName: `Q${dayjs(col.field).quarter()}`,
-          };
-        }),
-    } as ColDef;
-    newColumnDefs.push(groupCol);
-  }
-
-  return newColumnDefs;
-}
-
 export const getCellRange = (
   params: GetContextMenuItemsParams | CellSelectionChangedEvent,
 ) => {
@@ -1132,48 +1091,3 @@ export function onPivotModeChanged(
     }));
   });
 }
-
-export const FINANCIAL_RATIO_COLS = {
-  liquidity: ["Index", "current_ratio", "cash_per_share", "cash_ratio"],
-  efficiency: [
-    "Index",
-    "days_sales_outstanding",
-    "receivables_turnover",
-    "inventory_turnover",
-    "asset_turnover",
-    "operating_cash_flow_per_share",
-    "free_cash_flow_per_share",
-  ],
-  profitability: [
-    "Index",
-    "gross_profit_margin",
-    "operating_profit_margin",
-    "net_income_per_share",
-    "return_on_assets",
-    "return_on_equity",
-    "earnings_yield",
-    "free_cash_flow_yield",
-    "income_quality",
-  ],
-  leverage: [
-    "Index",
-    "debt_ratio",
-    "debt_to_equity",
-    "interest_debt_per_share",
-    "net_debt_to_ebitda",
-  ],
-  coverage: [
-    "Index",
-    "interest_coverage",
-    "cash_flow_coverage_ratios",
-    "capex_to_operating_cash_flow",
-    "dividend_paid_and_capex_coverage_ratio",
-  ],
-  operating_cash_flow: [
-    "Index",
-    "operating_cash_flow_per_share",
-    "free_cash_flow_per_share",
-    "cash_per_share",
-    "capex_per_share",
-  ],
-};

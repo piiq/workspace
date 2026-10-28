@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import { createSourceWidget } from "~/components/DataConnectors/common/helpers";
+import type { Source } from "~/lib/state/backendConnector";
+import type { WidgetType } from "~/utils/zodForms";
 import {
   checkIfWidgetsHaveMainTickerAndAreTheSame,
   createRootFolder,
   createTab,
+  getWidgetData,
   recursiveCleanKeys,
   updateWidgetGridLayout,
 } from "~/lib/utils/app";
@@ -98,5 +102,44 @@ describe("app utils", () => {
       expect(chartsLayout.some((l) => l.i === "empty-dashboard-cta")).toBe(false);
       expect(chartsLayout.some((l) => l.i === "chart-1")).toBe(true);
     });
+  });
+});
+
+
+describe("backend widget creation", () => {
+  const source: Source = { id: "backend", name: "My backend", url: "http://backend.test", endpointHeaders: [] };
+  const definition: WidgetType = {
+    widgetId: "quotes", name: "Quotes", description: "Declared quotes", type: "table", endpoint: "/quotes",
+    params: [{ paramName: "symbol", type: "ticker", value: "AAPL", show: true }],
+  };
+
+  it.each([undefined, "MSFT"])("uses the declared or stored ticker symbol (%s) without a lookup", (symbol) => {
+    const widget = createSourceWidget({ ...definition, ...(symbol && { storage: { params: { symbol } } }) }, source);
+    expect(widget.data?.mainTicker).toBeUndefined();
+    const created = getWidgetData({ widget });
+    expect(created.storage.params.symbol).toBe(symbol ?? "AAPL");
+    expect(created.data.mainTicker.symbol).toBe(symbol ?? "AAPL");
+    expect(created.params.find((param) => param.paramName === "symbol").show).toBe(true);
+  });
+
+  it.each(["defaultTicker", "mainTicker"])("uses the supplied %s before the parameter default", (location) => {
+    const ticker = { id: "MSFT", symbol: "MSFT", category: "equity", type: "stock" } as const;
+    const widget = createSourceWidget(definition, source);
+    if (location === "mainTicker") widget.data = { mainTicker: ticker };
+    const created = getWidgetData({ widget, ...(location === "defaultTicker" && { defaultTicker: ticker }) });
+    expect(created.storage.params.symbol).toBe("MSFT");
+    expect(created.data.mainTicker).toEqual(ticker);
+  });
+
+  it("keeps a ticker input available when the declaration has no default symbol", () => {
+    const widget = createSourceWidget({ ...definition, params: [{ paramName: "symbol", type: "ticker", show: true }] }, source);
+    const created = getWidgetData({ widget });
+    expect(created.data.mainTicker.symbol).toBe("");
+    expect(created.storage.params.symbol).toBe("");
+  });
+
+  it("preserves declared currency parameters instead of injecting provider defaults", () => {
+    const widget = createSourceWidget({ ...definition, widgetId: "currency_snapshot", params: [{ paramName: "base", type: "text", value: "JPY" }, { paramName: "region", type: "text", value: "asia" }] }, source);
+    expect(getWidgetData({ widget }).storage.params).toEqual({ base: "JPY", region: "asia" });
   });
 });

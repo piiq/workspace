@@ -38,7 +38,7 @@ export interface WidgetState extends WidgetStoreProps {
 //       storageParams: widget.storage?.params ?? {},
 //       storage: widget.storage ?? {},
 //       columnsDefs: widget.data?.table?.columnsDefs ?? [],
-//       widgetFromJSON: widgetFromJSON ?? getJsonWidget(widget),
+//       widgetFromJSON: widgetFromJSON ?? getWidgetDefinition(widget),
 //       activeDashboardId: activeDashboardId,
 //       isShared: isShared ?? false,
 //       uuid: uuid ?? "",

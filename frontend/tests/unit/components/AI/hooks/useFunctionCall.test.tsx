@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CopilotCommandResultT } from "~/lib/state/copilot";
 import type { AddGenerativeWidgetInputArgumentsT } from "~/lib/utils/ai";
 import { registerWidgetLifecycle } from "~/lib/widgetData";
+import { useAuthStore } from "~/lib/state/auth";
 
 // Mock external dependencies
 vi.mock("react-router-dom", () => ({
@@ -84,11 +85,7 @@ vi.mock("~/lib/state/copilotData", () => ({
   ),
 }));
 
-vi.mock("~/lib/contexts/CachedTickers", () => ({
-  useTickersContext: vi.fn(() => ({
-    queryTickers: vi.fn(),
-  })),
-}));
+
 
 vi.mock("~/components/AI/hooks/useGetAppWidgets", () => ({
   useShallowAppWidgetsStore: vi.fn((selector) =>
@@ -109,14 +106,9 @@ vi.mock("~/api/auth.api", async (importOriginal) => ({
   getPreSignedUrl: (...args: unknown[]) => mockGetPreSignedUrl(...args),
 }));
 
-const mockSdkPost = vi.fn().mockResolvedValue({ data: {} });
 
-vi.mock("~/lib/api/sdkFetcher", () => ({
-  sdkClient: {
-    post: (...args: unknown[]) => mockSdkPost(...args),
-    get: vi.fn(),
-  },
-}));
+
+
 
 const mockCreateWidget = vi.fn().mockResolvedValue("mock-widget-uuid");
 const mockReadWidget = vi.fn();
@@ -143,7 +135,7 @@ vi.mock("~/lib/utils", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    getJsonWidget: (...args: unknown[]) => mockGetJsonWidget(...args),
+    getWidgetDefinition: (...args: unknown[]) => mockGetJsonWidget(...args),
     triggerCustomEvent: (...args: unknown[]) => mockTriggerCustomEvent(...args),
   };
 });
@@ -998,10 +990,14 @@ describe("useFunctionCall", () => {
     });
 
     describe("widget_info fetch", () => {
+      beforeEach(() => {
+        useAuthStore.setState({ user: { token: "test-token" } as any });
+      });
+      afterEach(() => {
+        useAuthStore.setState({ user: null });
+      });
       it("should use AI-generated title/description from widget_info endpoint", async () => {
-        mockSdkPost.mockResolvedValueOnce({
-          data: { title: "AI Title", description: "AI Desc" },
-        });
+        vi.mocked(fetch).mockResolvedValueOnce(Response.json({ title: "AI Title", description: "AI Desc" }));
 
         const { result } = renderUseFunctionCall();
         const { addGenerativeWidget } = result.current;
@@ -1017,13 +1013,12 @@ describe("useFunctionCall", () => {
           await addGenerativeWidget(config);
         });
 
-        expect(mockSdkPost).toHaveBeenCalledWith(
+        expect(fetch).toHaveBeenCalledWith(
           expect.stringContaining("/v1/generate/widget_info"),
           expect.objectContaining({
-            widget_generation_request: expect.objectContaining({
-              name: "Original Name",
-              description: "Original Desc",
-            }),
+            method: "POST",
+            headers: expect.objectContaining({ Authorization: "Bearer test-token" }),
+            body: JSON.stringify({ widget_generation_request: { widget_data: JSON.stringify([{ col: 1 }]) } }),
           }),
         );
 
@@ -1037,7 +1032,7 @@ describe("useFunctionCall", () => {
       });
 
       it("should fall back to original name/description when widget_info fails", async () => {
-        mockSdkPost.mockRejectedValueOnce(new Error("Network error"));
+        vi.mocked(fetch).mockRejectedValueOnce(new Error("Network error"));
 
         const { result } = renderUseFunctionCall();
         const { addGenerativeWidget } = result.current;

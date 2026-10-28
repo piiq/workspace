@@ -26,7 +26,6 @@ import {
   type WidgetMetadataItem,
 } from "~/lib/state/backendConnector";
 import type { Database, SnowflakeDatabase } from "~/lib/state/dataConnector";
-import WIDGETS from "~/lib/widgets.json";
 import type { WidgetType } from "~/utils/zodForms";
 import { inSnowflakeNativeApp } from "../constants";
 import { useAppStore } from "../state/app";
@@ -325,10 +324,6 @@ function formatFile(files: StoredFile[]): StoredFileWidget[] {
 }
 
 function formatBackendWidgets(source: Source): WidgetType[] {
-  if (source.id === "root") {
-    return Object.values(WIDGETS) as unknown as WidgetType[];
-  }
-
   return convertAdvancedBackend(source).map((widget) => {
     return {
       ...widget,

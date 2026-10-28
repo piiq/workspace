@@ -1,7 +1,5 @@
 import type { NavigateFunction } from "react-router-dom";
 import { getExternalCopilotHolders } from "~/api/auth.api";
-import { saveDashboards } from "~/api/dashboard.api";
-import type { SecurityType } from "~/components/Charting/constants";
 import {
   createSourceWidget,
   updateParamOrder,
@@ -9,128 +7,21 @@ import {
 import { getStateKey } from "~/components/General/Table/hooks/useUpdateColumnState";
 import { someTruthy } from "~/components/General/Table/utils";
 import type { GroupTypeT, WidgetJsonT, WidgetT } from "~/components/types";
-import { resultsToTicker } from "~/components/Widgets/Helpers/AdvancedSelectTicker";
-import Onboarding from "~/lib/onboarding_new.json";
-import type { DashboardTypes, DataBundle } from "~/lib/state/featureFlags";
-import { fetchQuerySymbols } from "../api/sdkComponents";
-import type {
-  AppState,
-  GridLayout,
-  Items,
-  TabData,
-  Ticker,
-  Widget,
-} from "../state/app";
+import type { AppState, GridLayout, Items, Widget } from "../state/app";
 import type { BackendTemplate, Source } from "../state/backendConnector";
 import { useCopilotStore } from "../state/copilot";
 import { useThemeStore } from "../state/theme";
-import { type TabLayout, TEMPLATES } from "../templates";
-import { DEFAULT_TICKERS } from "../types";
+import type { TabLayout } from "../templates";
 import { backendTemplateSchema } from "../types/app";
 import {
   addToWidgetParamGroups,
   getGridData,
   getTickerParamName,
-  getValidItems,
-  MainTickerByCategory,
   recursiveCleanKeys,
 } from "./app";
 import { COLORS, slugify, uuidv4 } from "./utils";
-import { getJsonWidget } from "./widget";
+import { getWidgetDefinition } from "./widget";
 import { currentDateModifier } from "./widgetParams";
-
-export const ONBOARDING_STORED_FILES = {
-  "file-c0ebd61e-39fa-4382-b82f-4374ea96a30f": {
-    urlDev:
-      "https://backend.openbb.dev/pro/files/983fe57c-063d-4463-83f3-158527144a23.pdf",
-    urlProd:
-      "https://backend.openbb.co/pro/files/f24b8fa7-adbd-4770-89d2-d364862ef256.pdf",
-  },
-};
-
-export const OPENBB_ONBOARDING_WIDGETS = Array.from(
-  new Set<string>(Onboarding.widgets.map((w) => w.widgetId)),
-).map((widgetId) => {
-  const widget = Onboarding.widgets.find((w) => w.widgetId === widgetId);
-  return {
-    name: widget?.name,
-    widgetId,
-  };
-});
-
-function getTickerSymbolsFromParams(
-  params: Record<string, unknown>,
-  paramName: string,
-) {
-  const value = params[paramName];
-  if (typeof value === "string") {
-    return value
-      .split(",")
-      .map((symbol) => symbol.trim())
-      .filter(Boolean);
-  }
-  if (value && typeof value === "object" && "symbol" in value) {
-    const symbol = String((value as { symbol?: unknown }).symbol || "").trim();
-    return symbol ? [symbol] : [];
-  }
-  return [];
-}
-
-async function resolveTickerSymbol(symbol: string): Promise<Ticker> {
-  const normalizedSymbol = symbol.toUpperCase();
-  try {
-    const { results } = await fetchQuerySymbols({
-      queryParams: {
-        q: normalizedSymbol,
-      },
-    });
-    const ticker = resultsToTicker(results).find(
-      (result) => result?.symbol?.toUpperCase() === normalizedSymbol,
-    );
-    if (ticker) return ticker;
-  } catch {
-    // Keep the model-selected symbol instead of falling back to a different asset.
-  }
-
-  return {
-    id: normalizedSymbol,
-    symbol: normalizedSymbol,
-    name: normalizedSymbol,
-    category: "equity",
-    type: "stock",
-  };
-}
-
-function tickerToSecurity(ticker: Ticker): SecurityType {
-  const category =
-    ticker.category === "crypto"
-      ? "crypto"
-      : ticker.category === "index"
-        ? "indices"
-        : "securities";
-
-  return {
-    id: ticker.id || ticker.symbol,
-    symbol: ticker.symbol,
-    label: ticker.name || ticker.symbol,
-    color: ticker.color || "",
-    category,
-    metrics: [],
-    active: true,
-  };
-}
-
-function getTabs(templateName: string): { id: string; name: string }[] {
-  const template = TEMPLATES[templateName];
-  if (!template) {
-    throw new Error(`Template ${templateName} not found`);
-  }
-
-  return Object.values(template.tabs).map((tab: any) => ({
-    id: tab.id,
-    name: tab.name,
-  }));
-}
 
 /**
  * Checks if there are any existing dashboards for a given app that haven't been modified by the user.
@@ -280,7 +171,7 @@ export async function createCustomTemplateTab({
           resolveWidget?.(widgetId) ??
           (sourceWidget && widgetSource
             ? createSourceWidget({ ...sourceWidget, widgetId }, widgetSource)
-            : getJsonWidget(widgetId));
+            : getWidgetDefinition(widgetId));
 
         if (!appWidget) {
           if (resolveWidgetSource || resolveWidget) unresolvedWidgetIds.add(widgetId);
@@ -336,18 +227,13 @@ export async function createCustomTemplateTab({
           if (group?.type === "ticker") {
             if (!group?.value?.symbol) {
               const symbol = group?.value as unknown as string;
-              group.value = await fetchQuerySymbols({
-                queryParams: {
-                  q: symbol,
-                },
-              })
-                .then(async ({ results }) => {
-                  const newTicker = resultsToTicker(results).find(
-                    (result) => result?.symbol === symbol,
-                  );
-                  return newTicker || DEFAULT_TICKERS.AAPL;
-                })
-                .catch(() => DEFAULT_TICKERS.AAPL);
+              group.value = {
+                id: symbol,
+                symbol,
+                name: symbol,
+                category: "equity",
+                type: "stock",
+              };
             }
 
             widget.data = {
@@ -402,50 +288,18 @@ export async function createCustomTemplateTab({
           };
         }
 
-        const tickerParamName = getTickerParamName(widget as Widget);
-        const tickerSymbols = tickerParamName
-          ? getTickerSymbolsFromParams(params, tickerParamName)
-          : [];
-        const tickerSymbol = tickerSymbols[0];
-        const shouldSetSecondaryTickers =
-          tickerSymbols.length > 1 &&
-          ["watchlist", "grouped_comparisons", "peers_list"].includes(widget.widgetId);
-        const shouldResolveAllTickers =
-          shouldSetSecondaryTickers || widget.widgetId === "market_indices";
-        const resolvedTickers = shouldResolveAllTickers
-          ? await Promise.all(tickerSymbols.map(resolveTickerSymbol))
-          : undefined;
-        const secondaryTickers = shouldSetSecondaryTickers
-          ? resolvedTickers
-          : undefined;
-        if (tickerParamName && tickerSymbol) {
-          const mainTicker =
-            resolvedTickers?.[0] ?? (await resolveTickerSymbol(tickerSymbol));
+        const tickerParamName = getTickerParamName(widget);
+        const symbolValue = tickerParamName ? params[tickerParamName] : undefined;
+        if (typeof symbolValue === "string" && symbolValue.trim()) {
+          const symbol = symbolValue.split(",")[0].trim();
           widget.data = {
-            ...(widget.data ?? {}),
-            mainTicker,
-            ...(secondaryTickers && { secondaryTickers }),
-          };
-          const securities =
-            widget.widgetId === "market_indices" && resolvedTickers?.length
-              ? resolvedTickers.map(tickerToSecurity)
-              : undefined;
-          if (securities) {
-            widget.data = {
-              ...(widget.data ?? {}),
-              securities,
-            };
-          }
-          widget.storage = {
-            ...(widget.storage ?? {}),
-            ...(securities && { securities }),
-            params: {
-              ...(widget.storage?.params ?? {}),
-              ...params,
-              [tickerParamName]:
-                typeof params[tickerParamName] === "string"
-                  ? tickerSymbols.join(",")
-                  : mainTicker.symbol,
+            ...widget.data,
+            mainTicker: {
+              id: symbol,
+              symbol,
+              name: symbol,
+              category: "equity",
+              type: "stock",
             },
           };
         }
@@ -471,7 +325,7 @@ export async function createCustomTemplateTab({
   }
 
   if (Object.keys(gridLayout).length > 1 || hasNavigationBar) {
-    const widget = getJsonWidget("navigation_bar");
+    const widget = getWidgetDefinition("navigation_bar");
     const tabStorage = Object.values(template.tabs).map((tab) => ({
       id: tab.id,
       name: tab.name,
@@ -564,356 +418,4 @@ export function extractCustomTemplateInfo(templateId = "") {
   )?.groups as { sourceId: string; templateName: string };
 
   return groups ?? { sourceId: null, templateName: null };
-}
-
-export function createChartingTemplateTab({
-  addTab,
-  navigate = null,
-  items,
-  defaultTicker = DEFAULT_TICKERS.AAPL,
-  currentDashboard = "",
-}: {
-  addTab: AppState["addTab"];
-  navigate?: NavigateFunction;
-  items: Items;
-  defaultTicker?: Ticker;
-  currentDashboard?: string;
-}): string | undefined {
-  const currentDashboardItem = items?.[currentDashboard];
-  const hasZeroWidgets = currentDashboardItem?.data?.widgets?.length === 0;
-
-  const id = hasZeroWidgets ? currentDashboard : uuidv4();
-
-  const groupId = uuidv4();
-  const mainTicker = MainTickerByCategory({
-    defaultTicker,
-    defaultCategory: defaultTicker?.category ?? "equity",
-  });
-
-  const color = COLORS[0];
-
-  const newGroups = [
-    {
-      id: groupId,
-      name: "Group 1",
-      color,
-      value: mainTicker,
-      type: "ticker",
-    },
-  ] as TabData["groups"];
-
-  const gridLayout = { overview: [] } as GridLayout;
-
-  const widgets = TEMPLATES.charting.widgets.map((widget: Partial<Widget | any>) => {
-    const { gridData, ...restWidget } = widget as Widget;
-    const { i, ...restGridData } = TEMPLATES.charting.tabs.overview.layout.find(
-      (layoutItem) => layoutItem.i === widget.widgetId,
-    );
-    const widgetUniqueId = uuidv4();
-
-    gridLayout.overview.push({
-      ...(gridData || {}),
-      ...restGridData,
-      i: widgetUniqueId,
-    });
-
-    return {
-      id: widgetUniqueId,
-      groupId,
-      name: widget.name,
-      type: widget.type,
-      widgetId: widget.widgetId,
-      data: {
-        mainTicker,
-        secondTickers: [],
-      },
-      ...restWidget,
-    } as Widget;
-  });
-
-  addTab(
-    {
-      index: id,
-      data: {
-        name: TEMPLATES.charting.name.replace("Template", "Dashboard"),
-        templateId: "charting",
-        type: "template",
-        widgets,
-        gridLayout,
-        groups: newGroups,
-      },
-    },
-    true,
-    mainTicker,
-  );
-  if (navigate) navigate(`/app/${id}`);
-
-  return id;
-}
-
-export function createEquityTemplateTab(
-  item,
-  {
-    addTab,
-    navigate,
-    items,
-    currentDashboard = "",
-    defaultTicker = DEFAULT_TICKERS.AAPL,
-  }: {
-    addTab: AppState["addTab"];
-    navigate?: NavigateFunction;
-    items: Items;
-    currentDashboard?: string;
-    defaultTicker?: Ticker;
-  },
-  innerTab = "overview",
-): string | undefined {
-  const currentDashboardItem = items?.[currentDashboard];
-  const hasZeroWidgets = currentDashboardItem?.data?.widgets?.length === 0;
-
-  const id = hasZeroWidgets ? currentDashboard : uuidv4();
-  const mainTicker = MainTickerByCategory({ defaultTicker, defaultCategory: "equity" });
-
-  const groupId = uuidv4();
-
-  const color = COLORS[0];
-
-  const widgets = [];
-  const newGroups = [
-    {
-      id: groupId,
-      name: "Group 1",
-      color,
-      value: mainTicker,
-      type: "ticker",
-    },
-  ] as TabData["groups"];
-
-  const gridLayout = Object.values(TEMPLATES.equity.tabs).reduce(
-    (acc, tab) => {
-      if (!acc[tab.id]) acc[tab.id] = [];
-      return acc;
-    },
-
-    {} as Record<string, any>,
-  );
-
-  const tabs = getTabs("equity");
-  type Tab = (typeof TEMPLATES.equity.tabs)[keyof typeof TEMPLATES.equity.tabs];
-
-  for (const tabId in TEMPLATES.equity.tabs) {
-    if (TEMPLATES.equity.tabs.hasOwnProperty(tabId)) {
-      const tab = TEMPLATES.equity.tabs[tabId] as Tab;
-
-      for (const layout of tab.layout) {
-        const { i: widgetId, ...restGridData } = layout;
-        const widget = TEMPLATES.equity.widgets.find((w) => w.widgetId === widgetId);
-
-        if (widget) {
-          const { gridData, ...restWidget } = widget;
-          if (restGridData) {
-            const widgetStorage =
-              widget.widgetId === "navigation_bar"
-                ? { ...(widget.storage ?? {}), tabs }
-                : (widget.storage ?? {});
-
-            const widgetUniqueId = uuidv4();
-            gridLayout[tab.id].push({
-              ...(gridData || {}),
-              ...restGridData,
-              i: widgetUniqueId,
-            });
-
-            widgets.push({
-              id: widgetUniqueId,
-              groupId,
-              name: widget.name,
-              type: widget.type,
-              widgetId: widget.widgetId,
-              endpoint: widget.endpoint,
-              sdkFunc: widget.sdkFunc,
-              platformDataFunction: widget.platformDataFunction,
-              excelDataFunction: widget.excelDataFunction,
-              params: widget.params ?? [],
-              innerTab: tab.id, // Set the innerTab to the current tab ID
-              ...restWidget,
-              storage: widgetStorage,
-              data: {
-                ...(widget.data ?? {}),
-                table: {
-                  ...(widget.data?.table ?? {}),
-                  transpose: Boolean(widget.data?.table?.transpose),
-                },
-                mainTicker,
-                dataKey: item.dataKey,
-              },
-            });
-          }
-        }
-      }
-    }
-  }
-
-  addTab(
-    {
-      index: id,
-      data: {
-        name: TEMPLATES.equity.name.replace("Template", "Dashboard"),
-        templateId: "equity",
-        type: "template",
-        widgets,
-        gridLayout,
-        groups: newGroups,
-      },
-    },
-    true,
-    mainTicker,
-  );
-  if (navigate) navigate(`/app/${id}?tab=${innerTab}`);
-
-  return id;
-}
-
-export function createOnBoardingTemplate({
-  addTab,
-  navigate = null,
-}: {
-  addTab: AppState["addTab"];
-  navigate?: NavigateFunction;
-}): string | undefined {
-  const id = uuidv4();
-
-  const gridLayout = {} as GridLayout;
-  const groups = Onboarding.groups as TabData["groups"];
-
-  const widgets = Onboarding.widgets.map((widget: Partial<Widget | any>) => {
-    const { gridData, ...restWidget } = widget as Widget;
-
-    const innerTab = restWidget.innerTab ?? "overview";
-    const { i, ...restGridData } = Onboarding.gridLayout[innerTab].find(
-      (layoutItem) => layoutItem.i === widget.id,
-    );
-
-    const widgetUniqueId = uuidv4();
-
-    if (!gridLayout[innerTab]) gridLayout[innerTab] = [];
-
-    gridLayout[innerTab].push({
-      ...(gridData || {}),
-      ...restGridData,
-      i: widgetUniqueId,
-    });
-
-    if (ONBOARDING_STORED_FILES?.[widget.widgetId]) {
-      const { urlDev, urlProd } = ONBOARDING_STORED_FILES[widget.widgetId];
-      widget.endpoint = {
-        ...widget.endpoint,
-        url: import.meta.env.DEV ? urlDev : urlProd,
-      };
-    }
-
-    return {
-      ...restWidget,
-      id: widgetUniqueId,
-      name: widget.name,
-      widgetId: widget.widgetId,
-      endpoint: widget.endpoint,
-      sdkFunc: widget.sdkFunc,
-      platformDataFunction: widget.platformDataFunction,
-      excelDataFunction: widget.excelDataFunction,
-      options: widget.options,
-      params: widget.params ?? [],
-      data: {
-        ...(widget.data ?? {}),
-        table: {
-          ...(widget.data?.table ?? {}),
-          transpose: Boolean(widget.data?.table?.transpose),
-        },
-      },
-      innerTab,
-      storage: widget.storage ?? {},
-    } as Widget;
-  });
-
-  addTab(
-    {
-      // The name of the dashboard was intentionally changed to `Earnings Update`
-      // the `templateId` shouldn't change as it has to do with BE interaction
-      index: id,
-      data: {
-        name: "Earnings Update",
-        templateId: "onboarding",
-        type: "template",
-        widgets,
-        gridLayout,
-        groups,
-      },
-    },
-    true,
-  );
-  if (navigate) navigate(`/app/${id}`);
-
-  return id;
-}
-
-function getTemplatesToCreate(bundleInfo: DataBundle | null): string[] {
-  if (!bundleInfo) {
-    // Default templates if no bundle info is provided
-    return ["equity", "charting", "equityAnalyst"] as DashboardTypes[];
-  }
-
-  const allTemplates = [
-    "charting",
-    "equityAnalyst",
-    "equity",
-    "etfTemplate",
-    "onboarding",
-  ] as DashboardTypes[];
-
-  const { dashboards_at_launch, except_dashboard_templates } = bundleInfo;
-
-  if (dashboards_at_launch) return dashboards_at_launch;
-
-  if (except_dashboard_templates) {
-    return allTemplates.filter(
-      (template) => !except_dashboard_templates?.includes(template),
-    );
-  }
-
-  return allTemplates;
-}
-
-export function handleTemplatesCreation(
-  dataBundleInfo: DataBundle | null,
-  defaultTicker: Ticker,
-  addTab: AppState["addTab"],
-  items: Items,
-): string | undefined {
-  const templatesToCreate = Array.from(new Set(getTemplatesToCreate(dataBundleInfo)));
-
-  items = getValidItems(items);
-
-  let onboardingId: string | undefined;
-  for (const template of templatesToCreate) {
-    switch (template) {
-      case "equity":
-        createEquityTemplateTab(
-          { name: defaultTicker.symbol },
-          { addTab, navigate: null, items, defaultTicker },
-        );
-        break;
-      case "charting":
-        createChartingTemplateTab({ addTab, items });
-        break;
-      case "onboarding":
-        onboardingId = createOnBoardingTemplate({
-          addTab,
-          navigate: null,
-        });
-        break;
-    }
-  }
-
-  saveDashboards();
-  return onboardingId;
 }

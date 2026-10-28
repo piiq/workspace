@@ -11,11 +11,9 @@ import {
 } from "~/components/DataConnectors/common/helpers";
 import { isTableWidgetType } from "~/components/DataConnectors/WidgetsBuilder/utils";
 import useSharedResources from "~/components/LayoutAuth/Search/hooks/useSharedResources";
-import type { Widget, WidgetT } from "~/components/types";
+import type { WidgetT } from "~/components/types";
 import type { WidgetId } from "~/components/Widgets";
-import { inSnowflakeNativeApp } from "~/lib/constants";
 import type { Selector } from "~/lib/state/app";
-import { useShallowAuthStore } from "~/lib/state/auth";
 import {
   type SingleWidget,
   type Source,
@@ -23,14 +21,8 @@ import {
   useShallowBackendConnectorStore,
   type WidgetMetadataItem,
 } from "~/lib/state/backendConnector";
-import { isExcludedWidgetId } from "~/lib/state/featureFlags";
 import { type UserGeneratedApp, useShallowUserAppsStore } from "~/lib/state/userApps";
-import {
-  convertAdvancedBackend,
-  getJsonWidget,
-  WIDGETS_WITHOUT_DISABLED as OPENBB_API_WIDGETS,
-} from "~/lib/utils";
-import WIDGET_BUNDLES from "~/lib/widget_bundles.json";
+import { convertAdvancedBackend, getBuiltinWidgets } from "~/lib/utils";
 
 export function useGetAppWidgets() {
   const { singleWidgets, storedFiles, apiSources, widgetMetadata } =
@@ -41,10 +33,6 @@ export function useGetAppWidgets() {
       widgetMetadata: s.widgetMetadata,
     }));
 
-  const { enabledBundles, disabledWidgets } = useShallowAuthStore((s) => ({
-    enabledBundles: s.enabledBundles ?? [],
-    disabledWidgets: s.disabledWidgets ?? [],
-  }));
   const setBackendNameToWidgetMap = useShallowAppWidgetsStore((s) => s.setAppWidgets);
 
   const apiEndpointWidgets = useMemo(
@@ -62,16 +50,6 @@ export function useGetAppWidgets() {
     () => userAppsToWidgets(sharedUserApps),
     [sharedUserApps],
   );
-
-  const openbbSandboxWidgets = useMemo(
-    () =>
-      openbbSandboxWidgetsToWidgets(
-        OPENBB_API_WIDGETS,
-        enabledBundles,
-        disabledWidgets,
-      ),
-    [OPENBB_API_WIDGETS, enabledBundles, disabledWidgets],
-  ); // all openbb native widgets - navigation_bar, company_information, ...
 
   const openbbHubWidgets = useMemo(
     () => storedFilesToWidgets(storedFiles),
@@ -98,7 +76,6 @@ export function useGetAppWidgets() {
     }
 
     addWidgets("API Endpoints", apiEndpointWidgets);
-    addWidgets("OpenBB Sandbox", openbbSandboxWidgets);
     addWidgets("OpenBB Hub", openbbHubWidgets);
     addWidgets("OpenBB Workspace", openbbWorkspaceWidgets);
     addWidgets("Widget Studio", openbbStudioWidgets);
@@ -126,8 +103,6 @@ export function useGetAppWidgets() {
     }
 
     for (const widget of sharedUserAppWidgets) {
-      // Skip if widgetId conflicts with built-in JSON widget
-      if (!widget.external && getJsonWidget(widget.widgetId)) continue;
       const connectionMap = {
         single: "API Endpoints",
         file: "OpenBB Hub",
@@ -163,7 +138,6 @@ export function useGetAppWidgets() {
     return map;
   }, [
     apiEndpointWidgets,
-    openbbSandboxWidgets,
     openbbHubWidgets,
     openbbWorkspaceWidgets,
     openbbStudioWidgets,
@@ -179,7 +153,6 @@ export function useGetAppWidgets() {
 
 type BackendTypes =
   | "API Endpoints"
-  | "OpenBB Sandbox"
   | "OpenBB Hub"
   | "OpenBB Workspace"
   | "Widget Studio"
@@ -235,49 +208,9 @@ export function useShallowAppWidgetsStore<S extends GetWidgetsState, T>(
   return useGetWidgetsStore(useShallow(selector), (prev, next) => isEqual(prev, next));
 }
 
-function getBuiltInWidgets(): WidgetT[] {
-  // Only return rich_note widget for AI/Copilot generative UI functionality
-  return [
-    {
-      widgetId: "rich_note",
-      name: "Markdown Note",
-      description:
-        "Create a markdown text widget for notes, documentation, or any text content",
-      category: "Others",
-      subCategory: "Utils",
-      type: "note",
-      imgUrl:
-        "https://raw.githubusercontent.com/OpenBB-finance/widgets-library/main/others/utils/rich_note.png",
-      connectionType: "widgetMetadata",
-      params: [
-        {
-          paramName: "content",
-          description: "The text content for the note widget",
-          type: "text",
-          value: "# New Note\n\nClick to edit this note and add your content...",
-        },
-        {
-          paramName: "name",
-          description:
-            "A short, descriptive title for the widget (max 50 characters). AI will generate this based on the content.",
-          type: "text",
-          value: "Note",
-        },
-        {
-          paramName: "description",
-          description:
-            "A brief description of what the content is about (max 100 characters). AI will generate this based on the content.",
-          type: "text",
-          value: "A note widget",
-        },
-      ],
-    },
-  ] as WidgetT[];
-}
-
 function apiSourcesToWidgets(apiSources: Source[]): WidgetT[] {
   const customBackendWidgets = apiSources
-    .filter((elem) => elem.id !== "root" && elem.widgets)
+    .filter((elem) => elem.widgets)
     .flatMap((source) => {
       return convertAdvancedBackend(source);
     });
@@ -317,38 +250,6 @@ function storedFilesToWidgets(storedFiles: StoredFile[]): WidgetT[] {
   });
   // TODO: This assertion can be inaccurate, needs fix
   return openbbHubWidgets as WidgetT[];
-}
-
-// Widgets to hide in Snowflake native app
-const SNOWFLAKE_HIDDEN_WIDGETS = ["iframe", "youtube", "rss_viewer"];
-
-function openbbSandboxWidgetsToWidgets(
-  apiWidgets: Widget[],
-  enabledBundles: string[],
-  disabledWidgets: string[],
-): WidgetT[] {
-  const openbbSandboxWidgets = apiWidgets
-    .filter((widget) => {
-      // Hide certain widgets in Snowflake native app
-      if (inSnowflakeNativeApp && SNOWFLAKE_HIDDEN_WIDGETS.includes(widget.widgetId)) {
-        return false;
-      }
-
-      // Check if the widget is in any of the enabled bundles
-      const isInEnabledBundle = enabledBundles.some((bundleId) =>
-        WIDGET_BUNDLES[bundleId]?.widgets?.includes(widget.widgetId),
-      );
-
-      // Check if the widget is not in the except_widgets list
-      const isNotExcepted = !isExcludedWidgetId(widget.widgetId);
-
-      return (
-        isInEnabledBundle && !disabledWidgets.includes(widget.widgetId) && isNotExcepted
-      );
-    })
-    .map((widget) => cloneDeep({ ...widget }));
-  // TODO: This assertion can be inaccurate, needs fix
-  return openbbSandboxWidgets as WidgetT[];
 }
 
 function apiEndpointsToWidgets(singleWidgets: SingleWidget[]): WidgetT[] {
@@ -516,7 +417,7 @@ function widgetMetadataToWidgets(widgetMetadata: WidgetMetadataItem[]): {
       } as WidgetT;
     });
 
-  const openbbWorkspaceWidgets = workspaceWidgets.concat(getBuiltInWidgets());
+  const openbbWorkspaceWidgets = workspaceWidgets.concat(getBuiltinWidgets());
 
   return { openbbStudioWidgets, openbbWorkspaceWidgets };
 }

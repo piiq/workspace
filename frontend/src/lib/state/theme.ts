@@ -5,14 +5,11 @@ import { persist, subscribeWithSelector } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import { createWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/vanilla/shallow";
-import { migrateDefaultTicker } from "~/api/auth.api";
 import { updateUserDisplaySettings } from "~/api/user.api";
 import type { SearchTabId } from "~/components/LayoutAuth/Search/SearchDialog";
 import type { WidgetItem } from "~/components/LayoutAuth/Search/WidgetMenu";
-import type { Ticker } from "~/components/types";
 import { getConfig } from "~/lib/runtimeConfig";
 import type { DefaultSkillSlugs, DisplaySettings } from "~/types/auth.type";
-import { DEFAULT_TICKERS } from "../types";
 import type { Selector } from "./app";
 import { useAuthStore } from "./auth";
 import type { Source } from "./backendConnector";
@@ -59,9 +56,7 @@ interface ThemeState {
   setShareDashboardPopupId: (id: string | null) => void;
   shareUserAppsPopupId: string | null;
   setShareUserAppsPopupId: (id: string | null) => void;
-  defaultTicker: Ticker;
   updateThemeState: (state: Partial<ThemeState>) => void;
-  setDefaultTicker: (ticker: Ticker) => void;
   userAcknowledgedMobile: boolean;
   setUserAcknowledgedMobile: (acknowledged: boolean) => void;
   userAcknowledgedNonChromium: boolean;
@@ -249,8 +244,6 @@ export const useThemeStore = createWithEqualityFn<ThemeState>()(
           setShareDashboardPopupId: (id) => set({ shareDashboardPopupId: id }),
           shareUserAppsPopupId: null,
           setShareUserAppsPopupId: (id) => set({ shareUserAppsPopupId: id }),
-          defaultTicker: DEFAULT_TICKERS.AAPL,
-          setDefaultTicker: (ticker) => set({ defaultTicker: ticker }),
           updateThemeState: (state) => {
             const fontSize = state.fontSize;
             state.theme = state.theme || localStorage.theme || resolvedTheme;
@@ -411,7 +404,6 @@ export const useThemeStore = createWithEqualityFn<ThemeState>()(
               aiEnhancements,
               tablePagination,
               fontSize,
-              defaultTicker,
               gridCorners,
               gridSnapping,
               quickAddButtonVisible,
@@ -435,7 +427,6 @@ export const useThemeStore = createWithEqualityFn<ThemeState>()(
               aiEnhancements,
               tablePagination,
               fontSize,
-              defaultTicker,
               gridCorners,
               gridSnapping,
               quickAddButtonVisible,
@@ -477,21 +468,6 @@ export const useThemeStore = createWithEqualityFn<ThemeState>()(
         version: 2,
         onRehydrateStorage: () => (state) => {
           if (state) state.mcpAuthPopup = null;
-        },
-        migrate: (persistedState: any) => {
-          console.log("Migrating theme storage");
-
-          if (typeof persistedState.defaultTicker === "string") {
-            Promise.all([migrateDefaultTicker(persistedState.defaultTicker)]).then(
-              ([newTicker]) => {
-                persistedState.defaultTicker = newTicker;
-              },
-            );
-          }
-
-          console.log("Migrated theme storage to version 1");
-          console.log(persistedState);
-          return persistedState as ThemeState;
         },
       },
     ),

@@ -28,13 +28,7 @@ export function findMatchingWidget(
     return undefined;
   }
 
-  // Determine the widgetId and potential originalWidgetId for composite widgets
-  let widgetId = citation.source_info?.widget_id || citation.source_info?.name;
-  let originalWidgetId = "";
-  if (["income_statement", "balance_sheet", "cash_flow_statement"].includes(widgetId)) {
-    originalWidgetId = widgetId;
-    widgetId = "financial_statements";
-  }
+  const widgetId = citation.source_info?.widget_id || citation.source_info?.name;
 
   const widgetDefinition = allAppWidgets.get(widgetId as WidgetId);
   if (!widgetDefinition) {
@@ -48,12 +42,6 @@ export function findMatchingWidget(
       return false;
     }
 
-    // 2. Handle special cases like financial statements where a sub-type must match
-    if (originalWidgetId && widget.storage?.selectedGroup !== originalWidgetId) {
-      return false;
-    }
-
-    // 3. Compare parameters for an exact match
     if (widgetDefinition.params) {
       for (const paramDef of widgetDefinition.params) {
         const paramName = paramDef.paramName;

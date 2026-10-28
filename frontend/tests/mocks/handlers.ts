@@ -411,15 +411,6 @@ export const handlers = [
     return HttpResponse.json({ status: 200 });
   }),
 
-  // Enabled bundles
-  http.get(`${BASE_URL}/pro/enabled-bundles`, () => {
-    return HttpResponse.json({});
-  }),
-
-  http.put(`${BASE_URL}/pro/enabled-bundles`, () => {
-    return HttpResponse.json({ success: true });
-  }),
-
   // User has entity
   http.get(`${BASE_URL}/pro/user-has-entity`, () => {
     return HttpResponse.json({ success: true });

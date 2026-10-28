@@ -4,7 +4,7 @@ import type { ProLoginResponse } from "~/types/auth.type";
 
 // Mock all external dependencies
 vi.mock("~/api/auth.api", () => ({
-  putEnabledBundles: vi.fn().mockResolvedValue({}),
+  logout: vi.fn(),
 }));
 
 vi.mock("~/lib/state/copilot", () => ({
@@ -37,21 +37,6 @@ vi.mock("~/lib/state/sharedApp", () => ({
   },
 }));
 
-vi.mock("~/lib/widget_bundles.json", () => ({
-  default: {
-    openbb: {
-      name: "OpenBB",
-      enabled_by_default: true,
-      widgets: ["equity_profile", "company_news"],
-    },
-    analytics: {
-      name: "Analytics",
-      enabled_by_default: false,
-      widgets: ["analytics_widget"],
-    },
-  },
-}));
-
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -76,10 +61,6 @@ describe("useAuthStore - Login Tests", () => {
     developer_onboarding_info: null,
     // @ts-expect-error - ignored for now
     feature_entitlements: { tier: "free" },
-    enabled_widget_bundles: {
-      enabled_bundles: ["openbb"],
-      disabled_widgets: [],
-    },
     user: {
       first_name: "Test",
       last_name: "User",
@@ -96,8 +77,6 @@ describe("useAuthStore - Login Tests", () => {
   beforeEach(() => {
     useAuthStore.setState({
       user: null,
-      enabledBundles: ["openbb"],
-      disabledWidgets: [],
       tosAccepted: false,
       isFirstLogin: false,
       needsOnboarding: false,
@@ -199,36 +178,6 @@ describe("useAuthStore - Login Tests", () => {
       await login(response);
 
       expect(useAuthStore.getState().isFirstLogin).toBe(true);
-    });
-
-    it("sets enabledBundles from response", async () => {
-      const response = createMockLoginResponse({
-        enabled_widget_bundles: {
-          enabled_bundles: ["openbb", "analytics"],
-          disabled_widgets: [],
-        },
-      });
-      const { login } = useAuthStore.getState();
-
-      await login(response);
-
-      const bundles = useAuthStore.getState().enabledBundles;
-      expect(bundles).toContain("openbb");
-      expect(bundles).toContain("analytics");
-    });
-
-    it("sets disabledWidgets from response", async () => {
-      const response = createMockLoginResponse({
-        enabled_widget_bundles: {
-          enabled_bundles: ["openbb"],
-          disabled_widgets: ["equity_profile"],
-        },
-      });
-      const { login } = useAuthStore.getState();
-
-      await login(response);
-
-      expect(useAuthStore.getState().disabledWidgets).toContain("equity_profile");
     });
 
     it("returns true when onboarding is valid", async () => {
@@ -360,20 +309,6 @@ describe("useAuthStore - Login Tests", () => {
       await login(response);
 
       expect(useAuthStore.getState().onboardingQuestions).toEqual(onboardingInfo);
-    });
-  });
-
-  describe("checkNewBundles", () => {
-    it("enables new default bundles for free tier", () => {
-      useAuthStore.setState({
-        enabledBundles: [],
-        disabledWidgets: [],
-      });
-
-      const { checkNewBundles } = useAuthStore.getState();
-      checkNewBundles(false);
-
-      expect(useAuthStore.getState().enabledBundles).toContain("openbb");
     });
   });
 });

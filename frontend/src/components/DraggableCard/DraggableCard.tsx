@@ -10,7 +10,6 @@ import {
 } from "react";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import useWidgetDataExport from "~/hooks/useWidgetDataExport";
-import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { useTabContext } from "~/lib/contexts/TabContext";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
 import { useShallowCopilotStore } from "~/lib/state/copilot";
@@ -65,8 +64,6 @@ function PermissionsMask({
     return widgetId;
   }, [widgetId, sourceName]);
 
-  const isWidgetIdBlocked = widgetId && BLOCKED_WIDGET_IDS.has(widgetId) && !external;
-
   const hasAccess = useShallowPermissionsStore((state) => state.hasAccess);
   const checkAccess = useCallback(() => {
     if (sourceId && cleanedWidgetId) {
@@ -82,7 +79,7 @@ function PermissionsMask({
 
   useEffect(() => {
     // Check if widget is blocked first, regardless of shared status
-    if (isBlocked || isWidgetIdBlocked) {
+    if (isBlocked) {
       onAccessCheck(false);
       onAccessError?.("This widget is deprecated and cannot be used.");
       return;
@@ -97,12 +94,11 @@ function PermissionsMask({
       return;
     }
     setTimeout(checkAccess, 500);
-  }, [isSharedResource, removedApp, isBlocked, isWidgetIdBlocked]);
+  }, [isSharedResource, removedApp, isBlocked]);
 
   if (
     removedApp ||
     isBlocked ||
-    isWidgetIdBlocked ||
     (isSharedResource &&
       sourceId &&
       cleanedWidgetId &&

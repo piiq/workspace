@@ -45,26 +45,10 @@ export function dispatchCreate(detail: CreateWidgetParams) {
 }
 
 export function getWidgetOrigin(widget: WidgetT): string {
-  // TODO: We should have an explicit field for this
-
   if (widget.connectionType === "file") return "OpenBB Hub";
   if (widget.widgetId?.includes("widget_studio")) return "Widget Studio";
-
   if (widget.external) return widget.sourceName ?? "Unknown";
-
-  if (
-    widget.widgetId?.includes("iframe") ||
-    widget.widgetId?.includes("rss_viewer") ||
-    widget.widgetId?.includes("rich_note") ||
-    widget.widgetId?.includes("copilot_table") ||
-    widget.widgetId?.includes("markdown") ||
-    widget.widgetId?.includes("file_viewer")
-    // TODO: Temporary fix for charting widget
-    // widget.widgetId === "charting"
-  ) {
-    return "OpenBB Workspace";
-  }
-  return "OpenBB Sandbox";
+  return "OpenBB Workspace";
 }
 
 export const showDeprecatedFlagsToast = (copilot: Copilot, outdatedFlags: any[]) => {

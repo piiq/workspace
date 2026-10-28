@@ -24,7 +24,10 @@ function makeSource(name: string, widgetIds: string[]): Source {
     url: `https://${name}.example.com`,
     endpointHeaders: null,
     widgets: Object.fromEntries(
-      widgetIds.map((id) => [id, { name: id, sdkFunc: "" }]),
+      widgetIds.map((id) => [
+        id,
+        { name: id, description: id, endpoint: `/data/${id}` },
+      ]),
     ) as Source["widgets"],
   };
 }

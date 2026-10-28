@@ -6,12 +6,10 @@ import { deleteUserAppShare, syncUserApps } from "~/api/auth.api";
 import { areTruthy } from "~/components/General/Table/utils";
 import type { WidgetJsonT } from "~/components/types";
 import { useShallowAuthStore } from "~/lib/state/auth";
-import { TEMPLATES } from "~/lib/templates";
 import { duplicateTabItem } from "~/lib/utils";
 import {
   createCustomTemplateTab,
   getUntouchedAppTabInfo,
-  OPENBB_ONBOARDING_WIDGETS,
 } from "~/lib/utils/createTemplates";
 import { showNotification } from "~/lib/utils/toast";
 import type { ListedAppMcpServer } from "~/types/listedApps";
@@ -22,10 +20,9 @@ import {
   useShallowBackendConnectorStore,
 } from "../lib/state/backendConnector";
 import { type SharedUser, useShallowUserAppsStore } from "../lib/state/userApps";
-import { useAvailableTemplates } from "./useAvailableTemplates";
 import { useSharedTemplates } from "./useSharedTemplates";
 
-export type TemplateType = "openbb" | "user" | "shared" | "listed" | "generated";
+export type TemplateType = "user" | "shared" | "listed" | "generated";
 
 export interface UnifiedTemplate {
   id: string;
@@ -57,7 +54,6 @@ export interface UnifiedTemplate {
 
 export function useAllTemplates(isLoadingApiSources = false) {
   const userEmail = useShallowAuthStore((state) => state.user?.email || "");
-  const availableTemplates = useAvailableTemplates();
   const { data: sharedTemplatesData = [] } = useSharedTemplates({
     enabled: !isLoadingApiSources,
   });
@@ -79,19 +75,6 @@ export function useAllTemplates(isLoadingApiSources = false) {
   const { id: currentDashboard } = useParams();
 
   const allTemplates = useMemo<UnifiedTemplate[]>(() => {
-    const openbbTemplates = availableTemplates.map((template) => {
-      const templateData = TEMPLATES[template.id] || {};
-      if (template.id === "onboarding")
-        templateData.widgets = OPENBB_ONBOARDING_WIDGETS;
-
-      return {
-        ...template,
-        type: "openbb" as const,
-        widgets: (templateData?.widgets || []) as WidgetJsonT[],
-        prompts: (templateData?.prompts || []) as string[],
-      };
-    });
-
     const sharedTemplateIds = new Set(
       sharedTemplatesData.map((template) => template.id),
     );
@@ -343,10 +326,8 @@ export function useAllTemplates(isLoadingApiSources = false) {
       ...sharedTemplates,
       ...userTemplates,
       ...generatedAppTemplates,
-      ...openbbTemplates,
     ] as UnifiedTemplate[];
   }, [
-    availableTemplates,
     apiSources,
     sharedTemplatesData,
     userGeneratedApps,

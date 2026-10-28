@@ -3,7 +3,6 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { isTruthyRecord } from "~/components/General/Table/utils";
 import type { ParamDef, WidgetT } from "~/components/types";
 import { createWidgetDataMetadata } from "~/hooks/useWidgetDataExport";
-import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { getIframeWidget } from "~/lib/iframeWidgetRegistry";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowAuthStore } from "~/lib/state/auth";
@@ -19,8 +18,8 @@ import {
 import {
   createParamDefs,
   currentDateModifier,
-  getJsonWidget,
   getWidgetDataSource,
+  getWidgetDefinition,
   getWidgetInfo,
 } from "~/lib/utils";
 import { type DashboardInfoT, getDashboardInfo } from "~/lib/utils/workspaceDashboard";
@@ -296,7 +295,6 @@ export function useGetCopilotWidgets() {
       if (
         w?.disableRetrievalForCopilot ||
         !(w?.widgetId || w?.id) ||
-        (BLOCKED_WIDGET_IDS.has(w.widgetId) && !w.external) ||
         w?.widgetId === "navigation_bar"
       )
         return acc;
@@ -487,7 +485,7 @@ export function createCopilotWidget(
       );
     const widgetName = widget.name;
     if (!widgetName) throw new Error(`Widget name not found: ${widget}`);
-    const defaultParams = createParamDefs(getJsonWidget(widget) as WidgetT);
+    const defaultParams = createParamDefs(getWidgetDefinition(widget) as WidgetT);
     const {
       params: currentParams = undefined,
       options: currentOptions = undefined,

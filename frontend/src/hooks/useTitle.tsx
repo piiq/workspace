@@ -49,8 +49,6 @@ export function useGlobalTitleManager(): void {
       pageTitle = "Connections";
     } else if (path.startsWith("/app/settings")) {
       pageTitle = "Settings";
-    } else if (path.startsWith("/app/news")) {
-      pageTitle = "News";
     } else if (path.startsWith("/app/help-documentation")) {
       pageTitle = "Help & Documentation";
     } else if (path.startsWith("/app/") && tabId) {

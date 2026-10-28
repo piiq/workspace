@@ -13,9 +13,7 @@ import {
   login as apiLogin,
   googleLogin,
   // githubLogin,
-  isValidMainTicker,
   microsoftLogin,
-  migrateDefaultTicker,
   oktaLogin,
   snowflakeLogin,
   updatePassword,
@@ -868,12 +866,6 @@ export async function loginSuccess(data: ProLoginResponse) {
     apiSources: user.api_sources || [],
     widgetMetadata: user.widget_metadata || [],
   });
-
-  const defaultTicker = user.pro_display_settings.defaultTicker;
-
-  if (!isValidMainTicker(defaultTicker)) {
-    user.pro_display_settings.defaultTicker = await migrateDefaultTicker(defaultTicker);
-  }
 
   useThemeStore.getState().updateThemeState({ ...user.pro_display_settings });
 

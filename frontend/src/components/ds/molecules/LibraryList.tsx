@@ -20,7 +20,7 @@ interface LibraryRowProps {
 export const LIBRARY_ROW_CLASS = "border-b border-surface-divider last:border-b-0 py-2";
 
 // Shared chrome for the leaf cards revealed when a row is expanded (MCP tools,
-// My-Widgets widget cards, Packaged/Sandbox widget items). One definition keeps
+// widget cards). One definition keeps
 // their bg/border/rounding/padding identical; `min-h-6` on the LibraryItem
 // header (below) keeps their height identical too.
 export const LIBRARY_CARD_CLASS =

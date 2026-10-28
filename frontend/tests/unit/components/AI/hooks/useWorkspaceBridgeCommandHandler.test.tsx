@@ -126,7 +126,7 @@ const backendNameToWidget: Record<string, any[]> = {
       ],
     },
     {
-      widgetId: "watchlist",
+      widgetId: "rss_viewer",
       sourceName: "OpenBB Workspace",
       name: "Watchlist",
     },
@@ -1009,7 +1009,7 @@ describe("useWorkspaceBridgeCommandHandler", () => {
     expect(response?.data).not.toEqual(
       expect.objectContaining({
         widgets: expect.arrayContaining([
-          expect.objectContaining({ widget_id: "watchlist" }),
+          expect.objectContaining({ widget_id: "rss_viewer" }),
         ]),
       }),
     );
@@ -1117,7 +1117,7 @@ describe("useWorkspaceBridgeCommandHandler", () => {
     });
   });
 
-  it("rejects unsupported plain-create widgets explicitly", async () => {
+  it("rejects RSS widgets that require feed setup", async () => {
     const { result } = renderHook(() => useWorkspaceBridgeCommandHandler());
 
     let response: Awaited<ReturnType<typeof result.current>> | undefined;
@@ -1126,7 +1126,7 @@ describe("useWorkspaceBridgeCommandHandler", () => {
         command: "create_widget",
         dashboard_id: "dashboard-1",
         backend_name: "OpenBB Workspace",
-        widget_id: "watchlist",
+        widget_id: "rss_viewer",
       } as never);
     });
 
@@ -1137,7 +1137,7 @@ describe("useWorkspaceBridgeCommandHandler", () => {
       error: {
         code: "invalid_request",
         message:
-          "create_widget does not support 'watchlist'. watchlist still injects default watchlist data instead of honoring a deterministic symbol list.",
+          "create_widget does not support 'rss_viewer'. rss_viewer requires feed bootstrap that is not yet exposed through create_widget.",
       },
     });
   });
@@ -1747,7 +1747,10 @@ describe("useWorkspaceBridgeCommandHandler", () => {
 
   it("returns a bridge error when generative-widget creation fails", async () => {
     mockAddGenerativeWidget.mockResolvedValue([
-      { status: "error", message: "Failed to add the generative widget to the target dashboard." },
+      {
+        status: "error",
+        message: "Failed to add the generative widget to the target dashboard.",
+      },
     ]);
 
     const { result } = renderHook(() => useWorkspaceBridgeCommandHandler());

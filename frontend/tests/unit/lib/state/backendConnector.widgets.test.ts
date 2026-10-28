@@ -425,7 +425,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
           subCategory: "test",
           type: "table",
           defaultViz: "table",
-          sdkFunc: "test_widget",
           params: [
             {
               paramName: "symbol",
@@ -462,7 +461,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
           subCategory: "test",
           type: "table" as const,
           defaultViz: "table" as const,
-          sdkFunc: "failing_widget",
           params: [],
         },
       };
@@ -496,7 +494,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
           subCategory: "test",
           type: "table" as const,
           defaultViz: "table" as const,
-          sdkFunc: "network_error_widget",
           params: [],
         },
       };
@@ -525,7 +522,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
           subCategory: "test",
           type: "table" as const,
           defaultViz: "table" as const,
-          sdkFunc: "signal_widget",
           params: [],
         },
       };
@@ -561,7 +557,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
           subCategory: "test",
           type: "table" as const,
           defaultViz: "table" as const,
-          sdkFunc: "param_required_widget",
           params: [
             {
               paramName: "required_param",
@@ -603,7 +598,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "omni" as const,
-            sdkFunc: "omni_test",
             params: [
               {
                 paramName: "test_param",
@@ -664,7 +658,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "ssrm_table" as const,
-            sdkFunc: "ssrm_test",
             params: [
               {
                 paramName: "database_param",
@@ -726,7 +719,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "omni" as const,
-            sdkFunc: "failing_omni",
             params: [],
           },
         };
@@ -760,7 +752,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "ssrm_table" as const,
-            sdkFunc: "failing_ssrm",
             params: [],
           },
         };
@@ -794,7 +785,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "table" as const,
-            sdkFunc: "get_widget",
             params: [],
           },
           omni_widget: {
@@ -805,7 +795,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "omni" as const,
-            sdkFunc: "omni_widget",
             params: [],
           },
           ssrm_widget: {
@@ -816,7 +805,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "ssrm_table" as const,
-            sdkFunc: "ssrm_widget",
             params: [],
           },
         };
@@ -888,7 +876,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "omni" as const,
-            sdkFunc: "parameterized_omni",
             params: [
               {
                 paramName: "ticker",
@@ -942,7 +929,6 @@ describe("validateBackend - widgets.json endpoint behavior", () => {
             sub_category: "test",
             subCategory: "test",
             defaultViz: "omni" as const,
-            sdkFunc: "network_error_omni",
             params: [],
           },
         };

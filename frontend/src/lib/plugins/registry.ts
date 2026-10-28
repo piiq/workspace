@@ -15,6 +15,7 @@ import {
 } from "@piiq/workspace-plugin-sdk/ag-grid";
 import type { GridOptions } from "ag-grid-community";
 import type { ComponentType } from "react";
+import type { WidgetT } from "~/components/types";
 import { getBoundRendererId } from "./rendererBindings";
 
 export interface RegisteredRenderer extends RendererMetadata {
@@ -22,6 +23,7 @@ export interface RegisteredRenderer extends RendererMetadata {
   pluginId?: string;
   Component: ComponentType;
   Toolbar?: ComponentType;
+  widget?: Partial<WidgetT>;
 }
 
 export type BuiltinRenderer = Omit<

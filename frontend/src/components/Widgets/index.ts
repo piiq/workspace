@@ -1,14 +1,10 @@
 import { lazy } from "react";
-import { WidgetDataProcessors } from "~/components/Widgets/dataProcessors";
-import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { registerBuiltinRenderers } from "~/lib/plugins/api";
+import { builtinWidgets } from "~/lib/plugins/builtinWidgets";
 import { widgetRegistry } from "~/lib/plugins/registry";
-import type { WidgetsIds } from "~/lib/utils/widget";
-import type { WidgetT } from "../types";
 
 const AgChartFC = lazy(() => import("./AgChart"));
 const AgWebSocketsFC = lazy(() => import("../General/Table/AgWebSockets"));
-const CurrencySnapshotFC = lazy(() => import("../Widgets/Currency/CurrencySnapshot"));
 const MarkdownFC = lazy(() => import("./custom/Markdown"));
 const AgChartFromTableFC = lazy(() => import("../General/Table/AgChartFromTable"));
 const AgGridFileFC = lazy(() => import("../General/Table/AgGridFile"));
@@ -21,47 +17,14 @@ const MetricWidgetFC = lazy(() => import("./Metric"));
 const FileViewerWidgetFC = lazy(() => import("./FileView"));
 const OmniWidgetFC = lazy(() => import("./OmniWidget"));
 const ClockWidgetFC = lazy(() => import("./Clock"));
-const CountryIndicatorsFC = lazy(() => import("./Economy/CountryIndicators"));
-const ForwardTrendsFC = lazy(() => import("./Equity/ForwardTrends"));
-const ETFClassificationFC = lazy(() => import("./ETF/Classification"));
-const ETFCharacteristicsFC = lazy(() => import("./ETF/Characteristics"));
-const EconomicCalendarFC = lazy(() => import("./Economy/EconomicCalendar"));
-const EconomicOverviewFC = lazy(() => import("./Economy/EconomicOverview"));
-const EconomicIndicatorsFC = lazy(() => import("./Economy/EconomicIndicators"));
 const CopilotTableFC = lazy(() => import("./AI/CopilotTable"));
-const AnalystEstimatesFC = lazy(() => import("./Equity/AnalystEstimates"));
-const CompanyEventsFC = lazy(() => import("./Equity/CompanyEvents"));
-const CompanyProfileFC = lazy(() => import("./Equity/CompanyProfile"));
-const GroupedComparisonFC = lazy(
-  () => import("./Equity/ComparisonAnalysis/GroupedComparison"),
-);
-const EarningsTranscriptFC = lazy(
-  () => import("./Equity/EarningsTranscript/EarningsTranscript"),
-);
-const SingleEarningsTranscriptFC = lazy(
-  () => import("./Equity/EarningsTranscript/SingleEarningsTranscript"),
-);
-const InstitutionalOwnershipFC = lazy(() => import("./Equity/InstitutionalOwnership"));
-const KeyMetricsFC = lazy(() => import("./Equity/KeyMetrics"));
-const NewsFC = lazy(() => import("./Equity/News/News"));
 const CustomNewsFC = lazy(() => import("./custom/News"));
-const SingleNewsFC = lazy(() => import("./Equity/News/SingleNews"));
-const PricePerformanceFC = lazy(() => import("./Equity/PricePerformance"));
-const PriceTargetByAnalystFC = lazy(() => import("./Equity/PriceTargetByAnalyst"));
-const RevenuePerFC = lazy(() => import("./Equity/RevenuePer"));
-const ShareStatisticsFC = lazy(() => import("./Equity/ShareStatistics"));
-const SingleBarOverviewFC = lazy(() => import("./Equity/SingleBarOverview"));
-const TickerSummaryFC = lazy(() => import("./Equity/TickerSummary"));
-const TopBarOverviewFC = lazy(() => import("./Equity/TopBarOverview"));
-const WatchlistFC = lazy(() => import("./Equity/Watchlist"));
-const GroupedFinancialsFC = lazy(() => import("./GroupedFinancials"));
 const IframeFC = lazy(() => import("./Iframe"));
 const YouTubeFC = lazy(() => import("./YouTube"));
 const MarkdownEditorFC = lazy(() => import("./Misc/Editing/MarkdownEditor"));
 const RSSViewerFC = lazy(() => import("./RssViewer"));
 const XMLViewerFC = lazy(() => import("./XmlViewer"));
 const NavigationBarFC = lazy(() => import("./ui/NavigationBar"));
-const BigStoriesFC = lazy(() => import("./Equity/News/BigStories"));
 const PdfViewerFC = lazy(() => import("./PdfViewer"));
 const ImageViewerFC = lazy(() => import("./ImageViewer"));
 const HtmlViewerFC = lazy(() => import("./custom/HtmlViewer"));
@@ -71,24 +34,8 @@ export const AgGridComponents = {
   ag_grid_file: "AgGridFile",
   ag_grid_sql: "AgGridSQL",
   ag_grid_table: "AgGridTable",
-  analyst_estimates: "AnalystEstimates",
-  financial_statements: "GroupedFinancials",
-  watchlist: "Watchlist",
-  key_metrics: "KeyMetrics",
-  share_statistics: "ShareStatistics",
-  grouped_comparison: "GroupedComparison",
-  currency_snapshot: "CurrencySnapshot",
-  institutional_ownership: "InstitutionalOwnership",
-  etf_classification: "ETFClassification",
-  etf_characteristics: "ETFCharacteristics",
   xml_viewer: "XMLViewer",
-  earning_history: "CompanyEvents",
   copilot_table: "CopilotTable",
-  revenue_per: "RevenuePer",
-  revenue_per_bus_line: "RevenuePer",
-  revenue_per_geography: "RevenuePer",
-  earnings_trends: "ForwardTrends",
-  revenue_trends: "ForwardTrends",
   live_grid: "AgWebSockets",
   omni: "OmniWidget",
 } as const;
@@ -99,35 +46,23 @@ export const NonAgGridComponents = {
   clock: "ClockWidget",
   metric: "MetricWidget",
   file_viewer: "FileViewerWidget",
-  company_profile: "CompanyProfile",
-  earnings_transcripts: "EarningsTranscript",
   iframe: "Iframe",
   youtube: "YouTube",
   rss_viewer: "RSSViewer",
-  ticker_summary: "TickerSummary",
   rich_note: "MarkdownEditor",
   markdown: "Markdown",
   pdf: "PdfViewer",
   html: "HtmlViewer",
-  price_performance: "PricePerformance",
-  single_news: "SingleNews",
-  single_earnings_transcript: "SingleEarningsTranscript",
   navigation_bar: "NavigationBar",
-  market_indices: "TopBarOverview",
-  ticker_information: "SingleBarOverview",
   ag_chart_from_table: "AgChartFromTable",
   ag_chart: "AgChart",
-  company_news: "News",
-  big_stories: "BigStories",
   multi_file_viewer: "MultiFileViewer",
   newsfeed: "CustomNews",
-  // mini_sparkline_charts: "MarketOverviewCustom", commented for now until we finish the component
 } as const;
 
 export const Widgets = {
   AgChart: AgChartFC,
   AgWebSockets: AgWebSocketsFC,
-  CurrencySnapshot: CurrencySnapshotFC,
   Markdown: MarkdownFC,
   AgChartFromTable: AgChartFromTableFC,
   AgGridFile: AgGridFileFC,
@@ -139,46 +74,18 @@ export const Widgets = {
   FileViewerWidget: FileViewerWidgetFC,
   OmniWidget: OmniWidgetFC,
   ClockWidget: ClockWidgetFC,
-  CountryIndicators: CountryIndicatorsFC,
-  ForwardTrends: ForwardTrendsFC,
-  ETFClassification: ETFClassificationFC,
-  ETFCharacteristics: ETFCharacteristicsFC,
-  EconomicCalendar: EconomicCalendarFC,
-  EconomicOverview: EconomicOverviewFC,
-  EconomicIndicators: EconomicIndicatorsFC,
   CopilotTable: CopilotTableFC,
-  AnalystEstimates: AnalystEstimatesFC,
-  CompanyEvents: CompanyEventsFC,
-  CompanyProfile: CompanyProfileFC,
-  GroupedComparison: GroupedComparisonFC,
-  EarningsTranscript: EarningsTranscriptFC,
-  SingleEarningsTranscript: SingleEarningsTranscriptFC,
-  InstitutionalOwnership: InstitutionalOwnershipFC,
-  KeyMetrics: KeyMetricsFC,
-  News: NewsFC,
   CustomNews: CustomNewsFC,
-  SingleNews: SingleNewsFC,
-  PricePerformance: PricePerformanceFC,
-  PriceTargetByAnalyst: PriceTargetByAnalystFC,
-  RevenuePer: RevenuePerFC,
-  ShareStatistics: ShareStatisticsFC,
-  SingleBarOverview: SingleBarOverviewFC,
-  TickerSummary: TickerSummaryFC,
-  TopBarOverview: TopBarOverviewFC,
-  Watchlist: WatchlistFC,
-  GroupedFinancials: GroupedFinancialsFC,
   Iframe: IframeFC,
   YouTube: YouTubeFC,
   MarkdownEditor: MarkdownEditorFC,
   RSSViewer: RSSViewerFC,
   XMLViewer: XMLViewerFC,
   NavigationBar: NavigationBarFC,
-  BigStories: BigStoriesFC,
   PdfViewer: PdfViewerFC,
   ImageViewer: ImageViewerFC,
   HtmlViewer: HtmlViewerFC,
   MultiFileViewer: MultiFileViewerFC,
-  //MarketOverviewCustom: MarketOverviewCustomFC,
 } as const;
 
 export default Widgets;
@@ -194,45 +101,29 @@ export const WidgetComponentMap = {
 registerBuiltinRenderers(
   Object.entries(WidgetComponentMap).map(([id, componentName]) => ({
     id,
-    title: componentName.replace(/([a-z])([A-Z])/g, "$1 $2"),
+    title:
+      builtinWidgets[id]?.name ?? componentName.replace(/([a-z])([A-Z])/g, "$1 $2"),
+    description: builtinWidgets[id]?.description,
+    widget: builtinWidgets[id],
     Component: Widgets[componentName],
     kind: id in AgGridComponents ? "table" : "content",
     wrapper: id in AgGridComponents ? "ag-grid" : undefined,
   })),
 );
 
-export type WidgetId<T = keyof typeof WidgetComponentMap | WidgetsIds> =
-  T extends keyof typeof WidgetComponentMap ? T : T extends WidgetsIds ? T : string;
+export type WidgetId = string;
 
 export type WidgetComponentMapT = {
   [key in WidgetId]: WidgetComponentName;
 };
 
-type DataProcessorT = (queryData: any, widget: WidgetT) => { rowData: any[] };
-
-const getDataProcessor = (widgetId: WidgetId): DataProcessorT | undefined => {
-  return WidgetDataProcessors?.[WidgetComponentMap?.[widgetId]];
-};
-
-type QueryDataT = { results?: any[] };
-
-export function getParsedWidgetData(queryData: QueryDataT, widget: WidgetT) {
-  const dataProcessor = getDataProcessor(widget?.widgetId);
-
-  const rowData = dataProcessor?.(queryData, widget)?.rowData;
-  return rowData || queryData?.results || queryData;
-}
-
 export const getWidgetComponent = (widgetId: string) => {
-  if (BLOCKED_WIDGET_IDS.has(widgetId)) return;
-
   const state = widgetRegistry.getRendererState(widgetId);
   if (state.status === "pending") throw state.ready;
   return state.status === "ready" ? state.renderer.Component : undefined;
 };
 
 export const isAgGridWidget = (widgetId: string): boolean => {
-  if (BLOCKED_WIDGET_IDS.has(widgetId)) return false;
   const state = widgetRegistry.getRendererState(widgetId);
   return state.status === "ready" && state.renderer.wrapper === "ag-grid";
 };

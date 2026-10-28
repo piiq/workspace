@@ -37,7 +37,7 @@ import { widgetRegistry } from "~/lib/plugins/registry";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { cn, isSSRMType } from "~/lib/utils";
 import { getMainMenuItems } from "../AgGrid";
-import { createRangeChart, customChartWidgetIds } from "../Chart/AgChartView";
+import { createRangeChart } from "../Chart/AgChartView";
 import { useChartCloseButtonListener } from "../Chart/hooks/useChartOptions";
 import { useCreateChartData } from "../Chart/hooks/useCreateChartData";
 import { useAgThemes } from "../Chart/themes";
@@ -370,10 +370,7 @@ export function useUpdateChartView(
     rangeChartParams.chartThemeOverrides = chartThemeOverrides;
     rangeChartParams.chartThemeName = chartThemeName;
 
-    const hasCustomChart =
-      !widget.external && customChartWidgetIds.includes(widget?.widgetId);
-    const withOptions =
-      (chartData.isReallyTransposed || hasCustomChart) && !isPivotMode;
+    const withOptions = chartData.isReallyTransposed && !isPivotMode;
     agGrid.isReallyTransposedRef.current = chartData.isReallyTransposed && !isPivotMode;
 
     setChartUpdate(withOptions && { rowData, columnDefs }, rangeChartParams, isUpdate);
@@ -451,36 +448,21 @@ export function useSyncTableData(gridOptions: GridOptions) {
   const handleChartViewToggle = useCallback(
     (chartViewEnabled: boolean) => {
       if (!ensureAgGrid(gridRef.current)) return;
-      const { external, widgetId } = widgetRef.current;
       const { rowData, columnDefs } = gridState;
       const pagination = isServerSide || (rowData?.length > 100 && enablePagination);
-      const hasCustomChart = !external && customChartWidgetIds.includes(widgetId);
       const isReallyTransposed = agGrid.isReallyTransposedRef.current;
 
       const updateState = { pagination, loading: false } as GridStateT;
       if (chartViewEnabled && chartRef.current) {
         if (!isServerSide) gridRef.current?.api?.updateGridOptions({ loading: true });
         if (!ensureAgGrid(gridRef.current)) return;
-        if ((isReallyTransposed || !hasCustomChart) && !isServerSide)
-          Object.assign(updateState, { rowData, columnDefs });
+        if (!isServerSide) Object.assign(updateState, { rowData, columnDefs });
 
         if (!isServerSide) setPendingUpdate(updateState, chartViewEnabled);
-        if (hasCustomChart || isReallyTransposed)
-          queueMicrotask(() =>
-            agGrid.updateAgGrid(
-              hasCustomChart ? { dataRevision: null } : { needsUpdate: true },
-            ),
-          );
+        if (isReallyTransposed)
+          queueMicrotask(() => agGrid.updateAgGrid({ needsUpdate: true }));
         chartRef.current?.destroyChart();
         chartRef.current = null;
-      }
-
-      if (hasCustomChart) {
-        gridRef.current?.api?.updateGridOptions({
-          ...updateState,
-          rowData: [],
-          columnDefs: [],
-        });
       }
 
       return !chartViewEnabled;
@@ -778,7 +760,7 @@ export function useAgExportFuncs() {
 
 export function useQuickActionsSettings(transpose?: boolean | undefined) {
   const { gridRef } = useAgGridContext();
-  const { widgetFromJSON, updateWidget } = useWidgetContext();
+  const { updateWidget } = useWidgetContext();
 
   const memoizedQuickActions = useMemo<ExtraActionT>(() => {
     return {
@@ -808,9 +790,7 @@ export function useQuickActionsSettings(transpose?: boolean | undefined) {
           icon: "noto-letter-t",
           id: "transpose-data",
           label: "Transpose data",
-          hide:
-            transpose === undefined ||
-            ["financial_ratios", "stock_ownership"].includes(widgetFromJSON?.widgetId),
+          hide: transpose === undefined,
           onClick: () => {
             updateWidget((prev) => ({
               ...prev,
@@ -823,7 +803,7 @@ export function useQuickActionsSettings(transpose?: boolean | undefined) {
         },
       ],
     };
-  }, [gridRef, widgetFromJSON?.widgetId, updateWidget]);
+  }, [gridRef, transpose, updateWidget]);
 
   return memoizedQuickActions;
 }

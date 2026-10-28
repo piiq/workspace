@@ -1,7 +1,6 @@
 import Fuse from "fuse.js";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { type InnerTab, type Item, useShallowAppStore } from "~/lib/state/app";
 import {
   type CopilotWidget,
@@ -86,8 +85,7 @@ function getCurrentDashboardTabOptions(currentDashboard: Item | null) {
       (w) =>
         w.innerTab === innerTabId &&
         !w?.disableRetrievalForCopilot &&
-        w.widgetId !== "navigation_bar" &&
-        !(BLOCKED_WIDGET_IDS.has(w.widgetId) && !w.external),
+        w.widgetId !== "navigation_bar",
     );
 
     // Convert dashboard widgets to CopilotWidget format for metadata

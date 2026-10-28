@@ -3,7 +3,7 @@ import { uniqueId } from "lodash";
 import { useRef } from "react";
 import { useDebounceValue, useUpdateEffect } from "usehooks-ts";
 import { useStateReducer } from "~/hooks/useStateReducer";
-import { type OldRSSFeed, RSS_FEEDS, type RSSFeed } from "~/lib/constants";
+import type { OldRSSFeed, RSSFeed } from "~/lib/constants";
 import { getConfig } from "~/lib/runtimeConfig";
 import { parseFeedXml } from "~/lib/utils/feedParser";
 import DraggableCard from "../DraggableCard";
@@ -120,15 +120,6 @@ const RSSViewer = ({ filter = "" }: { filter?: string }) => {
       {state.selectedTab === "Content" ? (
         <ContentTab
           addRssFeedHandler={addRssFeedHandler}
-          addDefaults={() =>
-            updateWidget((prev) => ({
-              ...prev,
-              storage: {
-                ...prev.storage,
-                feeds: RSS_FEEDS,
-              },
-            }))
-          }
           allData={allData}
           feeds={widget?.storage?.feeds ?? []}
           globalFilter={debouncedGlobalFilter}

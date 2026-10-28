@@ -35,32 +35,5 @@ describe("copilot utils", () => {
       const result = findMatchingWidget(citation, dashboardWidgets, allAppWidgets);
       expect(result).toBeUndefined();
     });
-
-    it("handles financial statements special case", () => {
-      const fsCitation = {
-        source_info: {
-          type: "widget",
-          widget_id: "income_statement",
-          metadata: { input_args: { symbol: "AAPL" } },
-        },
-      } as any;
-
-      const fsAllAppWidgets = new Map([
-        ["financial_statements", { params: [{ paramName: "symbol" }] }],
-      ]) as any;
-
-      const dashboardWidgets = [
-        {
-          widgetId: "financial_statements",
-          storage: {
-            selectedGroup: "income_statement",
-            params: { symbol: "AAPL" },
-          },
-        },
-      ] as any;
-
-      const result = findMatchingWidget(fsCitation, dashboardWidgets, fsAllAppWidgets);
-      expect(result).toBeDefined();
-    });
   });
 });

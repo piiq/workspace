@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { areTruthy } from "~/components/General/Table/utils";
 import Icon from "~/components/Icon";
 import Tooltip from "~/components/SpecialTooltip";
-import type { Group, GroupTypes, ParamDef, Ticker, Widget } from "~/components/types";
+import type { Group, GroupTypes, ParamDef, Widget } from "~/components/types";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import {
@@ -39,9 +39,7 @@ import {
   getEndpointParams,
   getGroupInfo,
   getGroupLabel,
-  getJsonWidget,
-  getWidgetsWithSupportedAssetClass,
-  groupParamOverride,
+  getWidgetDefinition,
   scoreArrays,
   triggerCustomEvent,
   useEventListener,
@@ -110,7 +108,7 @@ export const GroupDropdown = forwardRef<HTMLButtonElement, GroupDropdownProps>(
       if (props?.type !== "param") return [];
 
       if (!paramDef) {
-        const paramName = groupParamOverride(props?.groupById, widgetId);
+        const paramName = props?.groupById;
         const param = params?.find(
           (param) =>
             param.paramName === paramName &&
@@ -430,10 +428,6 @@ export default memo(GroupDropdown);
 function GroupContent(props: Omit<GroupDropdownProps, "children">) {
   const { type, groupById, paramDef } = props;
 
-  const EXCEPTION_WIDGETS_IDS = useMemo(
-    () => getWidgetsWithSupportedAssetClass("all", true),
-    [],
-  );
   const { widget, activeDashboardId } = useWidgetContext();
   const { currentTutorial, currentStep, goToStep } = useShallowTutorialStore(
     (state) => ({
@@ -445,25 +439,18 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
 
   const getDashboardById = useShallowSharedAppStore((s) => s.getDashboardById);
 
-  const { addGroup, updateGroup, setWidgetGroupId, groups, watchlistWidget } =
-    useShallowAppStore((s) => {
+  const { addGroup, updateGroup, setWidgetGroupId, groups } = useShallowAppStore(
+    (s) => {
       const tab =
         s.getTabById(activeDashboardId) || getDashboardById(activeDashboardId);
-      let watchlistWidget = {} as Widget;
-      if (type === "ticker") {
-        watchlistWidget = tab?.data?.widgets.find(
-          (widget) => widget.widgetId === "watchlist",
-        );
-      }
-
       return {
         addGroup: s.addGroup,
         updateGroup: s.updateGroup,
         setWidgetGroupId: s.setWidgetGroupId,
         groups: tab?.data?.groups || [],
-        watchlistWidget,
       };
-    });
+    },
+  );
 
   const validGroups = groups.filter((group) => {
     if (type === "param")
@@ -479,7 +466,7 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
   });
 
   const widgetAssetClasses = useMemo(() => {
-    const widgetFromJSON = getJsonWidget(widget);
+    const widgetFromJSON = getWidgetDefinition(widget);
 
     return widget?.supportedAssetClasses || widgetFromJSON?.supportedAssetClasses || [];
   }, [widget?.supportedAssetClasses, widget?.widgetId]);
@@ -497,10 +484,6 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
         widgetAssetClasses.includes("options") && group?.value?.has_options;
 
       if (group.acceptAssetClasses?.includes("all") || isOptions) return true;
-      // If the widget is in the list of exception widgets, it can be grouped with any asset class
-      if (EXCEPTION_WIDGETS_IDS.includes(widget?.widgetId)) {
-        return true;
-      }
       // If the widget has no specific asset classes, it's an exception and can be grouped with any
       if (!widgetAssetClasses || widgetAssetClasses.length === 0) {
         return true;
@@ -524,10 +507,9 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
           element={element}
           validateAssetClass={validateAssetClass}
           updateGroup={debouncedUpdateGroup}
-          watchlistWidget={watchlistWidget}
         />
       )),
-    [validGroups, validateAssetClass, debouncedUpdateGroup, watchlistWidget],
+    [validGroups, validateAssetClass, debouncedUpdateGroup],
   );
 
   const onClick = useCallback(() => {
@@ -569,11 +551,10 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
 const GroupContentItem = memo(
   (props: {
     element: Group;
-    watchlistWidget?: Widget;
     validateAssetClass: (group: Group) => boolean;
     updateGroup: (tabId: string, groupId: string, group: Group) => void;
   }) => {
-    const { element, watchlistWidget, validateAssetClass, updateGroup } = props;
+    const { element, validateAssetClass, updateGroup } = props;
 
     const {
       widget: {
@@ -647,13 +628,6 @@ const GroupContentItem = memo(
           return setWidgetGroupId(activeDashboardId, widgetUUid, element, true);
         }
 
-        if (watchlistWidget?.groupId === element.id) {
-          addTickerToWatchlist({
-            watchlistWidget,
-            mainTicker: mainTicker,
-            tabId: activeDashboardId,
-          });
-        }
         // If it's not, add it to the group
         setWidgetGroupId(activeDashboardId, widgetUUid, element);
       },
@@ -664,7 +638,6 @@ const GroupContentItem = memo(
         deleteGroup,
         element,
         updateGroup,
-        watchlistWidget,
         mainTicker,
         external,
         widgetUUid,
@@ -751,28 +724,6 @@ const GroupContentItem = memo(
     );
   },
 );
-
-function addTickerToWatchlist(params: {
-  watchlistWidget?: Widget;
-  mainTicker?: Ticker;
-  tabId: string;
-}) {
-  const { watchlistWidget, mainTicker, tabId } = params;
-  if (
-    mainTicker &&
-    !watchlistWidget.data?.secondaryTickers?.find(
-      (ticker) => ticker.symbol === mainTicker.symbol,
-    )
-  ) {
-    useAppStore.getState().updateWidget(tabId, {
-      ...watchlistWidget,
-      data: {
-        ...watchlistWidget.data,
-        secondaryTickers: [...watchlistWidget.data.secondaryTickers, mainTicker],
-      },
-    });
-  }
-}
 
 export function getNewGroup(
   widget: Widget,

@@ -40,7 +40,6 @@ function buildConfigFromEnv(): RuntimeConfig {
     urls: {
       backend: e.VITE_PAYMENTS_URL,
       ai: e.VITE_AI_API_URL,
-      platform: e.VITE_PLATFORM_URL,
       database: e.VITE_DATABASE_API_URL,
     },
     authentication: {
@@ -95,12 +94,9 @@ function buildConfigFromEnv(): RuntimeConfig {
       posthog: e.VITE_SERVICES_POSTHOG,
       hubspotForms: e.VITE_SERVICES_HUBSPOT_FORMS,
       email: e.VITE_SERVICES_EMAIL,
-      nixtla: e.VITE_SERVICES_NIXTLA,
       cloudflareWorker: e.VITE_SERVICES_CLOUDFLARE_WORKER,
     },
     data: {
-      packageDataEnabled: e.VITE_DATA_PACKAGE_DATA_ENABLED,
-      allowedDataVendors: e.VITE_DATA_ALLOWED_DATA_VENDORS,
       allowedDbTypes: e.VITE_DATA_ALLOWED_DB_TYPES,
       openDataPlatformInstallerEnabled: e.VITE_OPEN_DATA_PLATFORM_INSTALLER_ENABLED,
       allowHtmlJsExecution: e.VITE_ALLOW_HTML_JS_EXECUTION,

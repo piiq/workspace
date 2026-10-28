@@ -33,13 +33,11 @@ export default function ContentTab({
   allData,
   globalFilter,
   addRssFeedHandler,
-  addDefaults,
   feeds,
 }: {
   allData: FeedData[];
   globalFilter: string;
   addRssFeedHandler: () => void;
-  addDefaults: () => void;
   feeds: (RSSFeed & OldRSSFeed)[];
 }) {
   const { id } = useParams();
@@ -70,15 +68,6 @@ export default function ContentTab({
         >
           {!allData?.length && (
             <div className="flex items-center gap-2 justify-center">
-              <Button
-                onClick={() => addDefaults()}
-                variant="primary"
-                size="xs"
-                className="mt-2"
-              >
-                <Icon id="plus-icon" className="w-[14px] h-[14px]" />
-                Fill with Defaults
-              </Button>
               <Button
                 onClick={() => addRssFeedHandler()}
                 variant="secondary"

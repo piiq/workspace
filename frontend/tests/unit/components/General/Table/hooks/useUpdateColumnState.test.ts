@@ -3,8 +3,8 @@ import { needsAutoFitOnRestore } from "~/components/General/Table/hooks/useUpdat
 
 describe("needsAutoFitOnRestore", () => {
   it("auto-fits when there is no saved column sizing", () => {
-    expect(needsAutoFitOnRestore(undefined, "custom_widget")).toBe(true);
-    expect(needsAutoFitOnRestore([], "custom_widget")).toBe(true);
+    expect(needsAutoFitOnRestore(undefined)).toBe(true);
+    expect(needsAutoFitOnRestore([])).toBe(true);
   });
 
   it("keeps saved column widths even for tables with few columns", () => {
@@ -15,14 +15,15 @@ describe("needsAutoFitOnRestore", () => {
       colId: `col${i}`,
       width: 120,
     }));
-    expect(needsAutoFitOnRestore(sevenColumns, "custom_widget")).toBe(false);
+    expect(needsAutoFitOnRestore(sevenColumns)).toBe(false);
 
     const twoColumns = sevenColumns.slice(0, 2);
-    expect(needsAutoFitOnRestore(twoColumns, "custom_widget")).toBe(false);
+    expect(needsAutoFitOnRestore(twoColumns)).toBe(false);
   });
 
-  it("always auto-fits allow-listed widgets", () => {
+  it("uses the configured column count when deciding to auto-fit", () => {
     const saved = [{ colId: "a", width: 100 }];
-    expect(needsAutoFitOnRestore(saved, "analyst_consensus")).toBe(true);
+    expect(needsAutoFitOnRestore(saved, 6)).toBe(true);
+    expect(needsAutoFitOnRestore(saved, 1)).toBe(false);
   });
 });

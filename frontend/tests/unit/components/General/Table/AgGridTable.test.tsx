@@ -26,8 +26,6 @@ vi.mock("~/lib/api", () => ({
   }),
 }));
 
-vi.mock("~/lib/api/sdkComponents", () => ({}));
-
 const mockWidget = {
   widgetId: "test-table",
   endpoint: { url: "http://example.com/data" },

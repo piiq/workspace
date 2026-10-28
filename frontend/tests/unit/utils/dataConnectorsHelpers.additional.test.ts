@@ -57,7 +57,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
 
   describe("getDatabaseDetails", () => {
     it("returns undefined for non-database widget types", () => {
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "widget-123",
         connectionType: "file",
@@ -80,7 +79,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
       };
       mockGetDataBaseDetails.mockReturnValue(mockDbData);
 
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "db-123",
         connectionType: "database",
@@ -100,7 +98,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
       };
       mockGetDataBaseDetails.mockReturnValue(mockDbData);
 
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "sf-456",
         connectionType: "snowflake",
@@ -116,7 +113,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
     it("defaults database_type to connectionType if not present", () => {
       mockGetDataBaseDetails.mockReturnValue({ id: 1, name: "Test" });
 
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "db-789",
         connectionType: "database",
@@ -190,7 +186,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
       const mockWidget = { id: "single-1", name: "Single Widget" };
       mockGetSingleWidgetById.mockReturnValue(mockWidget);
 
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "uuid-123",
         connectionType: "single",
@@ -206,7 +201,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
       const mockFile = { id: "file-1", name: "File" };
       mockGetStoredFileById.mockReturnValue(mockFile);
 
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "uuid-456",
         connectionType: "file",
@@ -222,7 +216,6 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
       const mockDbDetails = { id: 1, database_type: "postgres" };
       mockGetDataBaseDetails.mockReturnValue(mockDbDetails);
 
-      // @ts-expect-error - ignored for now
       const widget = {
         widgetId: "db-789",
         connectionType: "database",
@@ -233,14 +226,13 @@ describe("dataConnectorsHelpers - Additional Functions", () => {
       expect(result).toBeDefined();
     });
 
-    it("returns widget metadata for platform connection type", () => {
+    it("returns metadata for a widget metadata connection", () => {
       const mockMetadata = { id: "meta-1", source: "platform" };
       mockGetWidgetMetadataById.mockReturnValue(mockMetadata);
 
-      // @ts-expect-error - ignored for now
       const widget = {
-        widgetId: "platform-123",
-        connectionType: "platform",
+        widgetId: "metadata-123",
+        connectionType: "widgetMetadata",
       } as WidgetT;
 
       const result = handleWidgetMetadata(widget);

@@ -19,31 +19,14 @@ describe("Tutorial Store - Additional Tests", () => {
     useTutorialStore.setState({
       currentTutorial: null,
       currentStep: 0,
-      tutorials: {
-        table_charting: null,
-        grouping: null,
-        data_connectors: null,
-        charting: null,
-        group_sector_companies: null,
-      },
+      tutorials: { data_connectors: null },
     });
     vi.clearAllMocks();
   });
 
   describe("TUTORIAL_STEPS", () => {
-    it("has onboarding steps defined", () => {
-      expect(TUTORIAL_STEPS.onboarding).toBeDefined();
-      expect(TUTORIAL_STEPS.onboarding.length).toBeGreaterThan(0);
-    });
-
-    it("has table_charting steps defined", () => {
-      expect(TUTORIAL_STEPS.table_charting).toBeDefined();
-      expect(TUTORIAL_STEPS.table_charting.length).toBeGreaterThan(0);
-    });
-
-    it("has grouping steps defined", () => {
-      expect(TUTORIAL_STEPS.grouping).toBeDefined();
-      expect(TUTORIAL_STEPS.grouping.length).toBeGreaterThan(0);
+    it("defines the data connector tutorial", () => {
+      expect(TUTORIAL_STEPS.data_connectors.length).toBeGreaterThan(0);
     });
 
     it("each step has required properties", () => {
@@ -59,28 +42,22 @@ describe("Tutorial Store - Additional Tests", () => {
   describe("restartTutorial", () => {
     it("should track posthog event when restarting", () => {
       const { restartTutorial } = useTutorialStore.getState();
-      restartTutorial("grouping");
+      restartTutorial("data_connectors");
 
       expect(posthog.capture).toHaveBeenCalledWith("Started_Tutorial", {
-        tutorial: "grouping",
+        tutorial: "data_connectors",
       });
     });
 
     it("should clear existing completion date", () => {
       useTutorialStore.setState({
-        tutorials: {
-          table_charting: null,
-          grouping: "2023-01-01",
-          data_connectors: null,
-          charting: null,
-          group_sector_companies: null,
-        },
+        tutorials: { data_connectors: "2023-01-01" },
       });
 
       const { restartTutorial } = useTutorialStore.getState();
-      restartTutorial("grouping");
+      restartTutorial("data_connectors");
 
-      expect(useTutorialStore.getState().tutorials.grouping).toBeNull();
+      expect(useTutorialStore.getState().tutorials.data_connectors).toBeNull();
     });
 
     it("should set currentStep to 0", () => {
@@ -96,13 +73,7 @@ describe("Tutorial Store - Additional Tests", () => {
   describe("startTutorial", () => {
     it("should not change state if tutorial already completed", () => {
       useTutorialStore.setState({
-        tutorials: {
-          table_charting: null,
-          grouping: null,
-          data_connectors: "2023-06-15",
-          charting: null,
-          group_sector_companies: null,
-        },
+        tutorials: { data_connectors: "2023-06-15" },
         currentTutorial: null,
       });
 
@@ -114,48 +85,25 @@ describe("Tutorial Store - Additional Tests", () => {
 
     it("should start tutorial if not completed", () => {
       const { startTutorial } = useTutorialStore.getState();
-      startTutorial("charting");
+      startTutorial("data_connectors");
 
-      expect(useTutorialStore.getState().currentTutorial).toBe("charting");
+      expect(useTutorialStore.getState().currentTutorial).toBe("data_connectors");
     });
   });
 
   describe("setCompletedDates", () => {
-    it("merges local and cloud challenges", () => {
+    it("keeps a local completion date when the backend has no date", () => {
       useTutorialStore.setState({
-        tutorials: {
-          table_charting: "2023-01-15",
-          grouping: null,
-          data_connectors: null,
-          charting: null,
-          group_sector_companies: null,
-        },
+        tutorials: { data_connectors: "2023-01-15" },
       });
-
-      const { setCompletedDates } = useTutorialStore.getState();
-      setCompletedDates({
-        table_charting: null,
-        grouping: "2023-02-20",
-        data_connectors: null,
-        charting: null,
-        group_sector_companies: null,
-      });
-
-      const tutorials = useTutorialStore.getState().tutorials;
-      expect(tutorials.table_charting).toBe("2023-01-15");
-      expect(tutorials.grouping).toBe("2023-02-20");
+      useTutorialStore.getState().setCompletedDates({ data_connectors: null });
+      expect(useTutorialStore.getState().tutorials.data_connectors).toBe("2023-01-15");
     });
 
     it("does not sync if challenges match", () => {
-      const challenges = {
-        table_charting: "2023-01-15",
-        grouping: null,
-        data_connectors: null,
-        charting: null,
-        group_sector_companies: null,
-      };
+      const challenges = { data_connectors: "2023-01-15" };
 
-      useTutorialStore.setState({ tutorials: { ...challenges } });
+      useTutorialStore.setState({ tutorials: { data_connectors: null } });
 
       const { setCompletedDates } = useTutorialStore.getState();
       setCompletedDates(challenges);
@@ -177,22 +125,16 @@ describe("Tutorial Store - Additional Tests", () => {
 
     it("sets completion timestamp", () => {
       useTutorialStore.setState({
-        currentTutorial: "charting",
-        tutorials: {
-          table_charting: null,
-          grouping: null,
-          data_connectors: null,
-          charting: null,
-          group_sector_companies: null,
-        },
+        currentTutorial: "data_connectors",
+        tutorials: { data_connectors: null },
       });
 
       const { endTutorial } = useTutorialStore.getState();
       endTutorial();
 
       const tutorials = useTutorialStore.getState().tutorials;
-      expect(tutorials.charting).toBeTruthy();
-      expect(typeof tutorials.charting).toBe("string");
+      expect(tutorials.data_connectors).toBeTruthy();
+      expect(typeof tutorials.data_connectors).toBe("string");
     });
   });
 

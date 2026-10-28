@@ -8,9 +8,7 @@ import {
   useMemo,
 } from "react";
 import type { IconId } from "~/components/Icon.types";
-import { getShowDemoRequestButton } from "~/lib/onPremFeatureFlags";
 import { useShallowAppStore } from "~/lib/state/app";
-import { isExcludedWidgetId } from "~/lib/state/featureFlags";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { cn } from "~/lib/utils";
 import { useShallowStreamingStore } from "../AI/hooks/useStreaming";
@@ -22,8 +20,6 @@ import { useIsFirstRender } from "../General/Table/hooks/utils";
 import Icon from "../Icon";
 import { useWidgetContext } from "../Widget.context";
 import type { WidgetId } from "../Widgets";
-
-const showDemoRequestButton = getShowDemoRequestButton();
 
 type LoadingElementProps = {
   className?: string;
@@ -87,15 +83,12 @@ export const LoadingElement = forwardRef<HTMLElement, LoadingElementProps>(
       errorChildren,
       loading,
       failingUrl,
-      widgetId,
       icon = true,
     } = props;
 
     const childrenExist = !!children;
     const isMinimized = useWidgetContext(true)?.widget?.isMinimized;
     const showLoading = !isMinimized && (!!loading || !childrenExist);
-
-    const setBookingOpen = useShallowThemeStore((s) => s.setBookingOpen);
 
     const loadingElement = useMemo(() => {
       return (
@@ -109,30 +102,6 @@ export const LoadingElement = forwardRef<HTMLElement, LoadingElementProps>(
         </div>
       );
     }, [props.className]);
-
-    if (isExcludedWidgetId(widgetId)) {
-      return (
-        <SearchResultsNotFound
-          icon={true}
-          iconClassName="text-ds-text-caption"
-          firstMessage="This widget is not available in your current plan."
-          secondMessage={null}
-        >
-          {showDemoRequestButton && (
-            <p className="text-xs text-light-500">
-              Please{" "}
-              <button
-                className="text-xs text-brand-main dark:text-brand-lighter underline"
-                onClick={() => setBookingOpen(true)}
-              >
-                Upgrade
-              </button>{" "}
-              to access this widget.
-            </p>
-          )}
-        </SearchResultsNotFound>
-      );
-    }
 
     if (failingUrl && !isMinimized) return <UnfetchableURL url={failingUrl} />;
 

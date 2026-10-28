@@ -79,7 +79,7 @@ export interface ListedApp {
   screenshots?: string[];
   /** Media items: images, videos (.mp4/.webm/.mov), or YouTube URLs */
   media?: string[];
-  /** Built-in apps (like OpenBB Sandbox) are pre-subscribed */
+  /** Whether the connection is subscribed by the deployment. */
   isBuiltIn?: boolean;
   /** Determines if the app is in development. If true, the app will only be visible to owner. */
   isDevelopment?: boolean;

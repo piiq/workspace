@@ -18,7 +18,6 @@ const mockUpdateTabWidgetsLayout = vi.fn();
 const mockUpdateWidgetInStore = vi.fn();
 const mockRemoveWidget = vi.fn();
 const mockGetDashboardWidgetData = vi.fn();
-const mockGetOrQueryTickers = vi.fn();
 const mockTriggerCustomEvent = vi.fn();
 const mockGetDashboardInfo = vi.fn();
 const mockDeserializeDashboardTabId = vi.fn((...args: unknown[]) => args[0]);
@@ -62,14 +61,6 @@ vi.mock("~/lib/state/copilotData", () => ({
   useCopilotDataStore: {
     getState: () => ({
       getDashboardWidgetData: mockGetDashboardWidgetData,
-    }),
-  },
-}));
-
-vi.mock("~/lib/state/tickers", () => ({
-  tickersStore: {
-    getState: () => ({
-      getOrQueryTickers: mockGetOrQueryTickers,
     }),
   },
 }));
@@ -570,29 +561,26 @@ describe("Workspace API", () => {
       );
     });
 
-    it("should handle ticker parameter and query tickers", async () => {
+    it("updates a supplied ticker parameter", async () => {
       const mockWidget = createMockWidget({
         id: widgetUuid,
         params: [{ paramName: "ticker", type: "ticker" }],
       });
-      const mockTicker = { symbol: "AAPL", name: "Apple Inc." };
 
       mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockResolvedValue({ AAPL: mockTicker });
       mockTriggerCustomEvent.mockReturnValue(true);
 
       await updateWidget(dashboardId, widgetUuid, {
         dataArgs: { ticker: "AAPL" },
       });
 
-      expect(mockGetOrQueryTickers).toHaveBeenCalledWith("AAPL");
       expect(mockTriggerCustomEvent).toHaveBeenCalledWith(
         `updateWidget-${widgetUuid}`,
         expect.any(Function),
       );
     });
 
-    it("should not query tickers when ticker value is null string", async () => {
+    it("keeps ticker metadata unchanged for a null string parameter", async () => {
       const mockWidget = createMockWidget({
         id: widgetUuid,
         params: [{ paramName: "ticker", type: "ticker" }],
@@ -605,10 +593,11 @@ describe("Workspace API", () => {
         dataArgs: { ticker: "null" },
       });
 
-      expect(mockGetOrQueryTickers).not.toHaveBeenCalled();
+      const storedWidget = mockUpdateWidgetInStore.mock.calls[0][1];
+      expect(storedWidget.data?.mainTicker).toBeUndefined();
     });
 
-    it("should not query tickers when ticker value is empty", async () => {
+    it("keeps ticker metadata unchanged for an empty parameter", async () => {
       const mockWidget = createMockWidget({
         id: widgetUuid,
         params: [{ paramName: "ticker", type: "ticker" }],
@@ -621,7 +610,8 @@ describe("Workspace API", () => {
         dataArgs: { ticker: "" },
       });
 
-      expect(mockGetOrQueryTickers).not.toHaveBeenCalled();
+      const storedWidget = mockUpdateWidgetInStore.mock.calls[0][1];
+      expect(storedWidget.data?.mainTicker).toBeUndefined();
     });
 
     it("should handle note widget type differently", async () => {
@@ -706,15 +696,19 @@ describe("Workspace API", () => {
       }
     });
 
-    it("should set mainTicker in widget data when ticker is resolved", async () => {
+    it("sets mainTicker from the supplied symbol", async () => {
       const mockWidget = createMockWidget({
         id: widgetUuid,
         params: [{ paramName: "symbol", type: "ticker" }],
       });
-      const mockTicker = { symbol: "TSLA", name: "Tesla Inc.", id: "tsla-id" };
+      const mockTicker = {
+        symbol: "TSLA",
+        id: "TSLA",
+        category: "equity",
+        type: "stock",
+      };
 
       mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockResolvedValue({ TSLA: mockTicker });
       mockTriggerCustomEvent.mockReturnValue(true);
 
       await updateWidget(dashboardId, widgetUuid, {
@@ -752,10 +746,11 @@ describe("Workspace API", () => {
         dataArgs: { date: "2024-01-01" },
       });
 
-      expect(mockGetOrQueryTickers).not.toHaveBeenCalled();
+      const storedWidget = mockUpdateWidgetInStore.mock.calls[0][1];
+      expect(storedWidget.data?.mainTicker).toBeUndefined();
     });
 
-    it("should preserve existing mainTicker metadata in the ticker fallback", async () => {
+    it("preserves category, type, and color when changing the symbol", async () => {
       const mockWidget = createMockWidget({
         id: widgetUuid,
         params: [{ paramName: "symbol", type: "ticker" }],
@@ -771,7 +766,6 @@ describe("Workspace API", () => {
       });
 
       mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockResolvedValue({});
       mockTriggerCustomEvent.mockReturnValue(true);
 
       await updateWidget(dashboardId, widgetUuid, {
@@ -782,7 +776,6 @@ describe("Workspace API", () => {
         (call) => call[0] === `updateWidget-${widgetUuid}`,
       );
 
-      // Fallback overrides symbol/id but keeps other resolved fields (color, etc.)
       expect(updateFnCall?.[1]).toBeTypeOf("function");
       if (typeof updateFnCall?.[1] === "function") {
         const result = updateFnCall[1](mockWidget);
@@ -803,18 +796,21 @@ describe("Workspace API", () => {
         id: widgetUuid,
         params: [{ paramName: "symbol", type: "ticker" }],
       });
-      const mockTicker = { symbol: "TSLA", id: "TSLA", name: "Tesla Inc." };
+      const mockTicker = {
+        symbol: "TSLA",
+        id: "TSLA",
+        category: "equity",
+        type: "stock",
+      };
 
       mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockResolvedValue({ TSLA: mockTicker });
       mockTriggerCustomEvent.mockReturnValue(true);
 
       await updateWidget(dashboardId, widgetUuid, {
         dataArgs: { symbol: "TSLA" },
       });
 
-      // Fix B: the update is written straight to the store (covers inactive-tab
-      // widgets), carrying both the new mainTicker and storage params.
+      // Inactive widgets receive the same saved parameters as mounted widgets.
       expect(mockUpdateWidgetInStore).toHaveBeenCalledTimes(1);
       expect(mockUpdateWidgetInStore).toHaveBeenCalledWith(
         dashboardId,
@@ -1128,7 +1124,12 @@ describe("Workspace API", () => {
         query: "",
       });
 
-      expect(result.params).toEqual({ symbol: "AAPL", raw: false, limit: 0, query: "" });
+      expect(result.params).toEqual({
+        symbol: "AAPL",
+        raw: false,
+        limit: 0,
+        query: "",
+      });
       expect(result.droppedKeys).toEqual([]);
     });
 
@@ -1244,13 +1245,12 @@ describe("Workspace API", () => {
       expect(mockTriggerCustomEvent).toHaveBeenCalledTimes(3);
     });
 
-    it("should fall back to a minimal ticker when getOrQueryTickers returns empty", async () => {
+    it("stores a supplied symbol without provider metadata", async () => {
       const mockWidget = createMockWidget({
         params: [{ paramName: "ticker", type: "ticker" }],
       });
 
       mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockResolvedValue({});
       mockTriggerCustomEvent.mockReturnValue(true);
 
       await updateWidget("dashboard-123", "widget", {
@@ -1261,9 +1261,6 @@ describe("Workspace API", () => {
         (call) => call[0] === "updateWidget-widget",
       );
 
-      // Fix A: SDK widgets fetch by data.mainTicker.symbol, so a failed lookup
-      // must still update mainTicker to the requested symbol rather than leaving
-      // it stale (which would silently skip the refetch).
       expect(updateFnCall?.[1]).toBeTypeOf("function");
       if (typeof updateFnCall?.[1] === "function") {
         const result = updateFnCall[1](mockWidget);
@@ -1290,19 +1287,6 @@ describe("Workspace API", () => {
       ).rejects.toThrow("Failed to add widget to dashboard");
     });
 
-    it("should handle getOrQueryTickers error gracefully", async () => {
-      const mockWidget = createMockWidget({
-        params: [{ paramName: "ticker", type: "ticker" }],
-      });
-
-      mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockRejectedValue(new Error("Network error"));
-
-      await expect(
-        updateWidget("dashboard-123", "widget", { dataArgs: { ticker: "AAPL" } }),
-      ).rejects.toThrow("Network error");
-    });
-
     it("should handle multiple ticker type params (uses first one)", async () => {
       const mockWidget = createMockWidget({
         params: [
@@ -1310,18 +1294,25 @@ describe("Workspace API", () => {
           { paramName: "secondaryTicker", type: "ticker" },
         ],
       });
-      const mockTicker = { symbol: "AAPL", name: "Apple Inc." };
 
       mockGetTabWidgetById.mockReturnValue(mockWidget);
-      mockGetOrQueryTickers.mockResolvedValue({ AAPL: mockTicker });
       mockTriggerCustomEvent.mockReturnValue(true);
 
       await updateWidget("dashboard-123", "widget", {
         dataArgs: { primaryTicker: "AAPL", secondaryTicker: "MSFT" },
       });
 
-      expect(mockGetOrQueryTickers).toHaveBeenCalledWith("AAPL");
-      expect(mockGetOrQueryTickers).toHaveBeenCalledTimes(1);
+      expect(mockUpdateWidgetInStore).toHaveBeenCalledWith(
+        "dashboard-123",
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mainTicker: expect.objectContaining({ symbol: "AAPL" }),
+          }),
+          storage: expect.objectContaining({
+            params: { primaryTicker: "AAPL", secondaryTicker: "MSFT" },
+          }),
+        }),
+      );
     });
 
     it("should handle widget with undefined params array", async () => {

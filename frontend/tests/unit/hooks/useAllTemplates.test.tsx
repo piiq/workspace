@@ -25,31 +25,15 @@ vi.mock("~/lib/state/backendConnector", () => ({
   getTemplateWidgetsMetadata: vi.fn(),
 }));
 
-vi.mock("~/hooks/useAvailableTemplates", () => ({
-  useAvailableTemplates: vi.fn(),
-}));
-
 vi.mock("~/hooks/useSharedTemplates", () => ({
   useSharedTemplates: vi.fn(),
 }));
 
-vi.mock("~/lib/templates", () => ({
-  TEMPLATES: {
-    equity: {
-      widgets: [{ widgetId: "ticker_info" }, { widgetId: "price_chart" }],
-      prompts: ["Show me the price"],
-    },
-    onboarding: {},
-  },
-}));
-
 vi.mock("~/lib/utils/createTemplates", () => ({
-  OPENBB_ONBOARDING_WIDGETS: [{ widgetId: "onboarding_widget" }],
   createCustomTemplateTab: (...args: any[]) => mockCreateCustomTemplateTab(...args),
 }));
 
 import { useAllTemplates } from "~/hooks/useAllTemplates";
-import { useAvailableTemplates } from "~/hooks/useAvailableTemplates";
 import { useSharedTemplates } from "~/hooks/useSharedTemplates";
 import { useShallowAppStore } from "~/lib/state/app";
 import {
@@ -79,7 +63,6 @@ describe("useAllTemplates", () => {
         }),
     );
 
-    (useAvailableTemplates as any).mockReturnValue([]);
     (useSharedTemplates as any).mockReturnValue({ data: [] });
     (getTemplateWidgetsMetadata as any).mockReturnValue({
       widgets: [],
@@ -92,61 +75,6 @@ describe("useAllTemplates", () => {
       const { result } = renderHook(() => useAllTemplates(), { wrapper });
 
       expect(result.current).toEqual([]);
-    });
-
-    it("should include OpenBB templates with correct type", () => {
-      (useAvailableTemplates as any).mockReturnValue([
-        {
-          id: "equity",
-          name: "Sandbox App (FMP Data)",
-          description: "Sandbox data from Financial Modeling Prep (FMP)",
-          onClick: vi.fn(),
-          img: "/assets/equity.png",
-        },
-      ]);
-
-      const { result } = renderHook(() => useAllTemplates(), { wrapper });
-
-      expect(result.current).toHaveLength(1);
-      expect(result.current[0].type).toBe("openbb");
-      expect(result.current[0].id).toBe("equity");
-      expect(result.current[0].name).toBe("Sandbox App (FMP Data)");
-    });
-
-    it("should populate widgets and prompts from TEMPLATES for OpenBB templates", () => {
-      (useAvailableTemplates as any).mockReturnValue([
-        {
-          id: "equity",
-          name: "Sandbox App (FMP Data)",
-          description: "Sandbox data from Financial Modeling Prep (FMP)",
-          onClick: vi.fn(),
-          img: "/assets/equity.png",
-        },
-      ]);
-
-      const { result } = renderHook(() => useAllTemplates(), { wrapper });
-
-      expect(result.current[0].widgets).toEqual([
-        { widgetId: "ticker_info" },
-        { widgetId: "price_chart" },
-      ]);
-      expect(result.current[0].prompts).toEqual(["Show me the price"]);
-    });
-
-    it("should use OPENBB_ONBOARDING_WIDGETS for onboarding template", () => {
-      (useAvailableTemplates as any).mockReturnValue([
-        {
-          id: "onboarding",
-          name: "Onboarding",
-          description: "Get started",
-          onClick: vi.fn(),
-          img: "/assets/onboarding.png",
-        },
-      ]);
-
-      const { result } = renderHook(() => useAllTemplates(), { wrapper });
-
-      expect(result.current[0].widgets).toEqual([{ widgetId: "onboarding_widget" }]);
     });
   });
 
@@ -385,11 +313,7 @@ describe("useAllTemplates", () => {
   });
 
   describe("template ordering", () => {
-    it("should order templates as: shared, user, openbb", () => {
-      (useAvailableTemplates as any).mockReturnValue([
-        { id: "equity", name: "OpenBB Template" },
-      ]);
-
+    it("orders shared templates before connected backend templates", () => {
       (useShallowBackendConnectorStore as any).mockImplementation(
         (selector: (state: any) => any) =>
           selector({
@@ -422,7 +346,7 @@ describe("useAllTemplates", () => {
 
       expect(result.current[0].type).toBe("shared");
       expect(result.current[1].type).toBe("user");
-      expect(result.current[2].type).toBe("openbb");
+      expect(result.current).toHaveLength(2);
     });
   });
 

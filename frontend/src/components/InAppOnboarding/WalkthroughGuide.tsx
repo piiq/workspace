@@ -69,15 +69,6 @@ export function WalkthroughGuide() {
 
   const handleContinue = useCallback(async () => {
     if (!step) return;
-    if ("onContinueAction" in step && step.onContinueAction) {
-      if (Array.isArray(step.onContinueAction)) {
-        for (const action of step.onContinueAction) {
-          await executeAction(action);
-        }
-      } else {
-        await executeAction(step.onContinueAction);
-      }
-    }
     if (
       !("skipAutoNavigateBack" in step && step.skipAutoNavigateBack) &&
       window.location.pathname !== `/app/${workingDashboardUUID}`
@@ -85,7 +76,7 @@ export function WalkthroughGuide() {
       navigate(`/app/${workingDashboardUUID}`);
     }
     nextStep();
-  }, [executeAction, navigate, nextStep, step, workingDashboardUUID]);
+  }, [navigate, nextStep, step, workingDashboardUUID]);
 
   useEffect(() => {
     const delay = currentStep === 0 ? 300 : 400;

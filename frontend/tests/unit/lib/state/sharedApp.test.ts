@@ -19,7 +19,6 @@ import {
 
 const createMockWidget = (overrides: Partial<Widget> = {}): Widget => ({
   id: "widget-1",
-  // @ts-expect-error - ignored for now
   widgetId: "equity_profile",
   name: "Equity Profile",
   innerTab: "overview",

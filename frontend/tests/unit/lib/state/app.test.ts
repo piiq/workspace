@@ -23,15 +23,7 @@ vi.mock("~/api/dashboard.api", () => ({
   postDashboards: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("~/lib/widget_bundles.json", () => ({
-  default: {
-    openbb: {
-      name: "OpenBB",
-      enabled_by_default: true,
-      widgets: ["widget1", "widget2", "equity_profile"],
-    },
-  },
-}));
+
 
 vi.mock("~/lib/state/auth", () => ({
   useAuthStore: {
@@ -59,17 +51,7 @@ vi.mock("~/lib/state/copilotData", () => ({
   },
 }));
 
-vi.mock("~/lib/state/featureFlags", () => ({
-  useFeatureFlagsStore: {
-    getState: () => ({
-      featureFlags: {
-        data_bundle_info: {
-          except_widgets: [],
-        },
-      },
-    }),
-  },
-}));
+
 
 vi.mock("~/lib/state/sharedApp", () => ({
   useSharedAppStore: {
@@ -167,7 +149,6 @@ const createTestItems = (): Items => {
         widgets: [
           {
             id: "widget-1",
-            // @ts-expect-error - ignored for now
             widgetId: "equity_profile",
             name: "Equity Profile",
             innerTab: "overview",
@@ -1387,7 +1368,6 @@ describe("useAppStore", () => {
         },
       };
 
-      // @ts-expect-error - ignored for now
       useAppStore.getState().addTab(newTab);
 
       const tab = useAppStore.getState().getTabById("new-tab-id");

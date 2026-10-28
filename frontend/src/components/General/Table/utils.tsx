@@ -14,55 +14,6 @@ export type Data = {
   [key: string]: any;
 };
 
-export function trimDataForQuarters(data, date: string) {
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  const inputDate = dayjs(date);
-  const year = inputDate.year();
-  const quarter = inputDate.quarter();
-
-  const dates = Object.keys(data[0]).filter((item) => item !== "Index"); // array of dates in [YYYY-MM-DD] format from most recent to oldest
-
-  let closestQuarterDateString = dates.find((item) => {
-    const date = dayjs(item);
-    return date.year() === year && date.quarter() === quarter;
-  });
-
-  if (closestQuarterDateString === undefined) {
-    closestQuarterDateString =
-      dates.find((item) => {
-        const date = dayjs(item);
-        return date.year() === year && date.quarter() === quarter - 1;
-      }) ?? dates?.[0];
-  }
-
-  // previousQuarterDateString is the date of the quarter before the closestQuarterDateString
-  const previousQuarterDateString = dates[dates.indexOf(closestQuarterDateString) + 1];
-
-  const filteredData = data.map((item) => {
-    const percentage = item[closestQuarterDateString]
-      ? (item[closestQuarterDateString] - item[previousQuarterDateString]) /
-        item[previousQuarterDateString]
-      : null;
-    return {
-      Index: item.Index,
-      Current: item[closestQuarterDateString],
-      PastQuarter: item[previousQuarterDateString],
-      Change:
-        (item[closestQuarterDateString] | 0) - (item[previousQuarterDateString] | 0),
-      Percentage: [Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].includes(
-        percentage,
-      )
-        ? null
-        : percentage,
-    };
-  });
-
-  return filteredData;
-}
-
 export function getDeepObjectValue(obj: unknown, key: string) {
   if (Array.isArray(obj) || typeof obj !== "object" || typeof key !== "string")
     return obj;
@@ -74,28 +25,12 @@ export function getDeepObjectValue(obj: unknown, key: string) {
   return value;
 }
 
-type FinancialData = {
-  date?: string;
-  fiscal_period?: string;
-  period?: string;
-  calendar_year?: number;
-  fiscal_year?: number;
-};
-
-type TableData<T> = (T & FinancialData) | (T & FinancialData)[];
-
-export function getTableData<T>(
-  data: TableData<T>,
+export function getTableData<T extends Record<string, any>>(
+  data: T | T[],
   widget?: Partial<Widget>,
-  options: {
-    period?: "annual" | "quarter" | "ttm";
-    ignoreUndefined?: boolean;
-  } = {},
 ): T[] {
-  const { period, ignoreUndefined = true } = options;
   const table = widget?.data?.table || {};
   const dataKey = widget?.data?.dataKey || "";
-  const reversed = widget?.storage?.reversed ?? false;
 
   if (dataKey) {
     data = getDeepObjectValue(data, dataKey);
@@ -134,51 +69,17 @@ export function getTableData<T>(
     allKeys?.find((key) => key.toLowerCase().includes("date")) ??
     "date";
 
-  if (!widget?.external) {
-    data.sort((a, b) => {
-      const first = reversed ? a : b;
-      const second = reversed ? b : a;
-      return dayjs(first?.[dateField]).diff(dayjs(second?.[dateField]));
-    });
-  }
-
   const newData = [];
 
-  // we need to filter out the TTM data if the period is not TTM
   for (const [index, obj] of data.entries()) {
     const newRow = {};
-    const fiscalPeriod = obj?.fiscal_period || obj?.period;
-    const calendarYear = obj?.fiscal_year || obj?.calendar_year;
-
-    if (
-      !widget?.external &&
-      ((period === "ttm" && fiscalPeriod !== "TTM") ||
-        (period !== "ttm" && fiscalPeriod === "TTM"))
-    ) {
-      continue;
-    }
-
     if (
       typeof obj?.[dateField] === "number" &&
-      obj?.[dateField]?.toString()?.length >= 10
+      obj[dateField].toString().length >= 10
     ) {
-      obj[dateField] = dayjs.unix(obj[dateField]).format("YYYY-MM-DD");
-    }
-
-    if (!widget?.external && period === "quarter" && fiscalPeriod && calendarYear) {
-      obj[dateField] = dayjs(obj[dateField])
-        .quarter(Number.parseInt(fiscalPeriod.replace("Q", ""), 10))
-        .year(calendarYear)
-        .startOf("quarter")
-        .format("YYYY-MM-DD");
-    }
-
-    if (!widget?.external && period === "annual" && calendarYear) {
-      obj[dateField] = dayjs(obj[dateField]).year(calendarYear).format("YYYY-MM-DD");
-    }
-
-    if (widget?.widgetId === "eod_price" && obj?.date) {
-      obj.date = obj?.date?.split("T")?.[0];
+      Object.assign(obj, {
+        [dateField]: dayjs.unix(obj[dateField]).format("YYYY-MM-DD"),
+      });
     }
 
     if (!table?.transpose && headers.length > 0) {
@@ -190,17 +91,11 @@ export function getTableData<T>(
           continue;
         }
 
-        const isPeriod = ["fiscal_period", "period"].some(
-          (item) => item === column.field,
-        );
-        if (!(isPeriod && ["annual", "ttm"].includes(period)) || widget?.external) {
-          // edge case for string series data
-          newRow[column.field] = parseValue(obj[column.field], column?.chartDataType);
+        newRow[column.field] = parseValue(obj[column.field], column?.chartDataType);
 
-          if (noDataFields.has(column.field) && newData[0]) {
-            newData[0][column.field] = newData[0][column.field] ?? null;
-            noDataFields.delete(column.field);
-          }
+        if (noDataFields.has(column.field) && newData[0]) {
+          newData[0][column.field] = newData[0][column.field] ?? null;
+          noDataFields.delete(column.field);
         }
       }
 
@@ -210,7 +105,7 @@ export function getTableData<T>(
 
     // correctly parse the data for the table
     for (const key in obj) {
-      obj[key] = parseValue(obj[key]);
+      Object.assign(obj, { [key]: parseValue(obj[key]) });
       if (index > 0 && newData[0] && newData[0][key] === undefined)
         newData[0][key] = null;
     }
@@ -244,10 +139,10 @@ export function transposeData<T extends { date?: string }>(
   const { colDefs, dateField } = options;
 
   const allKeys = Object.keys(arr[0]).filter(
-    (key) => ![dateField, "date", "symbol", "fiscal_year"].some((item) => item === key),
+    (key) => ![dateField, "date"].some((item) => item === key),
   );
 
-  const ignoreKeys = ["date", "symbol", "calendar_year", "fiscal_year", dateField];
+  const ignoreKeys = ["date", dateField];
 
   const headers =
     (colDefs || table?.columnsDefs)
@@ -272,9 +167,7 @@ export function transposeData<T extends { date?: string }>(
       transformedObject[index] = value;
     }
 
-    if (!["fiscal_period", "period"].some((item) => item === transformedObject.Index)) {
-      transformedArray.push(transformedObject);
-    }
+    transformedArray.push(transformedObject);
   }
 
   return transformedArray;

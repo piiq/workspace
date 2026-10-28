@@ -6,7 +6,7 @@ import { useWidgetContext } from "~/components/Widget.context";
 import { useCreateRef } from "~/hooks/useRefHooks";
 import { useAppStore, useShallowAppStore, type Widget } from "~/lib/state/app";
 import { useShallowTutorialStore } from "~/lib/state/tutorial";
-import { getJsonWidget, uuidv4 } from "~/lib/utils";
+import { getWidgetDefinition, uuidv4 } from "~/lib/utils";
 import { getChartData } from "../Chart/utils";
 import { useAgGridContext } from "./useTableContext";
 
@@ -127,7 +127,7 @@ export function useCreateChart() {
       widgetId: widget?.storage?.selectedGroup ?? widget?.widgetId,
     };
 
-    return getJsonWidget(fakeWidget);
+    return getWidgetDefinition(fakeWidget);
   }, []);
 
   const createChartContainer = useCallback(

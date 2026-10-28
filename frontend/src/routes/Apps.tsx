@@ -93,7 +93,6 @@ const typeOrder: Record<string, number> = {
   shared: 1,
   generated: 2,
   user: 3,
-  openbb: 4,
 };
 
 const FUSE_KEYS: AppsFuseKey<UnifiedTemplate>[] = [
@@ -358,12 +357,10 @@ function MyAppsTab() {
     return searched
       .filter((template) => {
         const { type } = template;
-        // "My Apps" filter includes "user" and "generated"; "Subscribed Apps" includes "listed" and "openbb"
         const matchesFilter =
           filterBy === "all" ||
           type === filterBy ||
-          (filterBy === "user" && type === "generated") ||
-          (filterBy === "listed" && type === "openbb");
+          (filterBy === "user" && type === "generated");
         if (!matchesFilter) return false;
 
         if (selectedBackends !== null) {

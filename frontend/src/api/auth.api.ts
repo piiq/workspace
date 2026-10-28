@@ -4,11 +4,8 @@ import { z } from "zod";
 import type { SearchableChat } from "~/components/AI/hooks/useChatSearch";
 import type { WidgetJsonT, WidgetT } from "~/components/types";
 import type { WidgetId } from "~/components/Widgets";
-import { resultsToTicker } from "~/components/Widgets/Helpers/AdvancedSelectTicker";
 import { convertHeadersToRecord } from "~/lib/api";
-import { fetchQuerySymbols } from "~/lib/api/sdkComponents";
 import { type Extension, VERSION } from "~/lib/constants";
-import type { Ticker } from "~/lib/state/app";
 import {
   type SingleWidget,
   type Source,
@@ -33,14 +30,12 @@ import {
   type UserAppsSync,
   useUserAppsStore,
 } from "~/lib/state/userApps";
-import { DEFAULT_TICKERS } from "~/lib/types";
 import { createURL, createURLString, processWidgetId, uuidv4 } from "~/lib/utils";
 import queryClient from "~/queryClient";
 import type {
   Challenges,
   Detail,
   DeveloperOnboardingQuestions,
-  EnabledBundles,
   MetaDataWidgetType,
   ProLogin2FAResponse,
   ProLoginResponse,
@@ -687,27 +682,6 @@ export async function deleteFileWidget(
   }
 }
 
-export async function migrateDefaultTicker(defaultTicker: Ticker): Promise<Ticker> {
-  return await fetchQuerySymbols({
-    queryParams: {
-      q: defaultTicker?.symbol,
-    },
-  })
-    .then(async ({ results }) => {
-      const newTicker = resultsToTicker(results).find(
-        (result) => result?.symbol === defaultTicker?.symbol,
-      );
-      return newTicker || DEFAULT_TICKERS.AAPL;
-    })
-    .catch(() => DEFAULT_TICKERS.AAPL);
-}
-
-export function isValidMainTicker(ticker: any): ticker is Ticker {
-  return Object.keys(DEFAULT_TICKERS.AAPL).every(
-    (key) => key in ticker && typeof ticker[key] === typeof DEFAULT_TICKERS.AAPL[key],
-  );
-}
-
 export async function bookDemo(data: {
   used_before?: string;
   first_name?: string;
@@ -891,18 +865,6 @@ export async function putTier(payload: { tier: string }): Promise<PutTierRespons
 
 export async function userHasEntity(): Promise<{ success: boolean }> {
   const { data } = await apiClient.get("/pro/user-has-entity");
-  return data;
-}
-
-export async function getEnabledBundles(): Promise<EnabledBundles> {
-  const { data } = await apiClient.get<EnabledBundles>("/pro/enabled-bundles");
-  return data;
-}
-
-export async function putEnabledBundles(
-  bundles: EnabledBundles,
-): Promise<SuccessReturn> {
-  const { data } = await apiClient.put<SuccessReturn>("/pro/enabled-bundles", bundles);
   return data;
 }
 

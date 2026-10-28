@@ -32,7 +32,6 @@ csv_json_array() {
 
 : "${BACKEND_URL:=/api}"
 : "${AI_API_URL:=}"
-: "${PLATFORM_URL:=}"
 : "${DATABASE_API_URL:=}"
 
 : "${AUTHENTICATION_ALLOW_EMAIL_LOGIN:=true}"
@@ -81,11 +80,8 @@ csv_json_array() {
 : "${SERVICES_POSTHOG:=false}"
 : "${SERVICES_HUBSPOT_FORMS:=false}"
 : "${SERVICES_EMAIL:=false}"
-: "${SERVICES_NIXTLA:=false}"
 : "${SERVICES_CLOUDFLARE_WORKER:=false}"
 
-: "${DATA_PACKAGE_DATA_ENABLED:=true}"
-: "${DATA_ALLOWED_DATA_VENDORS:=}"
 : "${DATA_ALLOWED_DB_TYPES:=database,snowflake,databricks,clickhouse}"
 : "${DATA_ODP_INSTALLER_ENABLED:=false}"
 : "${DATA_ALLOW_HTML_JS_EXECUTION:=true}"
@@ -111,7 +107,6 @@ csv_json_array() {
 : "${WL_SHOW_FLOATING_THEME_PREVIEW:=false}"
 
 IDP_JSON="$(csv_json_array "$AUTHENTICATION_IDENTITY_PROVIDERS")"
-DATA_VENDOR_JSON="$(csv_json_array "$DATA_ALLOWED_DATA_VENDORS")"
 DB_TYPE_JSON="$(csv_json_array "$DATA_ALLOWED_DB_TYPES")"
 
 cat > "$CONFIG_OUT" <<EOF
@@ -119,7 +114,6 @@ window.__APP_CONFIG__ = {
   urls: {
     backend: "${BACKEND_URL}",
     ai: "${AI_API_URL}",
-    platform: "${PLATFORM_URL}",
     database: "${DATABASE_API_URL}"
   },
   authentication: {
@@ -173,12 +167,9 @@ window.__APP_CONFIG__ = {
     posthog: ${SERVICES_POSTHOG},
     hubspotForms: ${SERVICES_HUBSPOT_FORMS},
     email: ${SERVICES_EMAIL},
-    nixtla: ${SERVICES_NIXTLA},
     cloudflareWorker: ${SERVICES_CLOUDFLARE_WORKER}
   },
   data: {
-    packageDataEnabled: ${DATA_PACKAGE_DATA_ENABLED},
-    allowedDataVendors: ${DATA_VENDOR_JSON},
     allowedDbTypes: ${DB_TYPE_JSON},
     openDataPlatformInstallerEnabled: ${DATA_ODP_INSTALLER_ENABLED},
     allowHtmlJsExecution: ${DATA_ALLOW_HTML_JS_EXECUTION}

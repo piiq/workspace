@@ -60,13 +60,12 @@ describe("getDefaultCopilot", () => {
   });
 });
 
-describe("getApiUrl / getAiApiUrl / getPaymentsApiUrl / getDataPlatformUrl", () => {
+describe("getApiUrl / getAiApiUrl / getPaymentsApiUrl", () => {
   let constants: typeof import("~/lib/constants");
 
   beforeEach(async () => {
     mockConfig.urls.backend = "https://backend.test";
     mockConfig.urls.ai = "https://ai.test";
-    mockConfig.urls.platform = "https://platform.test";
     vi.resetModules();
     vi.doMock("~/lib/runtimeConfig", () => ({
       getConfig: () => mockConfig,
@@ -87,7 +86,5 @@ describe("getApiUrl / getAiApiUrl / getPaymentsApiUrl / getDataPlatformUrl", () 
     expect(constants.getAiApiUrl()).toBe("https://ai.test");
   });
 
-  it("getDataPlatformUrl returns urls.platform from runtime config", () => {
-    expect(constants.getDataPlatformUrl()).toBe("https://platform.test");
-  });
+
 });

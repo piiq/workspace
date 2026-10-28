@@ -35,12 +35,6 @@ export const TUTORIALS = [
     thumbnail: "/assets/images/home/covers/createyourowncustomreport.webp",
   },
   {
-    label: "Layouts and Watchlist",
-    videoUrl:
-      "https://openbb-cms.directus.app/assets/d638af42-12bb-4d9c-a0ef-4c31d556f0a9",
-    thumbnail: "/assets/images/home/covers/layoutsandwatchlist.webp",
-  },
-  {
     label: "Custom Backend",
     videoUrl:
       "https://openbb-cms.directus.app/assets/ae649e18-f21c-4745-8da2-4be03d5d4fea",

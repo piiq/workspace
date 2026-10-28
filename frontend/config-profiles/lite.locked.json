@@ -59,12 +59,9 @@
     "posthog": false,
     "hubspotForms": false,
     "email": false,
-    "nixtla": false,
     "cloudflareWorker": false
   },
   "data": {
-    "packageDataEnabled": false,
-    "allowedDataVendors": [],
     "allowedDbTypes": ["database", "snowflake", "databricks", "clickhouse"],
     "openDataPlatformInstallerEnabled": false
   },

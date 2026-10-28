@@ -3,9 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowWalkthroughStore } from "~/lib/state/walkthrough";
-import { getAvailableTemplates } from "~/lib/templates";
 import { uuidv4 } from "~/lib/utils";
-import { createOnBoardingTemplate } from "~/lib/utils/createTemplates";
 import { Button } from "../ds/atoms/Button";
 import { BaseDialog } from "../ds/dialogs/BaseDialog";
 import WalkthroughIllustration from "../Icons/WalkthroughIllustration";
@@ -48,11 +46,9 @@ export default function WelcomeMessage({
       onClose();
       if (!isHelpPage) {
         endWalkthrough();
-        getAvailableTemplates().includes("onboarding") &&
-          createOnBoardingTemplate({ addTab, navigate });
       }
     },
-    [addTab, endWalkthrough, navigate, onClose],
+    [endWalkthrough, onClose],
   );
 
   const handleGeneralWalkthrough = useCallback(() => {

@@ -37,7 +37,7 @@ import type { UnrecognizedKeysReport, WidgetsType } from "~/utils/zodForms";
 import { type Extension, inSnowflakeNativeApp } from "../constants";
 import type { TabLayout } from "../templates";
 import type { WidgetVizType } from "../types/app";
-import { createParamDefs, dispatchSaveState, getJsonWidget } from "../utils";
+import { createParamDefs, dispatchSaveState, getWidgetDefinition } from "../utils";
 
 let validateApiSourceWorker: Worker | null = null;
 
@@ -280,7 +280,7 @@ export function getTemplateWidgetsMetadata(
     (acc, tab) => {
       for (const layout of Object.values(tab.layout || {})) {
         const widgetId = layout.i;
-        const isBuiltIn = getJsonWidget(widgetId) !== null;
+        const isBuiltIn = getWidgetDefinition(widgetId) !== null;
         const backendWidget = backend?.widgets?.[widgetId];
         if (backendWidget?.disabled || !(backendWidget || isBuiltIn)) continue;
         acc[widgetId] = (acc[widgetId] || 0) + 1;
@@ -304,7 +304,7 @@ export function getTemplateWidgetsMetadata(
   if (builtInWidgetIds.size > 0) {
     for (const widgetId of builtInWidgetIds) {
       const count = widgetCounts[widgetId];
-      const w = getJsonWidget(widgetId);
+      const w = getWidgetDefinition(widgetId);
       if (!w?.name) continue;
       const { name, description } = w;
       widgets.push({ id: widgetId, name, description, count });

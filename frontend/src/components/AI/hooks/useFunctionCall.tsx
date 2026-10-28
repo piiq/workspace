@@ -6,17 +6,13 @@ import { v4 as uuidv4 } from "uuid";
 import { getPreSignedUrl } from "~/api/auth.api";
 import * as workspaceApi from "~/api/workspace.api";
 import { isTruthy } from "~/components/General/Table/utils";
-import type { ParamDefT, Ticker, WidgetT } from "~/components/types";
-import { getParsedWidgetData } from "~/components/Widgets";
+import type { ParamDefT, WidgetT } from "~/components/types";
 import { getChartWidgetData } from "~/components/Widgets/Chart";
 import {
   cleanSearchParams as createCleanUrl,
   convertHeadersToRecord as getHeadersAndUrlParams,
 } from "~/lib/api";
-import { sdkClient } from "~/lib/api/sdkFetcher";
-import type { FilterTypes } from "~/lib/api/sdkSchemas";
 import { getAiApiUrl } from "~/lib/constants";
-import { useTickersContext } from "~/lib/contexts/CachedTickers";
 import { getIframeWidget } from "~/lib/iframeWidgetRegistry";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useAppStore } from "~/lib/state/app";
@@ -38,22 +34,16 @@ import {
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
 import { useSharedAppStore } from "~/lib/state/sharedApp";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import type { QueryTickersProps } from "~/lib/state/tickers";
 import {
   type AddGenerativeWidgetInputArgumentsT,
   type CopilotFunctionCallArgumentsT,
-  currentDateModifier,
   type DataSourceT,
   extractUUIDFromURL,
-  getJsonWidget,
-  getTickerParamName,
-  getWidgetDataSource,
   type ParamOptionQueryResultT,
   type ParamOptionQueryT,
   paramOptionQueryResult,
   type TaskRequest,
 } from "~/lib/utils";
-import { ONBOARDING_STORED_FILES } from "~/lib/utils/createTemplates";
 import { exportWidgetData } from "~/lib/widgetData";
 import {
   buildChartWidget,
@@ -297,7 +287,6 @@ export function useFunctionCall() {
     selectedCopilot: s.selectedCopilot,
   }));
 
-  const queryTickers = useTickersContext((state) => state.queryTickers);
   const { checkWidgetSignature } = useShallowCopilotDataStore((s) => ({
     checkWidgetSignature: s.checkWidgetSignature,
   }));
@@ -380,13 +369,6 @@ export function useFunctionCall() {
 
           let result: Promise<any> | DataUrl | null = null;
           switch (dataSource.origin) {
-            case "OpenBB Sandbox":
-              result = await getOpenbbSandboxWidgetsData(
-                dataSource,
-                getWidgetFromBackend,
-                queryTickers,
-              );
-              break;
             case "OpenBB Hub":
               result = await getOpenBBHubPreSignedUrls(
                 dataSource,
@@ -426,7 +408,6 @@ export function useFunctionCall() {
     [
       getWidgetFromBackend,
       getDashboardWidgetData,
-      queryTickers,
       checkWidgetSignature,
       toFunctionCallError,
     ],
@@ -439,21 +420,10 @@ export function useFunctionCall() {
       const finalResults: (CopilotDataT | CopilotFunctionCallError)[] = [];
       for (const paramOptionsQuery of paramOptionsQueries) {
         try {
-          let result: any | null = null;
-          switch (paramOptionsQuery.origin) {
-            case "OpenBB Sandbox":
-              result = await getWidgetsParamOptions(
-                paramOptionsQuery,
-                getWidgetFromBackend,
-              );
-              break;
-            default:
-              result = await getWidgetsParamOptions(
-                paramOptionsQuery,
-                getWidgetFromBackend,
-              );
-              break;
-          }
+          const result = await getWidgetsParamOptions(
+            paramOptionsQuery,
+            getWidgetFromBackend,
+          );
           finalResults.push(convertToCopilotData(result));
         } catch (error) {
           console.error("Error fetching param options", error);
@@ -892,17 +862,7 @@ export function useFunctionCall() {
         // Fetch AI-generated title/description before adding to dashboard
         try {
           const widgetData = typeof data === "string" ? data : JSON.stringify(data);
-          const resp = await sdkClient.post(
-            `${getAiApiUrl()}/v1/generate/widget_info`,
-            {
-              widget_generation_request: {
-                name,
-                description,
-                widget_data: widgetData,
-              },
-            },
-          );
-          const aiInfo = resp.data;
+          const aiInfo = await fetchWidgetInfo(widgetData);
           if (aiInfo?.title) {
             newWidget = { ...newWidget, name: aiInfo.title };
           }
@@ -970,7 +930,7 @@ export function useFunctionCall() {
         ];
       }
     },
-    [currentDashboardId, resolveInnerTabId],
+    [currentDashboardId, resolveInnerTabId, fetchWidgetInfo],
   );
 
   return {
@@ -981,157 +941,6 @@ export function useFunctionCall() {
     assignTasksToAgents,
     addGenerativeWidget,
   };
-}
-
-async function getOpenbbSandboxWidgetsData(
-  dataSource: DataSourceT,
-  getWidgetFromBackend: (backendName: string, widgetId: string) => WidgetT | null,
-  queryTickers: (props: QueryTickersProps) => Promise<Record<string, Ticker>>,
-): Promise<any> {
-  let result: any | null = null;
-  let builtInWidget: WidgetT | undefined;
-  // This a temporary solution to handle financial statements widget
-  if (
-    ["balance_sheet", "income_statement", "cash_flow_statement"].includes(dataSource.id)
-  ) {
-    builtInWidget = getJsonWidget((dataSource.id as WidgetT["widgetId"])!);
-  } else {
-    builtInWidget = getWidgetFromBackend("OpenBB Sandbox", dataSource.id) ?? undefined;
-  }
-
-  if (!builtInWidget)
-    throw new CopilotError(
-      CopilotErrorType.NOT_FOUND,
-      `Widget with origin ${dataSource.origin} and id ${dataSource.id} not found`,
-    );
-
-  // Here we assume:
-  // 1. There is 1-1 mapping between platformDataFunctions and platform API endpoints
-  //      e.g. obb.equity.price.historical -> /equity/price/historical
-  // 2. The first element of platformDataFunction is the relevant endpoint
-  let resourceEndpoint = "";
-  if (builtInWidget.proEndpoint) {
-    resourceEndpoint = builtInWidget.proEndpoint.split(".").join("/");
-  } else if (
-    builtInWidget.platformDataFunction &&
-    builtInWidget.platformDataFunction.length > 0
-  ) {
-    resourceEndpoint = builtInWidget.platformDataFunction[0]
-      .split(".")
-      .slice(1)
-      .join("/");
-  }
-  if (!resourceEndpoint)
-    throw new CopilotError(
-      CopilotErrorType.NOT_FOUND,
-      "The data source was unavailable. Is it connected and available to OpenBB Workspace?",
-    );
-
-  let mainTicker: Ticker | undefined;
-  const tickerParam = getTickerParamName(builtInWidget);
-  const symbol = tickerParam
-    ? dataSource.input_args?.[tickerParam]?.toString()
-    : undefined;
-
-  const supportedAssetClasses = builtInWidget?.supportedAssetClasses;
-
-  if (tickerParam && symbol && !supportedAssetClasses?.includes("country")) {
-    const matchedTickers = await queryTickers({
-      tickers: symbol,
-      filter: supportedAssetClasses?.map((type) =>
-        type?.toLowerCase()?.replace("equity", "stock"),
-      ) as FilterTypes[],
-    });
-    mainTicker = matchedTickers[symbol];
-  }
-  const widgetSource = getWidgetDataSource({
-    ...builtInWidget,
-    data: {
-      ...(builtInWidget?.data || {}),
-      mainTicker,
-    },
-  });
-
-  let providerParams = {} as Record<string, any>;
-  if (widgetSource) {
-    providerParams = builtInWidget.proEndpoint
-      ? { provider: "pro", data_provider: widgetSource }
-      : { provider: widgetSource };
-
-    if (
-      builtInWidget?.widgetId === "company_profile" &&
-      mainTicker?.category === "etf"
-    ) {
-      resourceEndpoint = "etf/info";
-    }
-
-    if (builtInWidget?.widgetId === "key_metrics" && mainTicker) {
-      providerParams.category = mainTicker?.category;
-    }
-  }
-
-  const fixedParams = (builtInWidget?.inputs?.fixed || []).reduce((acc, curr) => {
-    // TODO: Find a way to remove fixed params, because they have no explicit type definition
-    // Checking for "$currentDate" in the name is a temporary solution
-    const value =
-      typeof curr.value === "string" && curr.value.includes("$currentDate")
-        ? currentDateModifier(curr.value)
-        : curr.value;
-    acc[curr.name] = value;
-    return acc;
-  }, providerParams);
-
-  const filteredParams = Object.fromEntries(
-    Object.entries({
-      ...fixedParams,
-      ...dataSource.input_args,
-    }).filter(([, value]) => value !== null && value !== "null"),
-  ) as Record<string, string>;
-
-  const newWidget = { ...builtInWidget };
-  newWidget.storage = { ...(newWidget.storage ?? {}), params: filteredParams };
-
-  const urlParams = new URLSearchParams(filteredParams);
-  const endpoint = `api/v1/${resourceEndpoint}?${urlParams.toString()}`;
-
-  try {
-    result = await sdkClient
-      .get(endpoint)
-      .then((res) => getParsedWidgetData(res.data, newWidget));
-  } catch (error) {
-    console.error("Error fetching data from OpenBB Sandbox", error);
-    switch (error.response?.status) {
-      case 404:
-        throw new CopilotError(
-          CopilotErrorType.GATEWAY_ERROR,
-          "The data source was unavailable. Is it connected and available to OpenBB Workspace?",
-        );
-      case 422:
-        throw new CopilotError(
-          CopilotErrorType.GATEWAY_ERROR,
-          `Fetching data from widget returned an error: ${error.response.data}`,
-        );
-      default:
-        throw error;
-    }
-  }
-
-  const selectedGroup = dataSource?.input_args?.selectedGroup as string;
-  if (
-    selectedGroup &&
-    ["financial_statements", "grouped_comparison"].some(
-      (g) => builtInWidget.widgetId === g,
-    )
-  ) {
-    result = result?.[selectedGroup] || result;
-  }
-
-  if (builtInWidget?.type === "chart") {
-    const plotResults = await getChartWidgetData(builtInWidget, result, symbol);
-    result = plotResults?.exportData;
-  }
-
-  return result;
 }
 
 const SSRM_BODY_KEYS = [
@@ -1206,7 +1015,7 @@ function getRequest(
 async function postProcessData(data: any, widget: WidgetT): Promise<any> {
   switch (widget.type) {
     case "chart":
-      return await getChartWidgetData(widget, data).then((r) => r.exportData);
+      return await getChartWidgetData(data).then((r) => r.exportData);
     default:
       return data;
   }
@@ -1350,18 +1159,6 @@ async function getOpenBBHubPreSignedUrls(
   dataSource: DataSourceT,
   getWidgetFromBackend: (backendName: string, widgetId: string) => WidgetT | null,
 ): Promise<DataUrl> {
-  // Onboarding files
-  const onboardingFile = ONBOARDING_STORED_FILES[dataSource.id];
-  if (onboardingFile) {
-    const onBoardingFileUrl = import.meta.env.DEV
-      ? onboardingFile?.urlDev
-      : onboardingFile?.urlProd;
-    if (!onBoardingFileUrl) throw new Error("Failed to get url from onboarding file");
-    const uuid = extractUUIDFromURL(onBoardingFileUrl);
-    if (!uuid) throw new Error("Failed to get uuid from url");
-    return getFileReference(uuid);
-  }
-
   // Uploaded file widgets
   const fileWidget = getWidgetFromBackend("OpenBB Hub", dataSource.id);
   if (fileWidget?.endpoint?.url) {

@@ -77,7 +77,6 @@ const HomePage = lazy(() => import("./routes/home"));
 const LoginPage = lazy(() => import("./routes/login"));
 const DataConnectors = lazy(() => import("./routes/newDataConnectors"));
 const ChartingPage = lazy(() => import("./routes/newCharting"));
-const NewsPage = lazy(() => import("./routes/news"));
 const RegisterPage = lazy(() => import("./routes/register"));
 const Settings = lazy(() => import("./routes/settings"));
 const TabPage = lazy(() => import("./routes/tab"));
@@ -273,11 +272,6 @@ const router = createBrowserRouter([
             path: ":id",
             element: <S children={<TabPage />} />,
             id: "app-tab",
-          },
-          {
-            path: "news",
-            element: <S children={<NewsPage />} />,
-            id: "app-news",
           },
           {
             path: "charting",
