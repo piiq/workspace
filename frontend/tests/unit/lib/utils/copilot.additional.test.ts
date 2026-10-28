@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { WidgetId } from "~/components/Widgets";
 import type { WidgetT } from "~/components/types";
+import type { WidgetId } from "~/components/Widgets";
 import { findMatchingWidget } from "~/lib/utils/copilot";
 
 describe("copilot utils - Additional Tests", () => {
@@ -102,59 +102,32 @@ describe("copilot utils - Additional Tests", () => {
       });
     });
 
-    describe("financial statements special cases", () => {
-      const fsAllAppWidgets = new Map([
-        ["financial_statements", { params: [{ paramName: "symbol" }] }],
-      ]) as any;
-
-      it("handles balance_sheet mapping to financial_statements", () => {
+    describe("declared widget identifiers", () => {
+      it.each([
+        "balance_sheet",
+        "cash_flow_statement",
+        "income_statement",
+      ])("matches %s without changing its identifier", (widgetId) => {
         const citation = {
           source_info: {
             type: "widget",
-            widget_id: "balance_sheet",
+            widget_id: widgetId,
             metadata: { input_args: { symbol: "TSLA" } },
           },
         } as any;
+        const definitions = new Map([
+          [widgetId, { params: [{ paramName: "symbol" }] }],
+        ]) as Map<WidgetId, WidgetT>;
+        const widget = {
+          id: "widget-1", name: "Declared widget", type: "table",
+          widgetId,
+          storage: { params: { symbol: "TSLA" } },
+        } as WidgetT;
 
-        const dashboardWidgets = [
-          {
-            widgetId: "financial_statements",
-            storage: {
-              selectedGroup: "balance_sheet",
-              params: { symbol: "TSLA" },
-            },
-          },
-        ] as any;
-
-        const result = findMatchingWidget(citation, dashboardWidgets, fsAllAppWidgets);
-        expect(result).toBeDefined();
-        expect(result?.widgetId).toBe("financial_statements");
+        expect(findMatchingWidget(citation, [widget], definitions)).toBe(widget);
       });
 
-      it("handles cash_flow_statement mapping", () => {
-        const citation = {
-          source_info: {
-            type: "widget",
-            widget_id: "cash_flow_statement",
-            metadata: { input_args: { symbol: "GOOG" } },
-          },
-        } as any;
-
-        const dashboardWidgets = [
-          {
-            widgetId: "financial_statements",
-            storage: {
-              selectedGroup: "cash_flow_statement",
-              params: { symbol: "GOOG" },
-            },
-          },
-        ] as any;
-
-        const result = findMatchingWidget(citation, dashboardWidgets, fsAllAppWidgets);
-        expect(result).toBeDefined();
-      });
-
-      it("returns undefined when selectedGroup does not match originalWidgetId", () => {
+      it("does not substitute a different declared widget", () => {
         const citation = {
           source_info: {
             type: "widget",
@@ -162,19 +135,19 @@ describe("copilot utils - Additional Tests", () => {
             metadata: { input_args: { symbol: "AAPL" } },
           },
         } as any;
-
-        const dashboardWidgets = [
-          {
-            widgetId: "financial_statements",
-            storage: {
-              selectedGroup: "balance_sheet", // Different from income_statement
-              params: { symbol: "AAPL" },
-            },
+        const definitions = new Map([
+          ["financial_statements", { params: [{ paramName: "symbol" }] }],
+        ]) as Map<WidgetId, WidgetT>;
+        const widget = {
+          id: "widget-1", name: "Declared widget", type: "table",
+          widgetId: "financial_statements",
+          storage: {
+            selectedGroup: "income_statement",
+            params: { symbol: "AAPL" },
           },
-        ] as any;
+        } as WidgetT;
 
-        const result = findMatchingWidget(citation, dashboardWidgets, fsAllAppWidgets);
-        expect(result).toBeUndefined();
+        expect(findMatchingWidget(citation, [widget], definitions)).toBeUndefined();
       });
     });
 

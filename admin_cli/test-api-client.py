@@ -407,7 +407,7 @@ def main():
     print()
     print("Key benefits of HubAPIClient:")
     print("  - Pass role='admin' instead of looking up permission_uuid")
-    print("  - entity_create_with_entitlements() auto-configures On-Premise bundle")
+    print("  - entity_create_with_entitlements() configures entity quotas")
     print("  - entity_update() does smart partial updates (fetch-merge-put)")
     print("  - provision_full() creates entity + all users in one call")
     print("  - user_get_by_email() abstracts pagination")

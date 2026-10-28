@@ -8,7 +8,7 @@ import { createWidgetStudioWidget } from "./hooks/useGetAppWidgets";
  * Build a per-widget Source resolver from an app artifact's widget refs and the user's
  * connected backends. External widgets resolve to the Source whose name matches the ref
  * origin (falling back to any backend exposing the widget id); built-ins resolve to
- * `undefined` so the caller falls back to the bundled widget registry.
+ * `undefined` so the caller falls back to the built-in renderer definitions.
  *
  * Each widget keeps its own Source so multi-origin apps get the correct url/headers.
  */

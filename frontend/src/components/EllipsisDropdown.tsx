@@ -160,9 +160,9 @@ export default function EllipsisDropdownMenu(props: EllipsisDropdownMenuProps) {
     // Only show Parameters for widgets that are NOT from OpenBB sandbox
     // OpenBB sandbox widgets have external === false (or undefined)
     // User-created backend widgets have external === true
-    const isOpenBBSandbox = !widget?.external;
+    const isBuiltInWidget = !widget?.external;
 
-    if (!inSnowflakeNativeApp && widget?.params?.length > 0 && !isOpenBBSandbox) {
+    if (!inSnowflakeNativeApp && widget?.params?.length > 0 && !isBuiltInWidget) {
       regularItems.push(
         <DropdownMenuPrimitive.Item
           key={`${widget?.id}-parameters`}

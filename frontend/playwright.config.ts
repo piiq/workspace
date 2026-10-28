@@ -11,12 +11,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
   testIgnore: process.env.PLAYWRIGHT_HOSTED_TESTS === "true" ? [] : [
-    "**/dashboards-templates.spec.ts",
-    "**/news.spec.ts",
     "**/onboarding-questions.spec.ts",
-    "**/tutorials.spec.ts",
-    "**/transpose-table.spec.ts",
-    "**/widgets.spec.ts",
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

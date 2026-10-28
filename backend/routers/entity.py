@@ -607,15 +607,6 @@ async def patch_entitlement(
     if tier := entitlement_dict.pop("tier", None):
         entitlement_dict["tier_id"] = tiers_match.get(tier)
 
-    bundle_name = entitlement_dict.pop("bundle_name", None)
-    if bundle_name and settings.is_onprem():
-        bundle_uuid = await pro_helpers.get_data_bundle_uuid(db, bundle_name)
-        if bundle_uuid is None:
-            raise HTTPException(
-                status_code=404, detail=f"Data bundle '{bundle_name}' not found"
-            )
-        entitlement_dict["data_bundle_uuid"] = bundle_uuid
-
     # Fetch the current entitlement from the database
     current_entitlement = (
         await db.execute(

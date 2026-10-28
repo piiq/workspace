@@ -10,7 +10,6 @@ import {
   updateFullName,
   userHasEntity,
 } from "~/api/auth.api";
-import { getDashboards } from "~/api/dashboard.api";
 import { Button } from "~/components/ds/atoms/Button";
 import { FormInput } from "~/components/ds/atoms/Input";
 import { FormSelect } from "~/components/ds/atoms/Select";
@@ -19,11 +18,7 @@ import { type StateDispatch, useStateReducer } from "~/hooks/useStateReducer";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowAuthStore } from "~/lib/state/auth";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
-import { useShallowThemeStore } from "~/lib/state/theme";
-import { handleTemplatesCreation } from "~/lib/utils/createTemplates";
 import { setupNewEntity } from "~/lib/utils/setupNewEntity";
-import type { DashSync } from "~/types/auth.type";
 import { ORGANIZATIONS, ROLES } from "../onboarding/constants";
 
 const uiShowOnboardingQuestionsFF = getConfig().ui.showOnboardingQuestions;
@@ -74,7 +69,6 @@ type OnboardingUnion = z.infer<typeof onboardingQuestionsSchema>;
 type OnboardingQuestions = z.infer<typeof onboardingSchema>;
 
 type State = {
-  dashboardsData: DashSync | null;
   isLoading: boolean;
   showOtherRole: boolean;
   showOtherOrganization: boolean;
@@ -84,10 +78,8 @@ type State = {
 };
 
 export default function DeveloperOnboardingHomepage() {
-  const defaultTicker = useShallowThemeStore((state) => state.defaultTicker);
   const navigate = useNavigate();
-  const { addTab, items, updateOnlyItems } = useShallowAppStore((state) => ({
-    addTab: state.addTab,
+  const { items, updateOnlyItems } = useShallowAppStore((state) => ({
     items: state.items,
     updateOnlyItems: state.updateOnlyItems,
   }));
@@ -105,7 +97,6 @@ export default function DeveloperOnboardingHomepage() {
     }));
 
   const [state, dispatch] = useStateReducer<State>({
-    dashboardsData: null,
     isLoading: false,
     showOtherRole: false,
     showOtherOrganization: false,
@@ -131,17 +122,6 @@ export default function DeveloperOnboardingHomepage() {
     },
     mode: "onChange",
   });
-  const featureFlags = useShallowFeatureFlagsStore((state) => state.featureFlags);
-
-  useEffect(() => {
-    getDashboards()
-      .then((res) => {
-        dispatch({ dashboardsData: res });
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }, []);
 
   useEffect(() => {
     userHasEntity()
@@ -230,35 +210,16 @@ export default function DeveloperOnboardingHomepage() {
                 .trim()
                 .toLowerCase()
                 .replace(/\s+/g, "");
-              // If the user has an entity but no dashboards, we create them
-              // Since this should be a first time user
-              if (Object.keys(state.dashboardsData?.owned || {}).length === 0) {
-                const onboardingId = handleTemplatesCreation(
-                  featureFlags?.data_bundle_info || null,
-                  defaultTicker,
-                  addTab,
-                  items,
-                );
-
-                setTimeout(() => {
-                  dispatch({
-                    pendingNavigation: `/app/${onboardingId ? onboardingId : "data-connectors"}?welcome=${trimmedEntityName}`,
-                  });
-                }, 300);
-              } else {
-                navigate(`/app?welcome=${trimmedEntityName}`);
-              }
+              navigate(`/app?welcome=${trimmedEntityName}`);
             } else {
               const result = await setupNewEntity({
-                defaultTicker,
-                addTab,
                 items,
                 updateOnlyItems,
               });
               if (result.success) {
                 setTimeout(() => {
                   dispatch({
-                    pendingNavigation: `/app/${result.onboardingId ? result.onboardingId : "data-connectors"}?welcome=openbbdeveloper`,
+                    pendingNavigation: "/app/data-connectors?welcome=openbbdeveloper",
                   });
                 }, 300);
               } else {
@@ -283,17 +244,7 @@ export default function DeveloperOnboardingHomepage() {
         dispatch({ isLoading: false });
       }
     },
-    [
-      state.hasEntity,
-      navigate,
-      updateOnboarding,
-      featureFlags,
-      defaultTicker,
-      items,
-      updateOnlyItems,
-      state.dashboardsData,
-      dispatch,
-    ],
+    [state.hasEntity, navigate, updateOnboarding, items, updateOnlyItems, dispatch],
   );
 
   const handleSkip = useCallback(
@@ -329,15 +280,13 @@ export default function DeveloperOnboardingHomepage() {
           navigate(`/app?welcome=${trimmedEntityName}`);
         } else {
           const result = await setupNewEntity({
-            defaultTicker,
-            addTab,
             items,
             updateOnlyItems,
           });
           if (result.success) {
             setTimeout(() => {
               dispatch({
-                pendingNavigation: `/app/${result.onboardingId ? result.onboardingId : "data-connectors"}?welcome=openbbdeveloper`,
+                pendingNavigation: "/app/data-connectors?welcome=openbbdeveloper",
               });
             }, 300);
           } else {
@@ -356,16 +305,7 @@ export default function DeveloperOnboardingHomepage() {
         dispatch({ isLoading: false });
       }
     },
-    [
-      state.hasEntity,
-      navigate,
-      updateOnboarding,
-      entityName,
-      defaultTicker,
-      addTab,
-      items,
-      updateOnlyItems,
-    ],
+    [state.hasEntity, navigate, updateOnboarding, entityName, items, updateOnlyItems],
   );
 
   if (!user) {

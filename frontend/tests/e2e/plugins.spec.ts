@@ -144,6 +144,10 @@ test("an agent exports plugin data and an MCP call refreshes the mounted widget"
   expect(JSON.stringify(fixture.agentResults[0])).toContain("123");
   expect(fixture.reads()).toBe(reads);
 
+  await expect(
+    page.getByText("Fixture request complete", { exact: true }),
+  ).toBeVisible();
+  await expect(input).toBeFocused();
   await page.locator("#mcp-tools-btn").click();
   await page.getByPlaceholder("Search servers and tools").fill("update-price");
   await page.getByRole("checkbox", { name: "update-price", exact: false }).check();

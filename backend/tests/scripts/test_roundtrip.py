@@ -177,12 +177,6 @@ def _seed_source(session):
             charts_state={"charts": []},
             settings={"theme": "dark"},
         ),
-        models.EnabledWidgetBundles(
-            uuid=uuid4(),
-            user_uuid=USER_UUID,
-            enabled_bundles=["equity"],
-            disabled_widgets=[],
-        ),
     ])
     session.flush()
 

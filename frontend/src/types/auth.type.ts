@@ -1,6 +1,5 @@
 import type { CustomCopilot } from "~/api/auth.api";
 import type { WidgetT } from "~/components/types";
-import type { Ticker } from "~/lib/state/app";
 import type {
   SingleWidget,
   Source,
@@ -27,7 +26,6 @@ export interface DisplaySettings {
   aiEnhancements: boolean;
   tablePagination: boolean;
   fontSize: "medium" | "large";
-  defaultTicker: Ticker;
   gridCorners: Array<"ne" | "nw" | "se" | "sw">;
   gridSnapping: "off" | "vertical";
   quickAddButtonVisible: boolean;
@@ -94,8 +92,6 @@ export interface ProLoginResponse {
   entity_theme_settings: EntityThemeSettings;
   role: null | string;
   entitlements: {
-    keys_fmp: string;
-    keys_polygon: string;
     userMgmt: string;
     proAccess: boolean;
     sharedViews: boolean;
@@ -110,18 +106,12 @@ export interface ProLoginResponse {
   copilot_chats: Chat[];
   questions_history: string[];
   mcp_servers: McpServer[];
-  enabled_widget_bundles: EnabledBundles;
   developer_onboarding_info: null | DeveloperOnboardingQuestions;
   moved_to_developer: boolean;
   show_welcome_screen: boolean;
 }
 
 export type ProLogin2FAResponse = Detail & { access_token?: string };
-
-export interface EnabledBundles {
-  enabled_bundles: string[];
-  disabled_widgets: string[];
-}
 
 export interface DeveloperOnboardingQuestions {
   primaryUsage: "academic" | "professional" | "personal";
@@ -139,18 +129,6 @@ export interface SuccessReturn {
   message?: string;
 }
 
-type RWN = "Read" | "Write" | "None";
-
-interface ProEntitlements {
-  benzinga: RWN;
-  polygon: RWN;
-  intrinio: RWN;
-  fmp: RWN;
-  datarade: RWN;
-  veraset: RWN;
-  alphavantage: RWN;
-}
-
 export interface ProInfo {
   assetClasses: string[];
   geographies: string[];
@@ -162,11 +140,7 @@ export interface ProInfo {
 }
 
 export interface Challenges {
-  grouping: string | null;
-  table_charting: string | null;
   data_connectors: string | null;
-  charting: string | null;
-  group_sector_companies: string | null;
 }
 
 export type Walkthroughs = {
@@ -175,7 +149,6 @@ export type Walkthroughs = {
 
 export interface ProUserResponse {
   expiration_date: string;
-  entitlements: null | ProEntitlements;
   features_pro_info: null | ProInfo;
   accepted_pro_tos: boolean;
   first_name: null | string;
@@ -220,11 +193,6 @@ export type WidgetMetadataResponse = {
   storage?: Record<string, any>;
   widgetConfig?: Partial<WidgetT>;
 };
-
-export interface EnabledBundles {
-  enabled_bundles: string[];
-  disabled_widgets: string[];
-}
 
 export interface SuccessReturn {
   success: boolean;

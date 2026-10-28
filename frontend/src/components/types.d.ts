@@ -470,7 +470,6 @@ export type Widget = {
     };
   };
   endpointMethod?: "GET" | "POST"; // Endpoint method
-  proEndpoint?: string; // Pro endpoint for the widget. - this is from our backend for internal widgets
   wsEndpoint?: string; // Websocket endpoint for the widget. - used with live_grid
   fileEndpoint?: string; // File endpoint for FileViewer widget. - used with file widget (only used in causeway poc)
   params?: ParamDef[]; // url params to send to endpoint - ie. callback endpoint in "analyst_consensus"
@@ -487,7 +486,6 @@ export type Widget = {
   sourceDatabase?: string; // Source database for the widget - only used for snowflake and database widgets
 
   // 🔹 Computed / Derived Data
-  sdkFunc?: string; // SDK function for the widget data.
   platformDataFunction?: string[]; // platform functions for the widget data.
   excelDataFunction?: string[]; // Excel functions for the widget data.
 

@@ -68,28 +68,7 @@ ExtensionType = Literal[
     "html",
 ]
 ProgrammingExperience = Literal["no-experience", "basic", "intermediate-advanced"]
-DashboardTypes = Literal[
-    "charting",
-    "news",
-    "countryEconomics",
-    "calendars",
-    "equityAnalyst",
-    "equity",
-    "comparison",
-    "etfTemplate",
-    "onboarding",
-    "earnings",
-]
-WidgetTypes = Literal[
-    "etf_holdings",
-    "economic_calendar",
-    "earnings_trends",
-    "revenue_trends",
-    "etf_classification",
-    "etf_characteristics",
-]
 AccessType = Literal["no-access", "access", "full-access"]
-BundleNames = Literal["Default", "Equity Research", "Pro Trial", "On-Premise"]
 
 
 def is_bad_word(word: str) -> bool:
@@ -938,40 +917,6 @@ class DashboardComplete(DashboardOwned, DashboardShared):
     pass
 
 
-class DataBundle(BaseModel):
-    model_config = ConfigDict(extra="allow", from_attributes=True)
-
-    bundle_name: BundleNames
-    except_widgets: list[WidgetTypes] | None = None
-    except_dashboard_templates: list[DashboardTypes] | None = None
-    except_team_collaboration: list[Literal["pdf_reports", "sharing"]] | None = None
-    excel_add_in: bool
-    data_export: bool
-    providers: list[Literal["fmp", "econdb", "benzinga"]] | None
-    dashboards_at_launch: list[DashboardTypes] | None
-    my_dashboards: list[DashboardTypes] | None
-    invite_your_colleagues: bool
-    number_copilot_calls_day: int
-    total_file_upload_size_gb: int
-    allow_custom_backends: bool | None = True
-
-    @field_validator(
-        "except_widgets",
-        "except_dashboard_templates",
-        "except_team_collaboration",
-        "providers",
-        "dashboards_at_launch",
-        "my_dashboards",
-        mode="before",
-        check_fields=False,
-    )
-    @classmethod
-    def json_to_lists(cls, value: None | str | list) -> None | list:
-        if value and isinstance(value, str):
-            return json.loads(value)
-        return value
-
-
 class EntitlementBase(BaseModel):
     model_config = main_config
 
@@ -985,12 +930,11 @@ class EntitlementBase(BaseModel):
     support: bool = None
     excel_add_in: bool = None
     data_add_ons_redistribution: bool = None
-    bundle_name: BundleNames | None = None
     allow_custom_backends: bool | None = True
 
 
 class EntitlementGet(EntitlementBase):
-    data_bundle_info: DataBundle | None = None
+    pass
 
 
 class EntitlementUsageBase(BaseModel):
@@ -1729,11 +1673,6 @@ class UserAppsComplete(BaseModel):
     owned: dict[UUID, UserAppReturn]
 
 
-class EnabledBundles(BaseModel):
-    enabled_bundles: list[str]
-    disabled_widgets: list[str] | None = None
-
-
 class EntitlementPost(BaseModel):
     model_config = main_config
     tier: Literal["pro", "terminal"]
@@ -2018,7 +1957,6 @@ class ProTokenWithContext(ProToken):
     feature_entitlements: EntitlementGet | None = None
     can_submit_marketplace: bool = False
     moved_to_developer: bool = False
-    enabled_widget_bundles: EnabledBundles | None = None
     developer_onboarding_info: ProInfoDeveloper | None = None
     usage: EntitlementUsageGet | None = None
     custom_copilots: list[CustomCopilot] | None = None

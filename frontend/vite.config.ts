@@ -99,7 +99,6 @@ export default defineConfig(({ mode }) => {
         urls: {
           backend: env.VITE_PAYMENTS_URL,
           ai: env.VITE_AI_API_URL,
-          platform: env.VITE_PLATFORM_URL,
           database: env.VITE_DATABASE_API_URL,
         },
         authentication: {
@@ -153,12 +152,9 @@ export default defineConfig(({ mode }) => {
           posthog: env.VITE_SERVICES_POSTHOG,
           hubspotForms: env.VITE_SERVICES_HUBSPOT_FORMS,
           email: env.VITE_SERVICES_EMAIL,
-          nixtla: env.VITE_SERVICES_NIXTLA,
           cloudflareWorker: env.VITE_SERVICES_CLOUDFLARE_WORKER,
         },
         data: {
-          packageDataEnabled: env.VITE_DATA_PACKAGE_DATA_ENABLED,
-          allowedDataVendors: env.VITE_DATA_ALLOWED_DATA_VENDORS,
           allowedDbTypes: env.VITE_DATA_ALLOWED_DB_TYPES,
           openDataPlatformInstallerEnabled:
             env.VITE_OPEN_DATA_PLATFORM_INSTALLER_ENABLED,
@@ -396,10 +392,6 @@ export default defineConfig(({ mode }) => {
       viteStaticCopy({
         targets: [
           ...buildPluginAssets(),
-          {
-            src: ["./src/lib/widgets.json", "./src/lib/sources.json"],
-            dest: "assets/data",
-          },
           {
             src: "./node_modules/vscode-oniguruma/release/onig.wasm",
             dest: "assets/wasm",

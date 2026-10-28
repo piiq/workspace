@@ -47,8 +47,8 @@ migration chain via subprocess, then introspects every table to verify:
 - All tables were created (40+ expected)
 - Every column can be reflected without type-mapping errors
 - A `SELECT` succeeds on every table
-- Seed data is present (2 tiers, 2 default_tiers, 3 data_bundles)
-- Alembic version is at `0002`
+- Seed data is present (2 tiers and 2 default_tiers)
+- Database revision matches the Alembic migration head
 
 ### Run all dialect tests
 

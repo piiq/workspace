@@ -706,7 +706,7 @@ const NavBar = forwardRef<HTMLDivElement, NavBarProps>(
             ? widget?.connectionType === "advanced-backend"
               ? widget?.sourceName || "Unknown"
               : "OpenBB API"
-            : "OpenBB Sandbox";
+            : "OpenBB Workspace";
         }
 
         const category = widget?.category || widgetFromJSON?.category;

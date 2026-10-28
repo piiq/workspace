@@ -25,8 +25,8 @@ import { ToggleSelect } from "~/components/ToggleSelect";
 import type { ParamDef, ParamDefT, Ticker } from "~/components/types";
 import { SingleDatePicker } from "~/components/ui/SingleDatePicker";
 import { useWidgetContext } from "~/components/Widget.context";
-import AdvancedSelectedTicker from "~/components/Widgets/Helpers/AdvancedSelectTicker";
 import GroupDropdown from "~/components/Widgets/Helpers/GroupDropdown";
+import TickerInput from "~/components/Widgets/Helpers/TickerInput";
 import { useParamGroupBindings } from "~/components/Widgets/Helpers/useParamGroupBindings";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import { useShallowCopilotDataStore } from "~/lib/state/copilotData";
@@ -37,7 +37,7 @@ import {
   ensureArray,
   getCellOnClickParams,
   getEndpointParamRequestArgs,
-  getJsonWidget,
+  getWidgetDefinition,
   isSSRMType,
   triggerCustomEvent,
   useEventListener,
@@ -131,7 +131,7 @@ export function useWidgetParamsPositions(enabled = true) {
     const tabsParams: ParamDefT<"tabs">[] = [];
     let hasForm = false;
     let hasParams = false;
-    const widgetJSON = getJsonWidget(widget);
+    const widgetJSON = getWidgetDefinition(widget);
 
     const widgetParams = createParamDefs(widgetJSON);
     const sqlParamDefs = createParamDefs({ params: widget?.storage?.sqlParamDefs });
@@ -453,10 +453,9 @@ export function useWidgetParamsPositions(enabled = true) {
         min-w-fit items-center h-[22px] text-2xs"
       >
         {hasTicker && (
-          <AdvancedSelectedTicker
-            triggerSize="sm"
+          <TickerInput
             ticker={widget.data?.mainTicker}
-            setTicker={(ticker) => {
+            onChange={(ticker) => {
               const symbol = ticker?.symbol || ticker;
               const tickerParam = tickerParamDef?.paramName ?? "symbol";
               updateParams(tickerParam, symbol, ticker);

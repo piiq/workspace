@@ -2,6 +2,8 @@
 
 OpenBB Workspace is a React + TypeScript web application for financial data visualization and analysis.
 
+Connect your own backends or OpenBB Platform instances to supply data. Workspace reads their `widgets.json`, `apps.json`, and `agents.json` declarations and provides generic renderers and utilities. Accounts start without sample dashboards or provider feeds; ticker parameters accept the symbols supplied by the user or backend.
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript

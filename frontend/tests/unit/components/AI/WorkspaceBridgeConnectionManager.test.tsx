@@ -27,7 +27,7 @@ vi.mock("~/lib/runtimeConfig", () => ({
     urls: { backend: "http://backend.test", ai: "", platform: "", database: "" },
     ui: { defaultTheme: "dark" },
     whiteLabel: {},
-    data: { packageDataEnabled: false, allowedDataVendors: [], allowedDbTypes: [] },
+    data: { allowedDbTypes: [] },
     services: { cloudflareWorker: false },
     copilot: { openbbCopilot: false },
   }),

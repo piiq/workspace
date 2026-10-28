@@ -27,7 +27,6 @@ export function BackendWidgetSelector() {
     const builtInBackends = new Set([
       "API Endpoints",
       "DatabaseConnector",
-      "OpenBB Sandbox",
       "OpenBB Hub",
       "OpenBB Workspace",
       "SnowflakeConnector",

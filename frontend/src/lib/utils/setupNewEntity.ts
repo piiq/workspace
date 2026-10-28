@@ -1,20 +1,16 @@
 import { v4 as uuidv4 } from "uuid";
 import { putTier } from "~/api/auth.api";
-import type { Ticker } from "~/components/types";
 import { DEFAULT_MCP_SERVER } from "~/lib/constants";
 import { getConfig } from "~/lib/runtimeConfig";
 import type { AppState, Items } from "~/lib/state/app";
 import { useFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useMcpToolsStore } from "~/lib/state/mcpTools";
-import { handleTemplatesCreation } from "~/lib/utils/createTemplates";
 
 export async function setupNewEntity(params: {
-  defaultTicker: Ticker;
-  addTab: AppState["addTab"];
   items: Items;
   updateOnlyItems: AppState["updateOnlyItems"];
-}): Promise<{ success: boolean; onboardingId?: string }> {
-  const { defaultTicker, addTab, items, updateOnlyItems } = params;
+}): Promise<{ success: boolean }> {
+  const { items, updateOnlyItems } = params;
 
   const res = await putTier({ tier: "terminal" });
   if (!res.success) {
@@ -50,13 +46,6 @@ export async function setupNewEntity(params: {
     });
   }
 
-  const onboardingId = handleTemplatesCreation(
-    res.entitlement.data_bundle_info,
-    defaultTicker,
-    addTab,
-    items,
-  );
-
   if (getConfig().mcp.defaultServerEnabled) {
     const currentServers = useMcpToolsStore.getState().servers;
     const hasDefaultServer = currentServers.some(
@@ -67,5 +56,5 @@ export async function setupNewEntity(params: {
     }
   }
 
-  return { success: true, onboardingId };
+  return { success: true };
 }

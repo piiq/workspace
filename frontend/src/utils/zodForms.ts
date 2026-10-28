@@ -249,7 +249,6 @@ export const widgetSchema = z
 export type WidgetType = z.infer<typeof widgetSchema>;
 export type WidgetsType = {
   [key: string]: WidgetType & {
-    sdkFunc: string;
     disabled?: boolean;
     sub_category?: string;
     defaultViz?: WidgetVizType;

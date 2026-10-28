@@ -1,4 +1,3 @@
-import type { UseQueryOptions } from "@tanstack/react-query";
 import { get } from "lodash";
 import type { PlotlyHTMLElement } from "plotly.js-dist-min";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,12 +8,9 @@ import {
 } from "~/components/Charting/utils";
 import { useWidgetParamsPositions } from "~/components/General/Table/NavBar/QueryParams";
 import { useJsonData } from "~/lib/api";
-import * as sdkQuery from "~/lib/api/sdkComponents";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import { type ChartCallback, getChartCallback } from "../Charting/ChartCallbacks";
 import PlotlyChart from "../Charting/PlotlyChart";
 import DraggableCard, { SetLoadingOnResize } from "../DraggableCard";
-import type { WidgetT } from "../types";
 import { useWidgetContext } from "../Widget.context";
 import { useRawDataToggle } from "./charting/useRawDataToggle";
 
@@ -24,28 +20,13 @@ type PlotData = {
   config?: any;
 };
 
-export async function getChartWidgetData(
-  widget: Partial<WidgetT>,
-  results: any,
-  _symbol?: string,
-) {
-  if (!widget?.sdkFunc) {
-    const exportData = await getExportData(results ?? { data: [], layout: {} });
-
-    return { data: results, exportData };
-  }
-
-  const callback = getChartCallback(widget?.data?.chart?.callback as ChartCallback);
-
-  if (!callback) return { data: null, exportData: null };
-
-  const { plotData, exportData } = await callback(results);
-  return { data: plotData?.data?.length > 0 ? plotData : null, exportData };
+export async function getChartWidgetData(results: any) {
+  const exportData = await getExportData(results ?? { data: [], layout: {} });
+  return { data: results, exportData };
 }
 
 export default function Chart() {
-  const { widget, widgetFromJSON } = useWidgetContext();
-  const symbol = widget.data?.mainTicker?.symbol ?? "AAPL";
+  const { widget } = useWidgetContext();
   const [plotData, setPlotData] = useState<PlotData>({
     data: [],
     layout: {},
@@ -57,40 +38,7 @@ export default function Chart() {
   const [exportOutput, setExportOutput] = useState(null);
   const [failingUrl, setFailingUrl] = useState<string | undefined>(undefined);
 
-  const useQueryFn = useCallback(
-    (options: any, queryOptions: Omit<UseQueryOptions<any, Error>, "queryKey">) => {
-      const query = widgetFromJSON?.sdkFunc ? "useSdk" : "useJson";
-      const funcs = {
-        useJson: useJsonData,
-        // check if widget.endpoint is in sdkQuery
-        useSdk:
-          widgetFromJSON?.sdkFunc in sdkQuery
-            ? // biome-ignore lint/performance/noDynamicNamespaceImportAccess: --- IGNORE --
-              sdkQuery[widgetFromJSON?.sdkFunc as string]
-            : useJsonData,
-      };
-
-      return funcs[query](options, queryOptions);
-    },
-    [],
-  );
-
   const chartOptions = useMemo(() => {
-    const query = widgetFromJSON?.sdkFunc ? "useSdk" : "useJson";
-    if (query === "useSdk") {
-      return {
-        queryParams: {
-          provider: "fmp",
-          symbol: symbol ?? "AAPL",
-          ...Object.fromEntries(
-            Object.entries(widget?.storage?.params ?? {}).filter(
-              ([key, value]) => key !== "symbol" && value !== "" && value !== undefined,
-            ),
-          ),
-        },
-      };
-    }
-
     const newParams = Object.fromEntries(
       Object.entries({
         ...(widget?.endpoint?.query ?? {}),
@@ -103,15 +51,15 @@ export default function Chart() {
     return {
       url: widget.endpoint?.url,
       endpointHeaders: widget.endpoint?.headers ?? {},
-      endpointMethod: widget.endpoint?.method ?? "GET",
+      method: widget.endpoint?.method ?? "GET",
       params: newParams,
       onError: (error: Error) => {
-        if (!widgetFromJSON?.sdkFunc && error?.message === "Failed to fetch") {
+        if (error?.message === "Failed to fetch") {
           setFailingUrl(widget.endpoint?.url);
         }
       },
     };
-  }, [symbol, widget?.endpoint, widget?.storage?.params, theme]);
+  }, [widget?.endpoint, widget?.storage?.params, theme]);
 
   const {
     hasRawFlag,
@@ -123,7 +71,6 @@ export default function Chart() {
     rawError,
   } = useRawDataToggle({
     baseOptions: chartOptions,
-    useQueryFn,
     icon: "plotly-icon",
     chartLabel: "Plotly chart",
   });
@@ -133,7 +80,7 @@ export default function Chart() {
     data: chartQueryData,
     dataUpdatedAt,
     error: chartError,
-  } = useQueryFn(chartOptions, {
+  } = useJsonData(chartOptions, {
     enabled: !showTable,
     staleTime: widget?.staleTime ?? 1000 * 60 * 15,
   });
@@ -148,16 +95,12 @@ export default function Chart() {
     return chartQueryData?.results ?? chartQueryData;
   }, [chartQueryData, rawData, showTable, widget?.external, widget?.data?.dataKey]);
 
-  const handleCallback = useCallback(
-    async (results: any) => {
-      const w = widget.external ? widget : widgetFromJSON;
-      const { data, exportData } = await getChartWidgetData(w, results, symbol);
+  const handleCallback = useCallback(async (results: any) => {
+    const { data, exportData } = await getChartWidgetData(results);
 
-      if (data?.data?.length > 0) setPlotData(data);
-      if (exportData) setExportOutput(exportData);
-    },
-    [symbol, theme],
-  );
+    if (data?.data?.length > 0) setPlotData(data);
+    if (exportData) setExportOutput(exportData);
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -219,7 +162,6 @@ export default function Chart() {
           : !isLoading &&
             plotData?.data?.length > 0 && (
               <PlotlyChart
-                key={widget.data?.mainTicker?.symbol}
                 isExternal={widget.external}
                 reduceSize={0}
                 initialData={plotData}

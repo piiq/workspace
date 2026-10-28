@@ -16,7 +16,6 @@ import {
 } from "react-router-dom";
 import useAuthKeyPresses from "~/hooks/useAuthKeyPresses";
 import { usePrivateRoute } from "~/hooks/usePrivateRoute";
-import { TickersProvider } from "~/lib/contexts/CachedTickers";
 import { MobileProvider, useMobile } from "~/lib/providers/MobileProvider";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowAuthStore } from "~/lib/state/auth";
@@ -185,17 +184,15 @@ const LayoutMobile = (props: LayoutProps) => {
   const { children } = props;
 
   return (
-    <TickersProvider>
-      <div className="flex flex-col bg-surface-page h-dvh" id="app-layout">
-        <div className="relative flex-1 overflow-y-auto pb-14">
-          <OuterComponents />
-          <MobileLeftSidePanel />
-          <MobileCenterPanel>{children}</MobileCenterPanel>
-          <MobileRightSidePanel />
-        </div>
-        <BottomTabBar />
+    <div className="flex flex-col bg-surface-page h-dvh" id="app-layout">
+      <div className="relative flex-1 overflow-y-auto pb-14">
+        <OuterComponents />
+        <MobileLeftSidePanel />
+        <MobileCenterPanel>{children}</MobileCenterPanel>
+        <MobileRightSidePanel />
       </div>
-    </TickersProvider>
+      <BottomTabBar />
+    </div>
   );
 };
 
@@ -212,20 +209,18 @@ const LayoutDesktop = memo((props: LayoutProps) => {
 
   return useMemo(
     () => (
-      <TickersProvider key="tickers-provider">
-        <div className="flex bg-surface-page" id="app-layout" key="app-layout">
-          <OuterComponents key="outer-components" />
-          <ResizablePanelGroup
-            key="resizable-panel-group"
-            direction="horizontal"
-            id="group"
-            autoSaveId="persistence-1"
-          >
-            <LeftSidePanel key="left-panel" />
-            {combinedPanelMemo}
-          </ResizablePanelGroup>
-        </div>
-      </TickersProvider>
+      <div className="flex bg-surface-page" id="app-layout" key="app-layout">
+        <OuterComponents key="outer-components" />
+        <ResizablePanelGroup
+          key="resizable-panel-group"
+          direction="horizontal"
+          id="group"
+          autoSaveId="persistence-1"
+        >
+          <LeftSidePanel key="left-panel" />
+          {combinedPanelMemo}
+        </ResizablePanelGroup>
+      </div>
     ),
     [combinedPanelMemo],
   );

@@ -5,30 +5,6 @@ import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
 import { createURLString } from "~/lib/utils/widgetParams";
 import type { ListedApp } from "~/types/listedApps";
 
-const OPENBB_SANDBOX: ListedApp = {
-  id: "openbb-sandbox",
-  vendorName: "OpenBB",
-  appName: "Sandbox App (FMP Data)",
-  description:
-    "Sandbox data from Financial Modeling Prep (FMP), added to every Workspace account by default. Explore company financials, comparisons, ownership, and events right away, no setup needed. Free data to get you started.",
-  backendUrl: "",
-  thumbnail: "/assets/images/openbb_cover.png",
-  vendorDescription:
-    "OpenBB is the open-source investment research platform that democratizes access to financial data and tools.",
-  vendorWebsiteUrl: "https://openbb.co",
-  documentationUrl: "https://docs.openbb.co",
-  widgets: [],
-  prompts: [
-    "Get stock price for AAPL",
-    "Show financial statements for MSFT",
-    "Compare tech stocks",
-    "Analyze market trends",
-  ],
-  screenshots: [],
-  isBuiltIn: true,
-  authType: ["none"],
-};
-
 // In lite the app is served from a non-OpenBB origin and its configured backend is
 // not the marketplace backend, so the marketplace listing must be fetched
 // cross-origin from the OpenBB backend (CORS allow-listed there).

@@ -745,8 +745,9 @@ except APIError as e:
 | Toggle custom backends | `entitlement update <uuid> --data '{...}'` | `entitlement_update(uuid, {...})` |
 
 **Key benefits of the Python client:**
+
 - No need to look up permission UUIDs - just use role names (`"admin"` or `"user"`)
-- `entity_create_with_entitlements()` auto-configures On-Premise bundle
+- `entity_create_with_entitlements()` configures entity quotas
 - `entity_update()` does smart partial updates (fetches current state, merges changes)
 - `provision_full()` creates entity + all users in a single call
 - Proper error handling with `APIError` exceptions

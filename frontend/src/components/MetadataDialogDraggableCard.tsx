@@ -19,7 +19,6 @@ import { useCallbackRef } from "~/hooks/useRefHooks";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import { inSnowflakeNativeApp } from "~/lib/constants";
 import { getConfig } from "~/lib/runtimeConfig";
-import type SOURCES from "~/lib/sources.json";
 import { useShallowAppStore } from "~/lib/state/app";
 import {
   isMetadataType,
@@ -52,7 +51,6 @@ import Icon from "./Icon";
 import Tooltip from "./Tooltip";
 import type { WidgetT } from "./types";
 import { useWidgetContext } from "./Widget.context";
-export type SourceKey = keyof typeof SOURCES;
 
 interface Props {
   open: boolean;

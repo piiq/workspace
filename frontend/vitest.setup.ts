@@ -8,7 +8,6 @@
  * - jsdom-polyfills.ts  - Browser API polyfills (ResizeObserver, matchMedia, etc.)
  * - ag-grid.ts          - AG Grid component and hook mocks
  * - components.ts       - Common component mocks (Icon, etc.)
- * - contexts.ts         - React context mocks
  * - constants.ts        - Environment constants and feature flags
  * - api-client.ts       - Axios API client mock
  * - handlers.ts         - MSW request handlers
@@ -25,7 +24,6 @@ import "./tests/mocks/jsdom-polyfills";
 import "./tests/mocks/constants";
 import "./tests/mocks/runtimeConfig";
 import "./tests/mocks/components";
-import "./tests/mocks/contexts";
 import "./tests/mocks/ag-grid";
 import "./tests/mocks/api-client";
 

@@ -2,9 +2,14 @@ import { randomUUID } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 import { saveDashboard, waitForWorkspace } from "../helpers";
 
-export async function connectPluginBackend(page: Page) {
+export async function connectPluginBackend(
+  page: Page,
+  options: { plugin?: boolean; app?: boolean } = {},
+) {
+  const withPlugin = options.plugin ?? true;
   const name = `Plugin data ${randomUUID().slice(0, 8)}`;
   const url = `http://workspace-plugin.test/${randomUUID()}`;
+  const appName = `${name} app`;
   let price = 123;
   let reads = 0;
   let toolCalls = 0;
@@ -20,9 +25,16 @@ export async function connectPluginBackend(page: Page) {
   const widget = {
     name: "Plugin prices",
     description: "Prices from the browser fixture",
-    type: "@example/basic-widget/table",
+    type: withPlugin ? "@example/basic-widget/table" : "table",
     endpoint: "prices",
-    params: [{ paramName: "symbol", type: "text", label: "Symbol", value: "AAPL" }],
+    params: [
+      {
+        paramName: "symbol",
+        type: withPlugin ? "text" : "ticker",
+        label: "Symbol",
+        value: "AAPL",
+      },
+    ],
     gridData: { w: 20, h: 8 },
     mcp_tool: { mcp_server: name, tool_id: "update-price" },
   };
@@ -40,10 +52,50 @@ export async function connectPluginBackend(page: Page) {
             ...widget,
             name: "Core prices",
             type: "table",
-            params: [],
+            params: options.app ? widget.params : [],
             mcp_tool: undefined,
           },
         },
+      });
+    } else if (path === "apps.json" && options.app) {
+      await route.fulfill({
+        json: [
+          {
+            name: appName,
+            description: "A dashboard declared by the connected backend",
+            tabs: {
+              overview: {
+                id: "overview",
+                name: "Overview",
+                layout: [
+                  { i: "navigation_bar", x: 0, y: 0, w: 40, h: 2 },
+                  {
+                    i: "core",
+                    x: 0,
+                    y: 2,
+                    w: 20,
+                    h: 8,
+                    state: { params: { symbol: "MSFT" } },
+                  },
+                ],
+              },
+              details: {
+                id: "details",
+                name: "Details",
+                layout: [
+                  {
+                    i: "core",
+                    x: 0,
+                    y: 2,
+                    w: 20,
+                    h: 8,
+                    state: { params: { symbol: "AMZN" } },
+                  },
+                ],
+              },
+            },
+          },
+        ],
       });
     } else if (path === "prices") {
       reads++;
@@ -165,11 +217,12 @@ export async function connectPluginBackend(page: Page) {
   const plugin = page
     .locator(".group\\/widget")
     .filter({ has: page.getByText("Plugin prices", { exact: true }) });
-  await expect(plugin.getByRole("table")).toBeVisible();
+  await expect(plugin.getByRole(withPlugin ? "table" : "grid")).toBeVisible();
   await saveDashboard(page);
   return {
     name,
     url,
+    appName,
     plugin,
     dashboardUrl,
     agentResults,

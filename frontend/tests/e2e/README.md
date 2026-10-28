@@ -1,6 +1,6 @@
 # Browser tests
 
-Playwright checks login settings, uploaded CSV/JSON data, dashboard operations, and compiled plugins against the local application. Each scenario creates its own data. Plugin tests use the standalone example and controlled data, agent, and MCP responses without subscriptions or paid model calls. Set `PLAYWRIGHT_HOSTED_TESTS=true` to include provider and subscription tests against a deployment with the required data and features.
+Playwright checks login settings, uploaded CSV/JSON data, connected backend widgets and apps, dashboard operations, and compiled plugins against the local application. Each scenario creates its own data. Plugin tests use the standalone example and controlled data, agent, and MCP responses without subscriptions or paid model calls. Set `PLAYWRIGHT_HOSTED_TESTS=true` to include onboarding questions and PDF export against a deployment with those features enabled.
 
 ## Run from source
 
@@ -29,6 +29,7 @@ The account setup uses `admin_cli/openbb-admin` to create `playwright@example.co
 ```bash
 bun run playwright test tests/e2e/auth.spec.ts
 bun run playwright test tests/e2e/data-conectors.spec.ts
+bun run playwright test tests/e2e/backend-declarations.spec.ts
 bun run playwright test tests/e2e/plugins.spec.ts
 bun run playwright test tests/e2e --ui
 ```

@@ -2,15 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useThemeStore } from "~/lib/state/theme";
 
 // Mock external dependencies
-vi.mock("~/api/auth.api", () => ({
-  migrateDefaultTicker: vi.fn().mockResolvedValue({
-    symbol: "AAPL",
-    id: "AAPL",
-    type: "stock",
-    name: "Apple Inc.",
-    category: "equity",
-  }),
-}));
 
 vi.mock("~/api/user.api", () => ({
   updateUserDisplaySettings: vi.fn().mockResolvedValue({}),
@@ -23,18 +14,6 @@ vi.mock("~/lib/state/auth", () => ({
       openaiApiKey: "test-openai-key",
       perplexityApiKey: "test-perplexity-key",
     }),
-  },
-}));
-
-vi.mock("~/lib/types", () => ({
-  DEFAULT_TICKERS: {
-    AAPL: {
-      id: "AAPL",
-      symbol: "AAPL",
-      type: "stock",
-      name: "Apple Inc.",
-      category: "equity",
-    },
   },
 }));
 
@@ -68,13 +47,7 @@ describe("useThemeStore", () => {
       apiKeyDialogOpen: false,
       bookingOpen: false,
       shareDashboardPopupId: null,
-      defaultTicker: {
-        id: "AAPL",
-        symbol: "AAPL",
-        type: "stock",
-        name: "Apple Inc.",
-        category: "equity",
-      },
+
       userAcknowledgedMobile: false,
       userAcknowledgedNonChromium: false,
       decimalDigits: 2,
@@ -142,7 +115,6 @@ describe("useThemeStore", () => {
       expect(state.apiKeyDialogOpen).toBe(false);
       expect(state.bookingOpen).toBe(false);
       expect(state.shareDashboardPopupId).toBeNull();
-      expect(state.defaultTicker).toBeDefined();
       expect(state.userAcknowledgedMobile).toBe(false);
       expect(state.userAcknowledgedNonChromium).toBe(false);
       expect(state.decimalDigits).toBe(2);
@@ -260,7 +232,6 @@ describe("useThemeStore", () => {
       expect(settings).toHaveProperty("aiEnhancements");
       expect(settings).toHaveProperty("tablePagination");
       expect(settings).toHaveProperty("fontSize");
-      expect(settings).toHaveProperty("defaultTicker");
       expect(settings).toHaveProperty("gridCorners");
       expect(settings).toHaveProperty("gridSnapping");
       expect(settings).toHaveProperty("quickAddButtonVisible");
@@ -589,21 +560,6 @@ describe("useThemeStore", () => {
     it("should set collapsed panel expand on hover", () => {
       useThemeStore.getState().setCollapsedPanelExpandOnHover(true);
       expect(useThemeStore.getState().collapsedPanelExpandOnHover).toBe(true);
-    });
-  });
-
-  describe("Default Ticker", () => {
-    it("should set default ticker", () => {
-      const ticker = {
-        id: "MSFT",
-        symbol: "MSFT",
-        name: "Microsoft Corporation",
-        category: "equity",
-      };
-
-      useThemeStore.getState().setDefaultTicker(ticker as any);
-
-      expect(useThemeStore.getState().defaultTicker).toEqual(ticker);
     });
   });
 

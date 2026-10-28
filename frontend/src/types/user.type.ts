@@ -1,5 +1,3 @@
-import type { DataProviderSlug } from "~/lib/data-providers";
-
 export type UserSources = "user" | "invite" | "takeover";
 
 export interface User {
@@ -29,6 +27,4 @@ export interface CreateUserDTO {
 export const UserProEntitlements = ["None", "Read", "Write"] as const;
 export type UserProEntitlement = (typeof UserProEntitlements)[number];
 
-export type Entitlements = {
-  [key in DataProviderSlug]: UserProEntitlement;
-};
+export type Entitlements = Record<string, UserProEntitlement>;

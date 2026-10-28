@@ -30,7 +30,6 @@ import { getColumnDefs, isDate, isDateTime } from "../AgGridUtils";
 import { getWidgetStorage } from "../hooks";
 import type { AgGridElement, ChartDataT } from "../hooks/types";
 import { getSelectedRangeData } from "../hooks/useCreateChart";
-import { customChartWidgetIds } from "./AgChartView";
 
 type ToolTipRendererParams<
   T = any,
@@ -507,15 +506,12 @@ export function getChartData(params: GetChartDataProps) {
     isChartView = false,
   } = params;
 
-  const hasCustomChart =
-    !widget?.external && customChartWidgetIds.includes(widget?.widgetId);
-
   const widgetTable = widget?.data?.table || {};
   const widgetColDefs = widgetTable?.columnsDefs ?? [];
 
   const storage = getWidgetStorage(widget);
   const period = storage?.period ?? storage?.params?.period;
-  const transpose = hasCustomChart ? true : storage?.transpose;
+  const transpose = storage?.transpose;
 
   const widgetDefs = Object.fromEntries(
     widgetColDefs?.map((column) => [
@@ -596,7 +592,7 @@ export function getChartData(params: GetChartDataProps) {
     isReallyTransposed,
   } as ChartDataT;
 
-  if (!(isReallyTransposed || hasCustomChart) && isChartView) return chartData;
+  if (!isReallyTransposed && isChartView) return chartData;
 
   const rawRowData = [] as Record<string, any>[];
   const rawColumns = (isReallyTransposed ? [] : columns) as string[];
@@ -618,8 +614,7 @@ export function getChartData(params: GetChartDataProps) {
   };
 
   // Extract the data from the selected row nodes
-  if (hasCustomChart || !isChartView)
-    for (const data of selectedRowNodes) processData(data);
+  if (!isChartView) for (const data of selectedRowNodes) processData(data);
   else if (gridApi) {
     gridApi.forEachNodeAfterFilterAndSort((node) => {
       if (node.rowGroupColumn) {

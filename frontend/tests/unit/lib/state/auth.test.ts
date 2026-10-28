@@ -3,28 +3,7 @@ import { type AuthState, useAuthStore } from "~/lib/state/auth";
 
 // Mock all external dependencies
 vi.mock("~/api/auth.api", () => ({
-  putEnabledBundles: vi.fn().mockResolvedValue({}),
-}));
-
-vi.mock("~/lib/widget_bundles.json", () => ({
-  default: {
-    openbb: {
-      name: "OpenBB",
-      enabled_by_default: true,
-      widgets: ["widget1", "widget2"],
-    },
-    premium: {
-      name: "Premium",
-      enabled_by_default: false,
-      pro_only: true,
-      widgets: ["premiumWidget1"],
-    },
-    analytics: {
-      name: "Analytics",
-      enabled_by_default: true,
-      widgets: ["analyticsWidget1"],
-    },
-  },
+  logout: vi.fn(),
 }));
 
 vi.mock("~/lib/state/copilot", () => ({
@@ -73,8 +52,6 @@ describe("useAuthStore", () => {
     initialState = useAuthStore.getState();
     useAuthStore.setState({
       user: null,
-      enabledBundles: ["openbb", "analytics"],
-      disabledWidgets: [],
       tosAccepted: false,
       needsOnboarding: false,
       needsInAppOnboarding: true,
@@ -169,79 +146,6 @@ describe("useAuthStore", () => {
         useAuthStore.getState().updateLastVisitedPage(path);
         expect(useAuthStore.getState().lastVisitedPage).toBe(path);
       }
-    });
-  });
-
-  describe("toggleBundle", () => {
-    it("should enable a disabled bundle", () => {
-      useAuthStore.setState({ enabledBundles: ["openbb"] });
-
-      useAuthStore.getState().toggleBundle("analytics");
-
-      expect(useAuthStore.getState().enabledBundles).toContain("analytics");
-    });
-
-    it("should disable an enabled bundle", () => {
-      useAuthStore.setState({
-        enabledBundles: ["openbb", "analytics"],
-        disabledWidgets: [],
-      });
-
-      useAuthStore.getState().toggleBundle("analytics");
-
-      expect(useAuthStore.getState().enabledBundles).not.toContain("analytics");
-    });
-
-    it("should add bundle widgets to disabled list when disabling bundle", () => {
-      useAuthStore.setState({
-        enabledBundles: ["openbb", "analytics"],
-        disabledWidgets: [],
-      });
-
-      useAuthStore.getState().toggleBundle("analytics");
-
-      expect(useAuthStore.getState().disabledWidgets).toContain("analyticsWidget1");
-    });
-
-    it("should remove bundle widgets from disabled list when enabling bundle", () => {
-      useAuthStore.setState({
-        enabledBundles: ["openbb"],
-        disabledWidgets: ["analyticsWidget1"],
-      });
-
-      useAuthStore.getState().toggleBundle("analytics");
-
-      expect(useAuthStore.getState().disabledWidgets).not.toContain("analyticsWidget1");
-    });
-  });
-
-  describe("toggleWidgetDisabled", () => {
-    it("should disable an enabled widget", () => {
-      useAuthStore.setState({ disabledWidgets: [] });
-
-      useAuthStore.getState().toggleWidgetDisabled("widget1");
-
-      expect(useAuthStore.getState().disabledWidgets).toContain("widget1");
-    });
-
-    it("should enable a disabled widget", () => {
-      useAuthStore.setState({ disabledWidgets: ["widget1"] });
-
-      useAuthStore.getState().toggleWidgetDisabled("widget1");
-
-      expect(useAuthStore.getState().disabledWidgets).not.toContain("widget1");
-    });
-
-    it("should enable bundle when enabling a widget from that bundle", () => {
-      useAuthStore.setState({
-        enabledBundles: [],
-        disabledWidgets: ["widget1"],
-      });
-
-      useAuthStore.getState().toggleWidgetDisabled("widget1");
-
-      // widget1 belongs to openbb bundle
-      expect(useAuthStore.getState().enabledBundles).toContain("openbb");
     });
   });
 
@@ -437,42 +341,6 @@ describe("useAuthStore", () => {
 
       useAuthStore.getState().updateAlphaWarning(false);
       expect(useAuthStore.getState().alphaWarning).toBe(false);
-    });
-  });
-
-  describe("checkNewBundles", () => {
-    it("should not update bundles when all default bundles are present", () => {
-      useAuthStore.setState({
-        enabledBundles: ["openbb", "analytics"],
-        disabledWidgets: [],
-      });
-
-      const initialBundles = [...useAuthStore.getState().enabledBundles];
-      useAuthStore.getState().checkNewBundles(false);
-
-      expect(useAuthStore.getState().enabledBundles).toEqual(initialBundles);
-    });
-
-    it("should add missing default bundles", () => {
-      useAuthStore.setState({
-        enabledBundles: ["openbb"],
-        disabledWidgets: [],
-      });
-
-      useAuthStore.getState().checkNewBundles(false);
-
-      expect(useAuthStore.getState().enabledBundles).toContain("analytics");
-    });
-
-    it("should not add pro-only bundles for non-pro tier", () => {
-      useAuthStore.setState({
-        enabledBundles: ["openbb"],
-        disabledWidgets: [],
-      });
-
-      useAuthStore.getState().checkNewBundles(false);
-
-      expect(useAuthStore.getState().enabledBundles).not.toContain("premium");
     });
   });
 });

@@ -21,7 +21,7 @@ type Props = {
   children: ReactNode;
 };
 
-export const InitialVisibleWidgetIds = ["navigation_bar", "market_indices"];
+export const InitialVisibleWidgetIds = ["navigation_bar"];
 
 const RenderIfVisible = forwardRef(
   (

@@ -18,7 +18,6 @@ window.__APP_CONFIG__ = {
   urls: {
     backend: "https://backend.openbb.dev",
     ai: "https://ai.openbb.dev",
-    platform: "https://sdk.openbb.dev",
     database: "",
   },
   authentication: {
@@ -73,12 +72,9 @@ window.__APP_CONFIG__ = {
     posthog: true,
     hubspotForms: true,
     email: true,
-    nixtla: true,
     cloudflareWorker: true,
   },
   data: {
-    packageDataEnabled: true,
-    allowedDataVendors: ["fmp", "benzinga", "econdb"],
     allowedDbTypes: ["database", "snowflake", "databricks", "clickhouse"],
     openDataPlatformInstallerEnabled: true,
     allowHtmlJsExecution: false,

@@ -25,11 +25,9 @@ vi.mock("~/components/AI/hooks/utils", () => ({
   compareSignatures: vi.fn(),
   createSignatureMap: vi.fn(() => ({})),
 }));
-vi.mock("~/lib/sources.json", () => ({
-  default: { "test-source": { name: "Test Source" } },
-}));
+
 vi.mock("~/lib/utils", () => ({
-  getJsonWidget: vi.fn(() => null),
+  getWidgetDefinition: vi.fn(() => null),
   useWidgetDataSource: () => context.source,
   extractColumns: (data: unknown) =>
     Array.isArray(data) && data[0] && typeof data[0] === "object"
@@ -78,7 +76,7 @@ describe("useWidgetDataExport", () => {
       dashboardId: "dashboard-1",
       metadata: {
         params: { symbol: "AAPL" },
-        source: "Test Source",
+        source: "test-source",
         columns: ["quarter", "revenue"],
         lastUpdated: 100,
         origin: "connector",

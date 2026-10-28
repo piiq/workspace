@@ -302,7 +302,7 @@ export function useCopilotContextSuggestions(props: ContextSuggestionsProps) {
           description: tabWidget.description,
           content: {
             ...tabWidget,
-            origin: tabWidget.origin || "OpenBB Sandbox", // Ensure origin is set
+            origin: tabWidget.origin || "OpenBB Workspace", // Ensure origin is set
           },
           _isChildWidget: true,
           _parentTabId: tabSuggestion.content?.metadata?.innerTabId,
@@ -624,7 +624,7 @@ export function useCopilotContextSuggestions(props: ContextSuggestionsProps) {
 
         // Show badge immediately
         updates.addSelectedWidget = {
-          origin: suggestion.content.origin ?? "OpenBB Sandbox",
+          origin: suggestion.content.origin ?? "OpenBB Workspace",
           widget_id: suggestion.content.widget_id,
           uuid: virtualWidgetUuid,
           name: widgetToAdd.name,
@@ -1199,7 +1199,7 @@ export const TabWidgetElement = memo((props: TabWidgetElementProps) => {
       ? widgetDefinition?.connectionType === "advanced-backend"
         ? widgetDefinition?.sourceName || "Unknown"
         : "OpenBB API"
-      : tabWidget.origin || "OpenBB Sandbox";
+      : tabWidget.origin || "OpenBB Workspace";
 
     const subCategory = widgetDefinition?.subCategory || "";
     const source = widgetDefinition?.source || "";

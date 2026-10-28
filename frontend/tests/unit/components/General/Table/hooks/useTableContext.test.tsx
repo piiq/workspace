@@ -116,7 +116,6 @@ vi.mock("~/components/General/Table/Chart/AgChartView", () => ({
       cellRange: { columns: [] },
     },
   })),
-  customChartWidgetIds: [],
 }));
 
 vi.mock("~/hooks/useRefHooks", () => ({

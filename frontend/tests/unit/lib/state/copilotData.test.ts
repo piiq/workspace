@@ -13,6 +13,7 @@
 
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createSignatureMap } from "~/components/AI/hooks/utils";
 import type { WidgetT } from "~/components/types";
 import { type DashboardWidgetData, useCopilotDataStore } from "~/lib/state/copilotData";
 
@@ -1118,12 +1119,15 @@ describe("useCopilotDataStore", () => {
         ).toBe(false);
       });
 
-      it("should compare signatures correctly", () => {
+      it("should compare the current widget signature", () => {
         const signature = { origin: "test", widgetId: "chart", args: {} };
+        const widget = createMockWidget();
+        vi.mocked(createSignatureMap).mockReturnValueOnce({ "widget-1": signature });
 
         act(() => {
           useCopilotDataStore.setState({
-            signaturesMap: { "widget-1": signature },
+            widgetsInCurrentDashboard: [widget],
+            signaturesMap: {},
           });
         });
 

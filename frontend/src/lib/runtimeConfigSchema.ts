@@ -51,7 +51,6 @@ export const RuntimeConfigSchema = z.object({
   urls: z.object({
     backend: z.string().default(""),
     ai: z.string().default(""),
-    platform: z.string().default(""),
     database: z.string().default(""),
   }),
   authentication: z.object({
@@ -106,12 +105,9 @@ export const RuntimeConfigSchema = z.object({
     posthog: boolField(false),
     hubspotForms: boolField(false),
     email: boolField(false),
-    nixtla: boolField(true),
     cloudflareWorker: boolField(true),
   }),
   data: z.object({
-    packageDataEnabled: boolField(true),
-    allowedDataVendors: strArrayField([]),
     allowedDbTypes: strArrayField([]),
     openDataPlatformInstallerEnabled: boolField(true),
     allowHtmlJsExecution: boolField(false),

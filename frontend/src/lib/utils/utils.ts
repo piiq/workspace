@@ -18,11 +18,7 @@ import type { CreateWidgetParams } from "~/components/AI/hooks/useCreateWidgetFr
 import { isDate } from "~/components/General/Table/AgGridUtils";
 import { areTruthy } from "~/components/General/Table/utils";
 import type { NewWidgetT } from "~/components/types";
-import {
-  BENZINGA_NEWS_IMG_URLS,
-  butterflyTypes,
-  MAX_SKILL_SLUG_LENGTH,
-} from "../constants";
+import { butterflyTypes, MAX_SKILL_SLUG_LENGTH } from "../constants";
 import { useAppStore } from "../state/app";
 import { useAuthStore } from "../state/auth";
 import type { SaveWidgetsEventT } from "../types";
@@ -232,12 +228,6 @@ export async function loaderDelayFn<T>(fn: (...args: any[]) => Promise<T> | T) {
   const res = await fn();
 
   return res;
-}
-
-export function getRandomBenzingaImage() {
-  return BENZINGA_NEWS_IMG_URLS[
-    Math.floor(Math.random() * BENZINGA_NEWS_IMG_URLS.length)
-  ];
 }
 
 export async function actionDelayFn<T>(fn: (...args: any[]) => Promise<T> | T) {
@@ -831,7 +821,7 @@ const ELEMENT_SETTLE_DELAY = 1000; // Allow widgets to fully render after conten
 const ELEMENT_SETTLE_DELAY_WITH_CHART = 3000; // Longer delay for dashboards with chart/TradingView widgets
 
 // Widget IDs that require longer settle time (charts, heavy visualizations, backend-connected widgets)
-const SLOW_WIDGET_IDS = ["charting", "price_performance", "ssrm_advanced", "omni"];
+const SLOW_WIDGET_IDS = ["charting", "ssrm_advanced", "omni"];
 
 // Widget types (viz types) that require longer settle time (backend-connected widgets)
 const SLOW_WIDGET_TYPES = ["ssrm_advanced", "omni"];

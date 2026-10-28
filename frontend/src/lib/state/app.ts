@@ -20,9 +20,7 @@ import type {
   WidgetT as Widget,
   WidgetJsonT,
 } from "~/components/types";
-import WIDGET_BUNDLES from "~/lib/widget_bundles.json";
 import type { DashSync } from "~/types/auth.type";
-import { getAllowedDataVendors } from "../onPremFeatureFlags";
 import {
   addDuplicateWidgetToItem,
   addToWidgetParamGroups,
@@ -50,24 +48,17 @@ import { NotificationId, showNotificationWithRememberMe } from "../utils/toast";
 import {
   dispatchSaveState,
   dispatchUpdateWidget,
-  ensureArray,
   extractUUIDFromURL,
   scoreArrays,
   triggerCustomEvent,
 } from "../utils/utils";
-import { groupParamOverride } from "../utils/widget";
 import { createParamDefs } from "../utils/widgetParams";
 import { useAuthStore } from "./auth";
 import { useBackendConnectorStore } from "./backendConnector";
 import { useChartingStore } from "./charting";
 import { useCopilotDataStore } from "./copilotData";
-import { useFeatureFlagsStore } from "./featureFlags";
 import { useSharedAppStore } from "./sharedApp";
 import { useSidebarStore } from "./sidebar";
-import { useThemeStore } from "./theme";
-import { tickersStore } from "./tickers";
-
-const allowedVendorsFF = getAllowedDataVendors();
 
 export type Selector<S, T> = (state: S) => T;
 
@@ -98,19 +89,7 @@ export type Item = {
 export type TabData = {
   name: string;
   type?: "custom" | "template";
-  templateId?:
-    | "charting"
-    | "news"
-    | "equity"
-    | "equityAnalyst"
-    | "calendar"
-    | "etf"
-    | "comparison"
-    | "countryEconomics"
-    | "onboarding"
-    | "earnings"
-    | "custom"
-    | `custom-${string}`;
+  templateId?: string;
   gridLayout?: GridLayout;
   widgets?: Widget[];
   locked?: boolean;
@@ -240,29 +219,6 @@ export type AppState = {
     isMinimized: boolean,
     originalH?: number,
   ) => void;
-};
-
-const isWidgetVendorAllowed = (widget: Widget | WidgetJsonT) => {
-  const realWidgetId = widget?.widgetId?.split("-")?.[0];
-
-  // For core widgets (from openbb bundle), always allow them
-  if (WIDGET_BUNDLES.openbb.widgets.includes(realWidgetId)) {
-    return true;
-  }
-
-  // For external widgets, always allow them
-  if (widget.external || widget.type === "custom" || !widget.source) {
-    return true;
-  }
-
-  // Check if widget's source is in allowed vendors
-  if (typeof widget.source === "string") {
-    return allowedVendorsFF.includes(widget.source.toLowerCase());
-  }
-
-  return widget.source?.some((source) =>
-    allowedVendorsFF.includes(source.toLowerCase()),
-  );
 };
 
 function getLatestDashboardId(currentItems: Items) {
@@ -600,7 +556,7 @@ export const useAppStore = createWithEqualityFn<AppState>()(
                 acc.endpointParams[groupById] += 1;
                 continue;
               }
-              const paramName = groupParamOverride(param.paramName, w.widgetId, true);
+              const paramName = param.paramName;
 
               if (!acc.tabParamOptions[paramName]) acc.tabParamOptions[paramName] = [];
               acc.tabParamOptions[paramName].push(param?.options || []);
@@ -1283,43 +1239,12 @@ export const useAppStore = createWithEqualityFn<AppState>()(
 
         if (!rootFolder) return;
 
-        const mainTicker = defaultTicker || useThemeStore.getState().defaultTicker;
+        const mainTicker = defaultTicker;
 
-        let gridLayout = { ...(tab?.data?.gridLayout || {}) } as GridLayout;
+        const gridLayout = { ...(tab?.data?.gridLayout || {}) } as GridLayout;
         const widgets = [] as Widget[];
         const groups = tab?.data?.groups || [];
-        let tabWidgetsFiltered = tab?.data?.widgets || [];
-
-        const initialLength = tabWidgetsFiltered.length;
-
-        // we need this for on prem feature flags for allowed vendors
-        tabWidgetsFiltered = tabWidgetsFiltered.filter(isWidgetVendorAllowed);
-        if (initialLength !== tabWidgetsFiltered.length) {
-          gridLayout = updateWidgetGridLayout({
-            widget: { id: "" } as Widget,
-            gridLayout,
-            tabWidgets: tabWidgetsFiltered,
-            removeWidget: true,
-          });
-        }
-
-        const exceptWidgets =
-          useFeatureFlagsStore.getState().featureFlags?.data_bundle_info
-            ?.except_widgets || [];
-
-        if (exceptWidgets?.length > 0) {
-          tabWidgetsFiltered = tabWidgetsFiltered?.filter(
-            (w) => !exceptWidgets.includes(w.widgetId as any),
-          );
-
-          // Removes widgets in gridlayout that are excluded
-          gridLayout = updateWidgetGridLayout({
-            widget: { id: "" } as Widget,
-            gridLayout,
-            tabWidgets: tabWidgetsFiltered,
-            removeWidget: true,
-          });
-        }
+        const tabWidgetsFiltered = tab?.data?.widgets || [];
 
         const widgetsInGrid = Object.entries(gridLayout).reduce(
           (acc, [key, grid]) => {
@@ -1595,23 +1520,9 @@ export const useAppStore = createWithEqualityFn<AppState>()(
           });
           return;
         }
-        // we need this for on prem feature flags for allowed vendors
-        const widgetsToAdd = widgets.filter(isWidgetVendorAllowed);
+        const widgetsToAdd = widgets;
         let currentTab = tab.data.currentTab ?? "";
         const storedFileUUIDs = new Set<string>(tab.data?.storedFileUUIDs || []);
-
-        const symbols = widgetsToAdd
-          .filter(
-            (w) =>
-              w.params?.find((p) => p.paramName === "symbol" && p.type === "ticker") &&
-              w.storage?.params?.symbol,
-          )
-          .map((w) => w.storage?.params?.symbol as string);
-
-        let tickersObj: Record<string, Ticker> | null = null;
-        if (symbols.length > 0) {
-          tickersObj = await tickersStore.getState().getOrQueryTickers(symbols);
-        }
 
         const newWidgets: Widget[] = [];
         let gridLayout: GridLayout = { ...(tab.data.gridLayout || {}) };
@@ -1619,23 +1530,10 @@ export const useAppStore = createWithEqualityFn<AppState>()(
           initialWidget.innerTab = initialWidget?.innerTab || currentTab;
           const tabWidgets = [...tab.data.widgets, ...newWidgets];
 
-          // This is a temporary solution to handle ticker param type
-          // The method addWidget needs to be async, but it only awaits for tickersStore
-          // Once we fix the ticker issue the method can be synchronous again
-          let defaultTicker = useThemeStore.getState().defaultTicker;
-          const symbolParam = initialWidget.params?.find(
-            (p) => p.paramName === "symbol" && p.type === "ticker",
-          );
-          if (symbolParam) {
-            const symbol: string = ensureArray(
-              initialWidget.storage?.params?.symbol,
-            )?.[0];
-            if (tickersObj?.[symbol]) defaultTicker = tickersObj[symbol];
-          }
-
+          const defaultTicker = initialWidget.data?.mainTicker;
           const finalWidget = getWidgetData({
             widget: initialWidget,
-            defaultTicker: defaultTicker || useThemeStore.getState().defaultTicker,
+            defaultTicker,
           });
 
           const { someHaveMainTicker, allTheSame, mainTicker } =

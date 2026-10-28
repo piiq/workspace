@@ -105,7 +105,6 @@ on every start from the env vars below (see
 | --- | --- | --- |
 | `BACKEND_URL` | `/api` | Base URL the SPA uses for backend calls |
 | `AI_API_URL` | empty | AI service URL used by Workspace AI features |
-| `PLATFORM_URL` | empty | Platform service URL |
 | `DATABASE_API_URL` | empty | Database service URL |
 | `AUTHENTICATION_SEND_USER_EMAIL_AS_HEADER` | `false` | Send the signed-in user's email as a request header |
 | `AI_COPILOT_ENABLED` | `true` | Show Copilot UI |

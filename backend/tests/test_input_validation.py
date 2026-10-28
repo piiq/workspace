@@ -337,18 +337,6 @@ class TestJSONPayloadValidation:
         assert response.status_code in {200, 400, 422}
 
     @pytest.mark.asyncio
-    async def test_large_array_in_payload(self, auth_client):
-        """Large array in payload should be handled"""
-        large_array = list(range(100))  # Reasonable size to avoid hanging
-
-        response = await auth_client.put(
-            "/pro/enabled-bundles",
-            json={"bundles": large_array},
-        )
-        # Should handle gracefully
-        assert response.status_code in {200, 400, 413, 422}
-
-    @pytest.mark.asyncio
     async def test_invalid_json_syntax(self, client):
         """Invalid JSON syntax should return appropriate error"""
         response = await client.post(

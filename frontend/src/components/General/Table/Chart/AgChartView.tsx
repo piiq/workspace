@@ -62,14 +62,6 @@ export function ChartViewElement() {
     </SetLoadingOnResize>
   );
 }
-export const customChartWidgetIds = [
-  "analyst_estimates",
-  "earnings_trends",
-  "revenue_trends",
-  "revenue_per_bus_line",
-  "revenue_per_geography",
-];
-
 export function ChartViewButton() {
   const enterprise = useAgEnterprise();
   const isMobile = useIsMobile();

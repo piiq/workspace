@@ -138,11 +138,10 @@ ENTITLEMENT_RESPONSE=$(api_request PATCH "/entity/entitlement/$ENTITY_UUID?updat
     \"tier\": \"pro\",
     \"number_copilot_calls_day\": 10000,
     \"total_file_upload_size_gb\": 10,
-    \"excel_add_in\": 1,
-    \"bundle_name\": \"On-Premise\"
+    \"excel_add_in\": 1
 }")
 
-log_success "Entitlements configured (On-Premise bundle)"
+log_success "Entitlements configured"
 
 # =============================================================================
 # 5. GET PERMISSION MAPS (what get_permission_map_by_role does)

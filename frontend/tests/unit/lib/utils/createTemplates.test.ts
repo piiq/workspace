@@ -2,8 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createCustomTemplateTab,
   extractCustomTemplateInfo,
-  ONBOARDING_STORED_FILES,
-  OPENBB_ONBOARDING_WIDGETS,
 } from "~/lib/utils/createTemplates";
 
 vi.mock("~/api/auth.api", () => ({
@@ -30,13 +28,19 @@ vi.mock("~/lib/state/theme", () => ({
   },
 }));
 
-vi.mock("~/lib/api/sdkComponents", () => ({
-  fetchQuerySymbols: vi.fn().mockResolvedValue({ results: [] }),
-}));
-
 describe("createTemplates utility functions", () => {
   describe("createCustomTemplateTab", () => {
-    const source = { id: "source-1", name: "Source" } as any;
+    const source = {
+      id: "source-1",
+      name: "Source",
+      widgets: {
+        "declared-widget": {
+          name: "Declared widget",
+          type: "table",
+          endpoint: "/data",
+        },
+      },
+    } as any;
     const template = { name: "My App", description: "Desc", tabs: {} } as any;
 
     it("redirects to an existing untouched app dashboard instead of creating another one", async () => {
@@ -193,7 +197,7 @@ describe("createTemplates utility functions", () => {
             name: "Overview",
             layout: [
               {
-                i: "ticker_information",
+                i: "declared-widget",
                 x: 0,
                 y: 0,
                 w: 12,
@@ -230,7 +234,7 @@ describe("createTemplates utility functions", () => {
             name: "Overview",
             layout: [
               {
-                i: "ticker_information",
+                i: "declared-widget",
                 x: 0,
                 y: 0,
                 w: 20,
@@ -269,7 +273,7 @@ describe("createTemplates utility functions", () => {
           overview: {
             id: "overview",
             name: "Overview",
-            layout: [{ i: "ticker_information", x: 0, y: 0, w: 20, h: 1, groups: [] }],
+            layout: [{ i: "declared-widget", x: 0, y: 0, w: 20, h: 1, groups: [] }],
           },
         },
       } as any;
@@ -295,7 +299,7 @@ describe("createTemplates utility functions", () => {
           overview: {
             id: "overview",
             name: "Overview",
-            layout: [{ i: "ticker_information", x: 0, y: 0, w: 20, h: 12, groups: [] }],
+            layout: [{ i: "declared-widget", x: 0, y: 0, w: 20, h: 12, groups: [] }],
           },
         },
       } as any;
@@ -484,7 +488,7 @@ describe("createTemplates utility functions", () => {
           overview: {
             id: "overview",
             name: "Overview",
-            layout: [{ i: "ticker_information", x: 0, y: 0, w: 12, h: 8, groups: [] }],
+            layout: [{ i: "declared-widget", x: 0, y: 0, w: 12, h: 8, groups: [] }],
           },
         },
       } as any;
@@ -495,9 +499,9 @@ describe("createTemplates utility functions", () => {
         template: appTemplate,
         source,
         resolveWidget: (widgetId) =>
-          widgetId === "ticker_information"
+          widgetId === "declared-widget"
             ? ({
-                widgetId: "ticker_information",
+                widgetId: "declared-widget",
                 name: "Resolved Widget",
                 params: [],
               } as any)
@@ -505,11 +509,11 @@ describe("createTemplates utility functions", () => {
       });
 
       const widgets = addTab.mock.calls[0][0].data.widgets;
-      const widget = widgets.find((w: any) => w.widgetId === "ticker_information");
+      const widget = widgets.find((w: any) => w.widgetId === "declared-widget");
       expect(widget?.name).toBe("Resolved Widget");
     });
 
-    it("resolves a ticker param into mainTicker on the widget data", async () => {
+    it("preserves a declared ticker parameter without fetching provider metadata", async () => {
       const addTab = vi.fn();
       const appTemplate = {
         name: "My App",
@@ -520,7 +524,7 @@ describe("createTemplates utility functions", () => {
             name: "Overview",
             layout: [
               {
-                i: "ticker_information",
+                i: "declared-widget",
                 x: 0,
                 y: 0,
                 w: 12,
@@ -540,15 +544,16 @@ describe("createTemplates utility functions", () => {
         source,
         resolveWidget: () =>
           ({
-            widgetId: "ticker_information",
+            widgetId: "declared-widget",
             name: "Ticker Info",
             params: [{ paramName: "symbol", type: "ticker" }],
           }) as any,
       });
 
       const widgets = addTab.mock.calls[0][0].data.widgets;
-      const widget = widgets.find((w: any) => w.widgetId === "ticker_information");
-      expect(widget?.data?.mainTicker?.symbol).toBe("AAPL");
+      const widget = widgets.find((w: any) => w.widgetId === "declared-widget");
+      expect(widget?.data?.mainTicker?.symbol).toBe("aapl");
+      expect(widget?.storage?.params?.symbol).toBe("aapl");
     });
   });
 
@@ -710,75 +715,6 @@ describe("createTemplates utility functions", () => {
         expect(result.sourceId).toBeNull();
         expect(result.templateName).toBeNull();
       });
-    });
-  });
-
-  describe("ONBOARDING_STORED_FILES constant", () => {
-    it("should have the expected file key", () => {
-      expect(ONBOARDING_STORED_FILES).toHaveProperty(
-        "file-c0ebd61e-39fa-4382-b82f-4374ea96a30f",
-      );
-    });
-
-    it("should have urlDev property for each file", () => {
-      for (const key of Object.keys(ONBOARDING_STORED_FILES)) {
-        expect(ONBOARDING_STORED_FILES[key]).toHaveProperty("urlDev");
-        expect(typeof ONBOARDING_STORED_FILES[key].urlDev).toBe("string");
-      }
-    });
-
-    it("should have urlProd property for each file", () => {
-      for (const key of Object.keys(ONBOARDING_STORED_FILES)) {
-        expect(ONBOARDING_STORED_FILES[key]).toHaveProperty("urlProd");
-        expect(typeof ONBOARDING_STORED_FILES[key].urlProd).toBe("string");
-      }
-    });
-
-    it("should have valid dev URLs", () => {
-      const file = ONBOARDING_STORED_FILES["file-c0ebd61e-39fa-4382-b82f-4374ea96a30f"];
-      expect(file.urlDev).toMatch(/^https:\/\/backend\.openbb\.dev/);
-    });
-
-    it("should have valid prod URLs", () => {
-      const file = ONBOARDING_STORED_FILES["file-c0ebd61e-39fa-4382-b82f-4374ea96a30f"];
-      expect(file.urlProd).toMatch(/^https:\/\/backend\.openbb\.co/);
-    });
-
-    it("should have PDF file URLs", () => {
-      const file = ONBOARDING_STORED_FILES["file-c0ebd61e-39fa-4382-b82f-4374ea96a30f"];
-      expect(file.urlDev).toMatch(/\.pdf$/);
-      expect(file.urlProd).toMatch(/\.pdf$/);
-    });
-  });
-
-  describe("OPENBB_ONBOARDING_WIDGETS constant", () => {
-    it("should be an array", () => {
-      expect(Array.isArray(OPENBB_ONBOARDING_WIDGETS)).toBe(true);
-    });
-
-    it("should have unique widgetIds", () => {
-      const widgetIds = OPENBB_ONBOARDING_WIDGETS.map((w) => w.widgetId);
-      const uniqueIds = new Set(widgetIds);
-      expect(uniqueIds.size).toBe(widgetIds.length);
-    });
-
-    it("should have name property for each widget", () => {
-      for (const widget of OPENBB_ONBOARDING_WIDGETS) {
-        expect(widget).toHaveProperty("name");
-      }
-    });
-
-    it("should have widgetId property for each widget", () => {
-      for (const widget of OPENBB_ONBOARDING_WIDGETS) {
-        expect(widget).toHaveProperty("widgetId");
-        expect(typeof widget.widgetId).toBe("string");
-      }
-    });
-
-    it("should have non-empty widgetIds", () => {
-      for (const widget of OPENBB_ONBOARDING_WIDGETS) {
-        expect(widget.widgetId.length).toBeGreaterThan(0);
-      }
     });
   });
 });

@@ -13,7 +13,7 @@ import { useShallowThemeStore } from "~/lib/state/theme";
 import {
   dispatchRefreshQuery,
   dispatchSaveState,
-  getJsonWidget,
+  getWidgetDefinition,
   isTabPath,
   uuidv4,
 } from "~/lib/utils";
@@ -239,7 +239,7 @@ const GroupDropdownContent = forwardRef<HTMLDivElement>((_props, _ref) => {
 
   const handleAddNavigationBar = useCallback(async () => {
     await dispatchSaveState();
-    await addWidgets(activeDashboardId, [getJsonWidget("navigation_bar")]);
+    await addWidgets(activeDashboardId, [getWidgetDefinition("navigation_bar")]);
     dispatchSaveState();
   }, [activeDashboardId, addWidgets]);
 

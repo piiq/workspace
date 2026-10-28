@@ -22,7 +22,6 @@ import type {
 } from "~/components/AI/workspaceBridgeProtocol";
 import type { WidgetT } from "~/components/types";
 import { type ProcessedTemplate, useSharedTemplates } from "~/hooks/useSharedTemplates";
-import { BLOCKED_WIDGET_IDS } from "~/lib/constants";
 import { useAppStore } from "~/lib/state/app";
 import {
   type BackendTemplate,
@@ -104,12 +103,6 @@ const GENERATIVE_ONLY_WIDGET_IDS = new Set(["rich_note"]);
 const UNSUPPORTED_MCP_CREATE_WIDGET_REASONS: Record<string, string> = {
   rss_viewer:
     "rss_viewer requires feed bootstrap that is not yet exposed through create_widget.",
-  currency_snapshot:
-    "currency_snapshot still relies on runtime-only storage bootstrap that does not match the plain create_widget symbol contract.",
-  watchlist:
-    "watchlist still injects default watchlist data instead of honoring a deterministic symbol list.",
-  market_indices:
-    "market_indices does not yet deterministically honor requested symbols through create_widget.",
 };
 const UNSUPPORTED_MCP_CREATE_WIDGET_IDS = new Set(
   Object.keys(UNSUPPORTED_MCP_CREATE_WIDGET_REASONS),
@@ -421,15 +414,13 @@ function hasLayoutUiArgs(config?: WorkspaceWidgetConfig | null) {
 function isAvailableWidget(widget: WidgetT): boolean {
   if (widget?.disabled) return false;
   const widgetId = widget.widgetId ?? "";
-  const isExternal = widget.external === true;
 
   return Boolean(
     widgetId &&
       widgetId !== "navigation_bar" &&
       !GENERATIVE_ONLY_WIDGET_IDS.has(widgetId) &&
       !UNSUPPORTED_MCP_CREATE_WIDGET_IDS.has(widgetId) &&
-      widget.disableRetrievalForCopilot !== true &&
-      !(BLOCKED_WIDGET_IDS.has(widgetId) && !isExternal),
+      widget.disableRetrievalForCopilot !== true,
   );
 }
 

@@ -404,17 +404,6 @@ class UserAppShare(Base, UUIDMixin, DateMixin):
     viewed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
-class EnabledWidgetBundles(Base, UUIDMixin, DateMixin):
-    __tablename__ = "enabled_widget_bundles"
-
-    user_uuid: Mapped[UUID] = mapped_column(
-        UUIDType, ForeignKey("user.uuid"), nullable=False, unique=True
-    )
-
-    enabled_bundles: Mapped[list[str]] = mapped_column(ScalarListType)
-    disabled_widgets: Mapped[list[str]] = mapped_column(ScalarListType, nullable=True)
-
-
 class CustomCopilot(Base, UUIDMixin, DateMixin):
     __tablename__ = "custom_copilot"
 

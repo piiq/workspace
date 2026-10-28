@@ -15,7 +15,7 @@ import {
   getCellOnClickParams,
   getEndpointParamGroupByIds,
   getEndpointParamName,
-  getJsonWidget,
+  getWidgetDefinition,
   getWidgetInfo,
   isOmniType,
   isSSRMType,
@@ -100,7 +100,7 @@ export function useWidgetSync(props: Omit<WidgetProps, "children">) {
   const storeUpdateWidget = useShallowAppStore((state) => state.updateWidget);
 
   const widgetFromJSON = useMemo(
-    () => getJsonWidget(providerWidget),
+    () => getWidgetDefinition(providerWidget),
     [providerWidget?.widgetId, getWidgetInfo(providerWidget), providerWidget?.params],
   );
 

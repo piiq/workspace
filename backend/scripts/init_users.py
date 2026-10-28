@@ -17,9 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api import base, schemas
 from api.base import clean_email
 from api.helpers import init_trial_mappings
-from api.models import Entity, EntityType, PermissionsEntityMap, User
+from api.models import Entity, EntityEntitlement, EntityType, PermissionsEntityMap, User
 from routers.entity import add_entity, aget_write_db
-from routers.pro.helpers import insert_entity_data_bundle
+from routers.pro.helpers import ON_PREM_ENTITLEMENTS
 from routers.pro.index import process_create_user, register_pro_user
 
 type MaybCoro[T] = Coroutine[Any, Any, T] | T
@@ -74,32 +74,6 @@ async def call_func[**P, T](
 
     return await func(*args, **kwargs)
 
-
-DEFAULT_DATA_BUNDLE = schemas.DataBundle(
-    bundle_name="On-Premise",
-    except_widgets=[],
-    except_dashboard_templates=[
-        "calendars",
-        "charting",
-        "countryEconomics",
-        "comparison",
-        "earnings",
-        "etfTemplate",
-        "equity",
-        "equityAnalyst",
-        "news",
-        "onboarding",
-    ],
-    except_team_collaboration=None,
-    excel_add_in=1,
-    data_export=1,
-    providers=None,
-    dashboards_at_launch=[],
-    my_dashboards=[],
-    invite_your_colleagues=0,
-    number_copilot_calls_day=10_000,
-    total_file_upload_size_gb=10,
-)
 
 DummyAdmin = AdminUser(
     email="no_admin@entity.com",
@@ -222,7 +196,12 @@ class SetupConfig:
         if (entity_uuid := result.scalars().first()) is None:
             entity_data = await self.create_entity()
             entity_uuid = entity_data["entity_uuid"]
-            await insert_entity_data_bundle(self.db, entity_uuid, DEFAULT_DATA_BUNDLE)
+            await self.db.execute(
+                update(EntityEntitlement)
+                .where(EntityEntitlement.entity_uuid == entity_uuid)
+                .values(**ON_PREM_ENTITLEMENTS)
+            )
+            await self.db.commit()
 
         query = select(PermissionsEntityMap).where(
             PermissionsEntityMap.entity_uuid == entity_uuid

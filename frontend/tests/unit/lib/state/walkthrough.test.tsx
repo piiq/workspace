@@ -13,9 +13,9 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  WALKTHROUGH_STEPS,
   cleanupWalkthroughPosthogProperties,
   useWalkthroughStore,
+  WALKTHROUGH_STEPS,
 } from "~/lib/state/walkthrough";
 import type { Walkthroughs } from "~/types/auth.type";
 
@@ -73,7 +73,6 @@ describe("useWalkthroughStore", () => {
         currentStep: 0,
         walkthroughs: { ...DEFAULT_WALKTHROUGHS },
         workingDashboardUUID: null,
-        copilotArtifact: null,
       });
     });
   });
@@ -86,7 +85,6 @@ describe("useWalkthroughStore", () => {
       expect(state.currentStep).toBe(0);
       expect(state.walkthroughs).toEqual(DEFAULT_WALKTHROUGHS);
       expect(state.workingDashboardUUID).toBeNull();
-      expect(state.copilotArtifact).toBeNull();
     });
 
     it("should have analyst_walkthrough defined in WALKTHROUGH_STEPS", () => {
@@ -415,10 +413,13 @@ describe("useWalkthroughStore", () => {
     });
 
     it("should capture Left_Walkthrough when not on last step", () => {
+      const currentStep = 0;
+      const step = WALKTHROUGH_STEPS.analyst_walkthrough[currentStep];
+
       act(() => {
         useWalkthroughStore.setState({
           currentWalkthrough: "analyst_walkthrough",
-          currentStep: 2,
+          currentStep,
         });
       });
 
@@ -428,8 +429,8 @@ describe("useWalkthroughStore", () => {
 
       expect(posthog.capture).toHaveBeenCalledWith("Left_Walkthrough", {
         walkthroughName: "analyst_walkthrough",
-        stepId: "general-meet-copilot",
-        step: 2,
+        stepId: step.id,
+        step: currentStep,
       });
     });
 
@@ -569,20 +570,6 @@ describe("useWalkthroughStore", () => {
   });
 
   describe("step properties", () => {
-    it("should have onContinueAction on steps that need it", () => {
-      const stepWithAction = WALKTHROUGH_STEPS.analyst_walkthrough.find(
-        (s) => s.id === "general-intro",
-      );
-      expect(stepWithAction?.onContinueAction).toBe("expandCopilot");
-    });
-
-    it("should have beforeElementSelectionAction on steps that need it", () => {
-      const stepWithBeforeAction = WALKTHROUGH_STEPS.analyst_walkthrough.find(
-        (s) => s.id === "general-intro",
-      );
-      expect(stepWithBeforeAction?.beforeElementSelectionAction).toBe("newCopilotChat");
-    });
-
     it("should have skipAutoNavigateBack for adding apps step", () => {
       const appsStep = WALKTHROUGH_STEPS.analyst_walkthrough.find(
         (s) => s.id === "general-adding-apps",

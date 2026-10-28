@@ -23,7 +23,7 @@ import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import { useShallowAppStore, type Widget } from "~/lib/state/app";
 import { isSSRMType } from "~/lib/utils";
 import { ensureAgGrid, someTruthy } from "../utils";
-import { doAutoFitColumns, ignoreSources } from "./constants";
+import { ignoreSources } from "./constants";
 import type { AgGridEvents, AgGridProps, GridStateT, SavedState } from "./types";
 import { useAgGridContext } from "./useTableContext";
 import {
@@ -438,18 +438,16 @@ export const useUpdateColumnState = (
 
 /**
  * Whether restoring a saved column state should re-run auto-fit.
- * Only when nothing was ever sized (no saved sizing model) or the widget is
- * explicitly allow-listed — saved widths (e.g. user autosize) must be honored.
+ * Saved widths are preserved when the column count exceeds the auto-fit limit.
  */
 export function needsAutoFitOnRestore(
   columnSizingModel: SavedState["columnSizingModel"],
-  widgetId: any,
   autoFitMaxCols?: number,
 ) {
   const checks = [!columnSizingModel?.length];
   if (autoFitMaxCols) checks.push(columnSizingModel?.length < autoFitMaxCols);
 
-  return checks.some(Boolean) || doAutoFitColumns.includes(widgetId as never);
+  return checks.some(Boolean);
 }
 
 export function useSizeColumns() {
@@ -482,8 +480,7 @@ export function useSizeColumns() {
           const wasResized = (from < to || from > to) && resized;
           const totalCols = params.api?.getAllDisplayedColumns()?.length;
 
-          const autoFit =
-            totalCols < autoFitMaxCols || doAutoFitColumns?.includes(widget?.widgetId);
+          const autoFit = totalCols < autoFitMaxCols;
 
           if (wasResized || (autoFit && !resized)) {
             params.api.sizeColumnsToFit({ defaultMinWidth: 100 });
@@ -549,7 +546,6 @@ export function useApplyColumnState() {
 
         const needsResize = needsAutoFitOnRestore(
           columnSizingModel,
-          widget?.widgetId,
           !previouslyChartEnabled && autoFitMaxCols,
         );
 

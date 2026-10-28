@@ -3,7 +3,6 @@ import isEqualWith from "lodash/isEqualWith";
 import isEqual from "lodash.isequal";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import type { SecurityType } from "~/components/Charting/constants";
 import { isTableWidgetType } from "~/components/DataConnectors/WidgetsBuilder/utils";
 import { convertToReadableLabel } from "~/components/General/Table/AgGridUtils";
 import { getStateKey } from "~/components/General/Table/hooks/useUpdateColumnState";
@@ -21,7 +20,6 @@ import type {
 } from "~/components/types";
 import { getConfig } from "~/lib/runtimeConfig";
 import { formatZodIssues } from "~/lib/utils/validateBackend";
-import { INDICES } from "~/seeds/randomSeed";
 import { formatZodErrorMessage } from "~/utils/zodErrors";
 import type { AppState, Group, InnerTab, Item, Items } from "../state/app";
 import {
@@ -30,25 +28,18 @@ import {
 } from "../state/backendConnector";
 import { useChartingStore } from "../state/charting";
 import { useCopilotDataStore } from "../state/copilotData";
-import { DEFAULT_TICKERS } from "../types";
 import {
   ExternalWidgetSchema,
   InternalWidgetSchema,
   isWidgetVizType,
 } from "../types/app";
-import { ONBOARDING_STORED_FILES } from "./createTemplates";
 import {
   ensureArray,
   extractUUIDFromURL,
   generateGroupingColor,
   generateRandomName,
 } from "./utils";
-import {
-  getJsonWidget,
-  getSupportedAssetClasses,
-  groupParamOverride,
-  isSSRMType,
-} from "./widget";
+import { getWidgetDefinition, isSSRMType } from "./widget";
 import {
   cleanSearchParams,
   convertHeadersToRecord,
@@ -228,7 +219,7 @@ export function getValidItems(items: Items) {
       if (hasWidgets) {
         items[child].data.widgets = items[child].data.widgets.map((widget) => {
           // makes sure internal widgets have most up-to-date params
-          const params = createParamDefs(getJsonWidget(widget));
+          const params = createParamDefs(getWidgetDefinition(widget));
           if (
             !Array.isArray(widget?.params) ||
             (!widget?.external && params?.length > 0)
@@ -259,19 +250,6 @@ export function getValidItems(items: Items) {
             const { wsRowIdColumn, ...rest } = widget.data;
             rest.wsRowIdColumns = [wsRowIdColumn];
             widget.data = rest;
-          }
-
-          // makes sure onboarding widgets have the current dev/prod url
-          if (items[child]?.data?.templateId === "onboarding") {
-            if (ONBOARDING_STORED_FILES?.[widget?.widgetId]) {
-              const { urlDev, urlProd } = ONBOARDING_STORED_FILES[widget.widgetId];
-              widget.endpoint = {
-                ...widget.endpoint,
-                url: import.meta.env.DEV ? urlDev : urlProd,
-              };
-            }
-
-            return widget;
           }
 
           if (widget?.external && !widget?.connectionType) {
@@ -611,15 +589,7 @@ export function needsGroupValueUpdate(widget: Widget, group: Group) {
   }
 
   if (group?.type === "ticker" && group?.value?.symbol) {
-    const supportedTypes = getSupportedAssetClasses(widget.widgetId);
-    const category = group?.value?.category ?? widget?.data?.mainTicker?.category;
-    const isOptions = supportedTypes.includes("options") && group?.value?.has_options;
-
-    const validTicker =
-      [category, "all"].some((type) => supportedTypes.includes(type)) ||
-      widget?.external;
-
-    return validTicker || isOptions;
+    return true;
   }
 
   if (group?.type === "param" && group?.groupById) {
@@ -666,47 +636,15 @@ export function updateWidgetGroupValues(widget: Widget, groups: Group[]): Widget
           },
         };
 
-        if (["watchlist", "grouped_comparisons"].some((id) => id === w.widgetId)) {
-          const secondaryTickers = [group?.value, ...(w?.data?.secondaryTickers || [])];
-
-          const tickers = Object.values(
-            Object.fromEntries(secondaryTickers.map((t) => [t.symbol, t])),
-          );
-
-          w.storage.params.symbol = tickers.map((ticker) => ticker.symbol).join(",");
-        }
         return w;
       }
 
       if (isValidParamOption(w, group)) {
-        let paramName = group.groupById;
-
-        if (!widget?.external && group.groupById === "period") {
-          paramName = groupParamOverride(group.groupById, w.widgetId);
-          const isStatements = w.widgetId === "financial_statements";
-
-          if (isStatements && !["annual", "quarter"].includes(group.value)) return w;
-
-          if (w?.storage?.selectedGroup && isStatements) {
-            const selectedGroup = w?.storage?.selectedGroup;
-            w.storage[selectedGroup] = {
-              ...(w.storage?.[selectedGroup] || {}),
-              period: group.value,
-            };
-          }
-
-          w.storage = {
-            ...w.storage,
-            period: group.value,
-          };
-        }
-
         w.storage = {
           ...w.storage,
           params: {
             ...w.storage?.params,
             [group.groupById]: group.value,
-            [paramName]: group.value,
           },
         };
 
@@ -1086,7 +1024,7 @@ export function isValidParamOption(
 ): group is GroupTypeT<"param"> {
   if (group?.type === "param" && group?.groupById) {
     const groupValue = group?.value?.toString();
-    const paramName = groupParamOverride(group.groupById, widget.widgetId);
+    const paramName = group.groupById;
     const options = createParamDefs({ params: widget?.params ?? [] }).find(
       (param) => param.paramName === paramName,
     )?.options;
@@ -1415,66 +1353,35 @@ export function updateWidgetGridLayout(params: UpdateWidgetGridLayoutParams) {
   return gridLayout;
 }
 
-type MainTickerByCategoryParams = {
-  widget?: (Widget | WidgetJsonT) & { dependsOn?: string[] };
-  defaultTicker?: Ticker;
-  defaultCategory?: Ticker["category"];
-};
-
-export function MainTickerByCategory(props: MainTickerByCategoryParams): Ticker {
-  const { widget, defaultTicker = DEFAULT_TICKERS.AAPL, defaultCategory } = props;
-  const mainTicker = widget?.data?.mainTicker || defaultTicker;
-
-  const widgetTypes = getSupportedAssetClasses(widget?.widgetId);
-  const hasOptions = widgetTypes.includes("options") && mainTicker?.has_options;
-
-  const supportedTypes = widgetTypes?.length
-    ? widgetTypes
-    : [
-        widget?.defaultAssetClass,
-        widget?.category?.toLowerCase(),
-        defaultCategory,
-        defaultTicker?.category,
-      ];
-
-  const tickerCategories = {
-    etf: DEFAULT_TICKERS.SPY,
-    equity: DEFAULT_TICKERS.AAPL,
-    stock: DEFAULT_TICKERS.AAPL,
-    [defaultTicker?.category]: defaultTicker,
-    all: mainTicker,
-    [mainTicker?.category]: mainTicker,
-  };
-
-  if (hasOptions) {
-    return widget?.data?.mainTicker || defaultTicker;
-  }
-
-  return (
-    supportedTypes
-      .map(
-        (assetClass) =>
-          tickerCategories?.[widget?.defaultAssetClass] ||
-          tickerCategories?.[assetClass] ||
-          tickerCategories?.[defaultCategory],
-      )
-      .find((ticker) => ticker) || tickerCategories.all
-  );
-}
-
 export function getWidgetData(params: {
   widget: (WidgetT | WidgetJsonT) & { dependsOn?: string[] };
   defaultTicker?: Ticker;
 }): Widget {
-  const { widget, defaultTicker = DEFAULT_TICKERS.AAPL } = params;
-
-  const mainTicker = MainTickerByCategory({ widget, defaultTicker });
+  const { widget, defaultTicker } = params;
 
   widget.params = createParamDefs(widget);
   widget.storage = widget.storage || {};
   widget.storage.params = widget?.storage?.params || {};
 
   const tickerParam = getTickerParamName(widget);
+  const suppliedTicker = widget.data?.mainTicker ?? defaultTicker;
+  const symbol = tickerParam
+    ? String(
+        widget.storage.params[tickerParam] ??
+          suppliedTicker?.symbol ??
+          widget.params.find((param) => param.paramName === tickerParam)?.value ??
+          "",
+      )
+    : undefined;
+  const mainTicker =
+    symbol === undefined || symbol === suppliedTicker?.symbol
+      ? suppliedTicker
+      : ({
+          id: symbol,
+          symbol,
+          category: suppliedTicker?.category ?? "equity",
+          type: suppliedTicker?.type ?? "stock",
+        } satisfies Ticker);
 
   if (widget.widgetId === "clock" && !widget.storage?.content) {
     widget.storage = {
@@ -1491,14 +1398,6 @@ export function getWidgetData(params: {
     };
   }
 
-  // if (widget.widgetId === "rss_viewer" && !widget?.storage?.feeds?.length) {
-  //   widget.storage = {
-  //     ...widget.storage,
-  //     feeds: RSS_FEEDS,
-  //   };
-  // }
-
-  // @ts-expect-error
   if (!widget.external && widget.widgetId === "html_widget") {
     const prompt = window.prompt("Enter HTML");
     widget.data = {
@@ -1521,24 +1420,7 @@ export function getWidgetData(params: {
     widget.storage = { ...widget.storage, params: initialParams };
   }
 
-  // TODO: refactor this to be more generic, for example if widget.single or widget.multiple
-  // const IGNORE_MAIN_TICKER_IDS = ["currency_snapshot"];
-  if (
-    !(widget.data?.mainTicker || widget.widgetId === "currency_snapshot") &&
-    widget.dependsOn?.includes("mainTicker") &&
-    tickerParam
-  ) {
-    widget.data = {
-      ...widget.data,
-      mainTicker,
-    };
-    widget.storage = {
-      ...widget.storage,
-      params: { ...widget.storage.params, [tickerParam]: mainTicker.symbol },
-    };
-  }
-
-  if (widget?.endpoint || widget?.sdkFunc) {
+  if (widget?.endpoint) {
     widget.data = {
       ...widget.data,
       table: {
@@ -1605,79 +1487,6 @@ export function getWidgetData(params: {
     };
   }
 
-  if (widget.widgetId === "financial_statements") {
-    widget.storage = {
-      selectedGroup: "income_statement",
-      balance_sheet: {
-        period: "annual",
-        transpose: true,
-      },
-      income_statement: {
-        period: "annual",
-        transpose: true,
-      },
-      cash_flow_statement: {
-        period: "annual",
-        transpose: true,
-      },
-      ...widget.storage,
-    };
-    widget.storage = {
-      ...widget.storage,
-      params: { symbol: mainTicker.symbol, period: "annual" },
-    };
-  }
-
-  if (widget.widgetId === "grouped_comparison") {
-    if (!widget.data?.mainTicker) {
-      widget.data = {
-        ...widget.data,
-        mainTicker: mainTicker,
-      };
-    }
-    widget.storage = { ...widget.storage, params: { symbol: mainTicker.symbol } };
-  }
-
-  // @ts-expect-error
-  if (widget.widgetId === "watchlist" || widget.widgetId === "peers_list") {
-    if (!widget.data?.secondaryTickers) {
-      const secondaryTickers = {
-        [mainTicker.symbol]: mainTicker,
-        AAPL: DEFAULT_TICKERS.AAPL,
-        MSFT: DEFAULT_TICKERS.MSFT,
-        NVDA: DEFAULT_TICKERS.NVDA,
-      };
-
-      widget.data = {
-        ...widget.data,
-        mainTicker: mainTicker,
-        secondaryTickers: Object.values(secondaryTickers) as Ticker[],
-      };
-      widget.storage = {
-        ...widget.storage,
-        params: { symbol: Object.keys(secondaryTickers).join(",") },
-      };
-    }
-  }
-  if (widget.widgetId === "market_indices") {
-    widget.storage = {
-      ...widget.storage,
-      storage: INDICES as SecurityType[],
-    };
-  }
-
-  if (
-    (widget.widgetId === "ticker_information" ||
-      (widget.widgetId === "charting" && !widget?.endpoint)) &&
-    !widget.data?.mainTicker
-  ) {
-    widget.data = {
-      ...widget.data,
-      mainTicker: mainTicker,
-    };
-    widget.storage = { ...widget.storage, params: { symbol: mainTicker.symbol } };
-  }
-
   if (widget.widgetId === "navigation_bar") {
     const defaultTab = { id: "overview", name: "Overview" };
     const innerTab = widget.innerTab || "overview";
@@ -1695,35 +1504,14 @@ export function getWidgetData(params: {
     };
   }
 
-  if (widget.type === "advanced_charting") {
-    widget.data = {
-      ...widget.data,
-      mainTicker: {
-        symbol: widget.data?.defaultSymbol,
-        type: "stock",
-        category: "crypto",
-        id: widget.data?.defaultSymbol,
-      },
-    };
-  }
-
   if (
+    mainTicker &&
+    tickerParam &&
     widget.dependsOn?.includes("mainTicker") &&
     !widget?.storage?.params?.[tickerParam]
   ) {
     widget.data = { ...widget.data, mainTicker };
     widget.storage.params[tickerParam] = mainTicker.symbol;
-  }
-
-  if (["revenue_per_geography", "revenue_per_bus_line"].includes(widget.widgetId)) {
-    widget.storage = {
-      period: "annual",
-      params: {
-        period: "annual",
-        ...(widget.storage?.params || {}),
-      },
-      ...widget.storage,
-    };
   }
 
   if (widget?.data?.mainTicker === null) {
@@ -1811,7 +1599,7 @@ export function getWidgetData(params: {
 
     const uniqueParam = widget?.params?.find((param) => param.type === "ticker");
 
-    if (uniqueParam?.type === "ticker") {
+    if (uniqueParam?.type === "ticker" && mainTicker) {
       finalWidgetData.storage.params[uniqueParam.paramName] = mainTicker.symbol;
       finalWidgetData.data = {
         ...finalWidgetData.data,
@@ -1830,7 +1618,7 @@ export function getWidgetData(params: {
 
     if (
       widget.connectionType === "advanced-backend" &&
-      getJsonWidget(widget.widgetId) !== null
+      getWidgetDefinition(widget.widgetId) !== null
     ) {
       finalWidgetData.widgetId = `${widget.sourceName}-${widget.widgetId}`;
     }
@@ -1864,34 +1652,6 @@ export function getWidgetData(params: {
     }
   }
 
-  if (finalWidgetData.widgetId === "currency_snapshot") {
-    finalWidgetData.storage = {
-      ...finalWidgetData.storage,
-      params: {
-        base: ["USD", "EUR"],
-        counter_currencies: ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD"],
-        symbol: [
-          "USDUSD",
-          "USDEUR",
-          "USDGBP",
-          "USDJPY",
-          "USDCHF",
-          "USDCAD",
-          "USDAUD",
-          "USDNZD",
-          "EURUSD",
-          "EUREUR",
-          "EURGBP",
-          "EURJPY",
-          "EURCHF",
-          "EURCAD",
-          "EURAUD",
-          "EURNZD",
-        ],
-      },
-    };
-  }
-
   const result = finalWidgetData.external
     ? ExternalWidgetSchema.safeParse(finalWidgetData)
     : InternalWidgetSchema.safeParse(finalWidgetData);
@@ -1911,20 +1671,6 @@ export function getWidgetData(params: {
     description: formatZodErrorMessage(errors.join("\n\n")),
   });
   throw new Error(result.error.message);
-}
-
-function determineTabsForWidget(equityTemplate, widgetKey) {
-  const tabs = equityTemplate.tabs;
-  const tabsWidgetBelongsTo = [];
-
-  for (const tabId in tabs) {
-    if (tabs[tabId].widgetKeys.includes(widgetKey)) {
-      // Use tabId if you want to return the IDs, or tabs[tabId].name if you want to return the names.
-      tabsWidgetBelongsTo.push(tabId);
-    }
-  }
-
-  return tabsWidgetBelongsTo;
 }
 
 export const diffItemsWithRemote = (currentState: Items, remoteState: Items | null) => {

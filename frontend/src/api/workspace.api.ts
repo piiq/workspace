@@ -9,7 +9,6 @@ import type { Ticker, WidgetT } from "~/components/types";
 import type { WidgetId } from "~/components/Widgets";
 import { useAppStore } from "~/lib/state/app";
 import { useCopilotDataStore } from "~/lib/state/copilotData";
-import { tickersStore } from "~/lib/state/tickers";
 import { triggerCustomEvent } from "~/lib/utils";
 import {
   deserializeDashboardTabId,
@@ -354,23 +353,13 @@ async function updateWidget(
     const tickerValue = config.dataArgs?.[tickerParam.paramName];
     if (tickerValue && tickerValue !== "null") {
       const symbol = String(tickerValue);
-      const tickersObj = await tickersStore.getState().getOrQueryTickers(symbol);
-      const tickers = Object.values(tickersObj);
-      // Fix A: SDK widgets fetch by data.mainTicker.symbol (storage.params.symbol
-      // is filtered out of the request and the query key), so mainTicker MUST
-      // reflect the new symbol or the widget never refetches. When the lookup
-      // returns nothing (e.g. a transient /symbols failure), fall back to a
-      // minimal ticker from the raw value instead of leaving mainTicker stale.
-      mainTicker =
-        tickers?.length > 0
-          ? tickers[0]
-          : {
-              ...(widget.data?.mainTicker ?? {}),
-              id: symbol.replace(/[\^$]/g, ""),
-              symbol,
-              category: widget.data?.mainTicker?.category ?? "equity",
-              type: widget.data?.mainTicker?.type ?? "stock",
-            };
+      mainTicker = {
+        ...(widget.data?.mainTicker ?? {}),
+        id: symbol,
+        symbol,
+        category: widget.data?.mainTicker?.category ?? "equity",
+        type: widget.data?.mainTicker?.type ?? "stock",
+      };
     }
   }
 

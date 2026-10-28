@@ -11,7 +11,6 @@ import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import { widgetRegistry } from "~/lib/plugins/registry";
 import { useAppStore } from "~/lib/state/app";
 import { getCleanWidgetId } from "~/lib/utils";
-import WIDGETS from "~/lib/widgets.json";
 import EmptyDashboardCTA from "./General/EmptyDashboardCTA";
 import SearchResultsNotFound from "./General/SearchResultsNotFound";
 import type { SavedState } from "./General/Table/hooks/types";
@@ -182,24 +181,9 @@ export function WidgetComponent() {
 
   if (hasComponent) return hasComponent;
 
-  if (cleanWidgetId === "news") {
-    return (
-      <Widgets.News
-        //showFilter TODO: figure how the filter would work
-        title={widget.name}
-        showTickersChange={widget.widgetId === "company_news"}
-        showMain={false}
-      />
-    );
-  }
-
   if (widgetType && widgetType !== "custom") return renderDeclaredWidget(widgetType);
 
-  if (
-    widget?.endpoint ||
-    widget?.sdkFunc ||
-    Object.keys(WIDGETS).includes(widget.widgetId)
-  ) {
+  if (widget?.endpoint) {
     return (
       <Table>
         <Widgets.AgGridTable />
@@ -267,17 +251,3 @@ function renderUnavailableWidget(rendererId: string) {
     </DraggableCard>
   );
 }
-
-/*if (widget.widgetId === "table_chart") {
-  return <TableChart/>;
-}
-if (widget.widgetId === "flashing_table") {
-  return <FlashingTable/>;
-}
-if (widget.widgetId === "pyscript") {
-  return <PyScript/>;
-}
-if (widget.widgetId === "html_widget") {
-  return <HtmlWidget/>;
-}
- */

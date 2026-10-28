@@ -14,9 +14,6 @@ import AddingWidgetsNote from "~/components/InAppOnboarding/Walkthrough/General/
 import AdvancedFeaturesNote from "~/components/InAppOnboarding/Walkthrough/General/Description/AdvancedFeaturesNote";
 import HelpDocumentationNote from "~/components/InAppOnboarding/Walkthrough/General/Description/HelpDocumentationNote";
 import GeneralIntroNote from "~/components/InAppOnboarding/Walkthrough/General/Description/IntroNote";
-import MeetCopilotNote from "~/components/InAppOnboarding/Walkthrough/General/Description/MeetCopilotNote";
-import QueryingCopilotNote from "~/components/InAppOnboarding/Walkthrough/General/Description/QueryingCopilotNote";
-import SaveCopilotNote from "~/components/InAppOnboarding/Walkthrough/General/Description/SaveCopilotNote";
 import type { Walkthroughs } from "~/types/auth.type";
 import type { Selector } from "./app";
 
@@ -43,8 +40,6 @@ export const WALKTHROUGH_STEPS = {
       targetElementSelector: "#tabs li[class*='obb-navigation-item-active']",
       description: <GeneralIntroNote />,
       side: "right",
-      onContinueAction: "expandCopilot",
-      beforeElementSelectionAction: "newCopilotChat",
     },
     {
       id: "general-adding-widgets",
@@ -52,31 +47,6 @@ export const WALKTHROUGH_STEPS = {
       targetElementSelector: "[data-testid='dashboard-toolbar-add-widget-button']",
       description: <AddingWidgetsNote />,
       side: "top",
-      onContinueAction: "createEarningHistoryWidget",
-    },
-    {
-      id: "general-meet-copilot",
-      title: "Meet OpenBB Copilot",
-      targetElementSelector: "#message-plus",
-      description: <MeetCopilotNote />,
-      side: "bottom",
-      onContinueAction: "addEarningHistoryWidgetToContext",
-    },
-    {
-      id: "general-querying-copilot",
-      title: "Querying the Copilot",
-      targetElementSelector: "#right-panel",
-      description: <QueryingCopilotNote />,
-      side: "left",
-      onContinueAction: "askCopilotGeneralEarningSurprisePercentage",
-    },
-    {
-      id: "general-save-copilot",
-      title: "Save Copilot's answers",
-      targetElementSelector: "._copy-chart-data-button",
-      description: <SaveCopilotNote />,
-      side: "left",
-      onContinueAction: "createCopilotWidgetGeneralEarningSurprisePercentage",
     },
     {
       id: "general-advanced-features",
@@ -111,7 +81,6 @@ interface WalkthroughState {
   currentWalkthrough: WalkthroughName | null;
   currentStep: number;
   walkthroughs: Walkthroughs;
-  copilotArtifact: any;
   workingDashboardUUID: string | null;
   restartWalkthrough: (
     walkthroughName: WalkthroughName,
@@ -132,7 +101,6 @@ export type WalkthroughStep = {
   side?: "top" | "bottom" | "right" | "left";
   type?: "dialog";
   delay?: number;
-  onContinueAction?: string | string[] | null;
   beforeElementSelectionAction?: string | null;
   skipAutoNavigateBack?: boolean;
 };
@@ -150,7 +118,6 @@ export const useWalkthroughStore = create<WalkthroughState>()(
         currentStep: 0,
         walkthroughs: WALKTHROUGHS,
         workingDashboardUUID: null,
-        copilotArtifact: null,
         restartWalkthrough: (walkthroughName, workingDashboardUUID) => {
           if (posthog) {
             posthog.register({
@@ -263,7 +230,6 @@ export const useWalkthroughStore = create<WalkthroughState>()(
             return { currentStep: state.currentStep - 1 };
           }),
         goToStep: (step: number) => set({ currentStep: step }),
-        setCopilotArtifact: (artifact: any) => set({ copilotArtifact: artifact }),
       }),
       {
         name: "walkthrough-storage",

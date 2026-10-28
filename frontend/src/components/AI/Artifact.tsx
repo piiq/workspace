@@ -34,7 +34,6 @@ import {
 } from "~/lib/state/copilot";
 import { useShallowSidebarStore } from "~/lib/state/sidebar";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import { useWalkthroughStore } from "~/lib/state/walkthrough";
 import { createCustomTemplateTab } from "~/lib/utils/createTemplates";
 import { HTML_SANITIZE_CONFIG } from "~/lib/utils/sanitize";
 import { ConfirmDialog } from "../ds/dialogs/ConfirmDialog";
@@ -486,9 +485,7 @@ export const ChartArtifact = memo<ArtifactProps<"chart">>(
       (s) => s.hoveredCitationWidgetId === artifact.name,
     );
 
-    useEffect(() => {
-      useWalkthroughStore.setState({ copilotArtifact: artifact });
-    }, [artifact]);
+    useEffect(() => {}, [artifact]);
 
     const chartOptions = useMemo(() => {
       if (!(artifact.content.length > 0 && artifact.chart_params)) return null;

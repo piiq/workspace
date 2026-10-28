@@ -127,21 +127,13 @@ const Citation = forwardRef<HTMLDivElement, CitationProps>((props, _ref) => {
   }));
 
   const sourceInfo = useMemo(() => {
-    let widgetId = content.source_info?.widget_id || content.source_info?.name;
+    const widgetId = content.source_info?.widget_id || content.source_info?.name;
     let widgetOrigin = content.source_info?.origin || "";
-    let originalWidgetId = "";
-    if (
-      ["income_statement", "balance_sheet", "cash_flow_statement"].includes(widgetId)
-    ) {
-      originalWidgetId = widgetId;
-      widgetId = "financial_statements";
-    }
-
     if (["None", "null", null, undefined].some((val) => val === widgetOrigin)) {
       widgetOrigin = "";
     }
 
-    return { widgetId, originalWidgetId, widgetOrigin };
+    return { widgetId, widgetOrigin };
   }, [content.source_info]);
   const isIframeMcpCitation = content.source_info?.metadata?.iframe_mcp === true;
 
@@ -603,10 +595,6 @@ const Citation = forwardRef<HTMLDivElement, CitationProps>((props, _ref) => {
       },
     };
 
-    if (sourceInfo?.originalWidgetId) {
-      widget.storage.selectedGroup = sourceInfo.originalWidgetId;
-    }
-
     // Get the new widget ID from addWidgetToDashboard
     const newWidgetId = await addWidgetToDashboard(currentDashboardId, widget);
 
@@ -648,7 +636,6 @@ const Citation = forwardRef<HTMLDivElement, CitationProps>((props, _ref) => {
     widgetInfo,
     addWidgetToDashboard,
     content,
-    sourceInfo?.originalWidgetId,
     setClose,
     currentTab,
     isExactWidgetOnCurrentDashboard,

@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WidgetT } from "~/components/types";
 import type { Widget } from "~/lib/state/app";
+import { useBackendConnectorStore, type Source } from "~/lib/state/backendConnector";
 
 const mockWidgets = vi.hoisted(() => ({
   test_widget: {
@@ -32,11 +33,7 @@ const mockWidgets = vi.hoisted(() => ({
     source: "single_source",
     supportedAssetClasses: ["crypto"],
   },
-  analyst_estimates: {
-    widgetId: "analyst_estimates",
-    name: "Analyst Estimates",
-    type: "table",
-  },
+
   widget_with_storage: {
     widgetId: "widget_with_storage",
     name: "Widget With Storage",
@@ -67,42 +64,18 @@ const mockWidgets = vi.hoisted(() => ({
     name: "Navigation Bar",
     type: "table",
   },
-  ticker_information: {
-    widgetId: "ticker_information",
-    name: "Ticker Information",
-    type: "table",
-  },
-  company_profile: {
-    widgetId: "company_profile",
-    name: "Company Profile",
-    type: "table",
-  },
+
+
 }));
 
-vi.mock("~/lib/widgets.json", () => ({
-  default: mockWidgets,
-}));
-
-vi.mock("~/lib/widget_bundles.json", () => ({
-  default: {
-    openbb: {
-      widgets: ["test_widget", "another_widget"],
-    },
+vi.mock("~/lib/plugins/registry", () => ({
+  widgetRegistry: {
+    registerBuiltins: vi.fn(),
+    getRendererState: (id: string) => mockWidgets[id]
+      ? { status: "ready", renderer: { id, widget: mockWidgets[id] } }
+      : { status: "unavailable" },
+    getRenderers: () => Object.keys(mockWidgets).map((id) => ({ id })),
   },
-}));
-
-vi.mock("~/lib/state/featureFlags", () => ({
-  useFeatureFlagsStore: {
-    getState: () => ({
-      featureFlags: {
-        tier: "pro",
-        data_bundle_info: {
-          providers: ["test_source", "single_source"],
-        },
-      },
-    }),
-  },
-  isExcludedWidgetId: () => false,
 }));
 
 vi.mock("~/lib/templates", () => ({
@@ -114,61 +87,90 @@ vi.mock("~/hooks/useAllTemplates", () => ({
 }));
 
 import {
-  DEFAULT_TICKER_EXCHANGE,
   extractColumns,
+  getBuiltinWidgets,
+  getAllWidgets,
+  getWidgetDataSource,
   getCleanWidgetId,
-  getJsonColDefs,
-  getJsonWidget,
-  getSupportedAssetClasses,
+  getWidgetColumnDefs,
+  getWidgetDefinition,
   getUUIDFromWidgetId,
   getWidgetInfo,
   getWidgetSourceInfo,
-  getWidgetsWithSupportedAssetClass,
-  groupParamOverride,
   isSSRMType,
   METADATA_WIDGETS,
   processWidgetId,
-  US_EXCHANGES,
   WIDGETS_CONNECTION_TYPES,
 } from "~/lib/utils/widget";
 
+describe("declared widget metadata", () => {
+  afterEach(() => {
+    useBackendConnectorStore.setState({ apiSources: [], singleWidgets: [], storedFiles: [], widgetMetadata: [] });
+  });
+
+  it("does not replace a backend declaration with built-in defaults for the same ID", () => {
+    const widget = { widgetId: "test_widget", external: true, name: "My table", source: ["My feed"], params: [{ paramName: "region", type: "text", value: "eu" }] } as Partial<WidgetT>;
+    expect(getWidgetDefinition(widget)).toEqual(widget);
+  });
+
+  it("lists connected backend declarations, including a backend named root", () => {
+    useBackendConnectorStore.setState({ apiSources: [{ id: "root", name: "My backend", url: "http://backend.test", endpointHeaders: [], widgets: { totals: { widgetId: "totals", name: "Totals", description: "Totals", type: "@example/totals/table", endpoint: "/totals" } } } as Source], singleWidgets: [], storedFiles: [], widgetMetadata: [] });
+    expect(getAllWidgets(undefined, ["backend"])).toEqual([
+      expect.objectContaining({ widgetId: "totals", type: "@example/totals/table", endpoint: "http://backend.test/totals", sourceName: "My backend", external: true }),
+    ]);
+    expect(getAllWidgets("root", ["backend"])).toEqual([]);
+  });
+
+  it("takes source metadata from the declaration or its connected backend", () => {
+    useBackendConnectorStore.setState({ apiSources: [{ id: "backend", name: "My backend" } as Source] });
+    expect(getWidgetDataSource({ sourceId: "backend", source: ["Declared feed"] })).toEqual(["Declared feed"]);
+    expect(getWidgetDataSource({ sourceId: "backend" })).toEqual(["My backend"]);
+    expect(getWidgetDataSource({ sourceName: "Uploaded file" })).toEqual(["Uploaded file"]);
+    expect(getWidgetDataSource(null)).toEqual([]);
+  });
+
+  it("gets independent copies of built-in widget definitions from renderer registration", () => {
+    const first = getBuiltinWidgets();
+    first[0].name = "Changed";
+    expect(getBuiltinWidgets()[0].name).toBe("Test Widget");
+  });
+});
+
 describe("Widget Utility Functions", () => {
-  describe("getJsonWidget", () => {
+  describe("getWidgetDefinition", () => {
     it("should return widget data when passed a valid widget ID string", () => {
-      const result = getJsonWidget("test_widget" as any);
+      const result = getWidgetDefinition("test_widget" as any);
       expect(result).not.toBeNull();
       expect(result?.widgetId).toBe("test_widget");
       expect(result?.name).toBe("Test Widget");
     });
 
     it("should return null for non-existent widget ID", () => {
-      const result = getJsonWidget("non_existent_widget" as any);
+      const result = getWidgetDefinition("non_existent_widget" as any);
       expect(result).toBeNull();
     });
 
     it("should return widget data when passed a widget object with widgetId", () => {
-      // @ts-expect-error - ignored for now
       const widgetObj = { widgetId: "test_widget" } as Partial<Widget>;
-      const result = getJsonWidget(widgetObj as any);
+      const result = getWidgetDefinition(widgetObj as any);
       expect(result).not.toBeNull();
       expect(result?.widgetId).toBe("test_widget");
     });
 
-    it("should return the widget object itself if widgetId not found in WIDGETS", () => {
-      // @ts-expect-error - ignored for now
+    it("preserves a user declaration without a built-in definition", () => {
       const customWidget = {
         widgetId: "custom_external",
         name: "Custom External Widget",
         external: true,
       } as Partial<Widget>;
-      const result = getJsonWidget(customWidget as any);
+      const result = getWidgetDefinition(customWidget as any);
       expect(result?.widgetId).toBe("custom_external");
       expect(result?.name).toBe("Custom External Widget");
     });
 
     it("should return a deep clone, not the original object", () => {
-      const result1 = getJsonWidget("test_widget" as any);
-      const result2 = getJsonWidget("test_widget" as any);
+      const result1 = getWidgetDefinition("test_widget" as any);
+      const result2 = getWidgetDefinition("test_widget" as any);
       expect(result1).not.toBe(result2);
       if (result1 && result2) {
         result1.name = "Modified";
@@ -177,66 +179,26 @@ describe("Widget Utility Functions", () => {
     });
   });
 
-  describe("getSupportedAssetClasses", () => {
-    it("should return supported asset classes for a valid widget", () => {
-      const result = getSupportedAssetClasses("test_widget");
-      expect(result).toEqual(["equity", "etf"]);
-    });
-
-    it("should return empty array for widget without supported asset classes", () => {
-      const result = getSupportedAssetClasses("non_existent" as any);
-      expect(result).toEqual([]);
-    });
-
-    it("should return a deep clone of the array", () => {
-      const result1 = getSupportedAssetClasses("test_widget");
-      const result2 = getSupportedAssetClasses("test_widget");
-      expect(result1).not.toBe(result2);
-      result1.push("new_class");
-      expect(result2).not.toContain("new_class");
-    });
-  });
-
-  describe("getWidgetsWithSupportedAssetClass", () => {
-    it("should return widgets that support a given asset class", () => {
-      const result = getWidgetsWithSupportedAssetClass("equity");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.some((w: any) => w.widgetId === "test_widget")).toBe(true);
-    });
-
-    it("should return only widget IDs when onlyIds is true", () => {
-      const result = getWidgetsWithSupportedAssetClass("equity", true);
-      expect(result).toContain("test_widget");
-      expect(typeof result[0]).toBe("string");
-    });
-
-    it("should return empty array for unsupported asset class", () => {
-      const result = getWidgetsWithSupportedAssetClass("forex");
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("getJsonColDefs", () => {
+  describe("getWidgetColumnDefs", () => {
     it("should return column definitions for a valid widget ID", () => {
-      const result = getJsonColDefs("test_widget" as any);
+      const result = getWidgetColumnDefs("test_widget" as any);
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({ field: "date", headerName: "Date" });
     });
 
     it("should return empty array for non-existent widget", () => {
-      const result = getJsonColDefs("non_existent" as any);
+      const result = getWidgetColumnDefs("non_existent" as any);
       expect(result).toEqual([]);
     });
 
     it("should prioritize storage.columnDefs over widget.data.table.columnsDefs", () => {
-      // @ts-expect-error - ignored for now
       const widgetWithStorage = {
         widgetId: "widget_with_storage",
         storage: {
           columnDefs: [{ field: "custom", headerName: "Custom" }],
         },
       } as Partial<Widget>;
-      const result = getJsonColDefs(widgetWithStorage as any);
+      const result = getWidgetColumnDefs(widgetWithStorage as any);
       expect(result).toEqual([{ field: "custom", headerName: "Custom" }]);
     });
 
@@ -250,12 +212,12 @@ describe("Widget Utility Functions", () => {
           },
         },
       } as unknown as Partial<Widget>;
-      const result = getJsonColDefs(externalWidget as any);
+      const result = getWidgetColumnDefs(externalWidget as any);
       expect(result).toEqual([{ field: "external_col", headerName: "External" }]);
     });
 
     it("should return empty array for null widget", () => {
-      const result = getJsonColDefs(null as any);
+      const result = getWidgetColumnDefs(null as any);
       expect(result).toEqual([]);
     });
   });
@@ -398,27 +360,6 @@ describe("Widget Utility Functions", () => {
     });
   });
 
-  describe("groupParamOverride", () => {
-    it("should override period to fiscal_period for analyst_estimates", () => {
-      const result = groupParamOverride("period", "analyst_estimates" as any);
-      expect(result).toBe("fiscal_period");
-    });
-
-    it("should override fiscal_period to period when inverted", () => {
-      const result = groupParamOverride(
-        "fiscal_period",
-        "analyst_estimates" as any,
-        true,
-      );
-      expect(result).toBe("period");
-    });
-
-    it("should return original paramName for non-matching conditions", () => {
-      expect(groupParamOverride("symbol", "analyst_estimates" as any)).toBe("symbol");
-      expect(groupParamOverride("period", "other_widget" as any)).toBe("period");
-    });
-  });
-
   describe("getCleanWidgetId", () => {
     it("should clean file prefix", () => {
       expect(getCleanWidgetId("file-789")).toBe("ag_grid_file");
@@ -441,15 +382,9 @@ describe("Widget Utility Functions", () => {
       expect(getCleanWidgetId("copilot_table-table123")).toBe("copilot_table");
     });
 
-    it("should normalize news widgets", () => {
-      expect(getCleanWidgetId("company_news")).toBe("news");
-      expect(getCleanWidgetId("global_news")).toBe("news");
-    });
 
-    it("should clean _per_ suffix variations", () => {
-      expect(getCleanWidgetId("widget_per_share")).toBe("widget_per");
-      expect(getCleanWidgetId("metric_per_employee")).toBe("metric_per");
-    });
+
+
 
     it("should return original widgetId for advanced-backend connectionType", () => {
       expect(getCleanWidgetId("custom-widget-id", "advanced-backend")).toBe(
@@ -484,13 +419,9 @@ describe("Widget Utility Functions", () => {
       expect(getUUIDFromWidgetId("copilot_table-table123")).toBe("table123");
     });
 
-    it("should extract UUID from company_news widget ID", () => {
-      expect(getUUIDFromWidgetId("company_news-news123")).toBe("news123");
-    });
 
-    it("should extract UUID from global_news widget ID", () => {
-      expect(getUUIDFromWidgetId("global_news-gn123")).toBe("gn123");
-    });
+
+
 
     it("should return original ID if no prefix matches", () => {
       expect(getUUIDFromWidgetId("regular_widget")).toBe("regular_widget");
@@ -529,35 +460,10 @@ describe("Widget Utility Functions", () => {
       expect(result.cleanWidgetId).toBe("custom-widget");
     });
 
-    it("should process news widget IDs", () => {
-      const companyNews = processWidgetId("company_news");
-      expect(companyNews.cleanWidgetId).toBe("news");
 
-      const globalNews = processWidgetId("global_news");
-      expect(globalNews.cleanWidgetId).toBe("news");
-    });
   });
 
   describe("Constants", () => {
-    describe("US_EXCHANGES", () => {
-      it("should contain major US exchanges", () => {
-        expect(US_EXCHANGES).toContain("NYSE");
-        expect(US_EXCHANGES).toContain("NASDAQ");
-        expect(US_EXCHANGES).toContain("AMEX");
-        expect(US_EXCHANGES).toContain("CBOE");
-      });
-
-      it("should have the expected length", () => {
-        expect(US_EXCHANGES.length).toBe(10);
-      });
-    });
-
-    describe("DEFAULT_TICKER_EXCHANGE", () => {
-      it("should be NASDAQ", () => {
-        expect(DEFAULT_TICKER_EXCHANGE).toBe("NASDAQ");
-      });
-    });
-
     describe("METADATA_WIDGETS", () => {
       it("should contain expected widget types", () => {
         expect(METADATA_WIDGETS).toContain("websites");
@@ -589,14 +495,14 @@ describe("Widget Utility Functions", () => {
   });
 
   describe("Edge Cases", () => {
-    describe("getJsonWidget edge cases", () => {
+    describe("getWidgetDefinition edge cases", () => {
       it("should handle empty string widget ID", () => {
-        const result = getJsonWidget("" as any);
+        const result = getWidgetDefinition("" as any);
         expect(result).toBeNull();
       });
 
       it("should handle widget object with undefined widgetId", () => {
-        const result = getJsonWidget({ widgetId: undefined } as any);
+        const result = getWidgetDefinition({ widgetId: undefined } as any);
         expect(result).not.toBeNull();
       });
     });

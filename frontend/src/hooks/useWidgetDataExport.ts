@@ -3,8 +3,7 @@ import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import type { Widget, WidgetT } from "~/components/types";
 import { useWidgetContext } from "~/components/Widget.context";
-import SOURCES from "~/lib/sources.json";
-import { extractColumns, getJsonWidget, useWidgetDataSource } from "~/lib/utils";
+import { extractColumns, getWidgetDefinition, useWidgetDataSource } from "~/lib/utils";
 import { publishWidgetData } from "~/lib/widgetData";
 import { handleWidgetMetadata } from "~/utils/dataConnectorsHelpers";
 
@@ -18,7 +17,7 @@ export function createWidgetDataMetadata(params: {
   const {
     title,
     widget,
-    widgetFromJSON = getJsonWidget(widget),
+    widgetFromJSON = getWidgetDefinition(widget),
     widgetSource,
     additionalMetadata,
   } = params;
@@ -99,7 +98,7 @@ export function useWidgetDataExport({
       metadata: {
         ...(metadata || {}),
         params: executedParamsSnapshot,
-        ...(SOURCES?.[source]?.name ? { source: SOURCES[source].name } : {}),
+        ...(source ? { source } : {}),
         ...(lastUpdated ? { lastUpdated } : {}),
         ...(fileType ? { fileType } : {}),
         ...(columns ? { columns } : {}),

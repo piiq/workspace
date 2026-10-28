@@ -2,11 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "~/api/auth.api";
-import * as dashboardApi from "~/api/dashboard.api";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowAuthStore } from "~/lib/state/auth";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
-import { useShallowThemeStore } from "~/lib/state/theme";
 import DeveloperOnboardingHomepage from "~/routes/developer_onboarding/DeveloperOnboardingHomepage";
 
 // Define mockNavigate at the top level
@@ -56,23 +53,11 @@ vi.mock("~/lib/state/app", () => ({
   useShallowAppStore: vi.fn(),
 }));
 
-vi.mock("~/lib/state/theme", () => ({
-  useShallowThemeStore: vi.fn(),
-}));
-
-vi.mock("~/lib/state/featureFlags", () => ({
-  useShallowFeatureFlagsStore: vi.fn(),
-}));
-
 vi.mock("~/api/auth.api", () => ({
   getDeveloperOnboardingQuestions: vi.fn(),
   submitDeveloperOnboardingQuestions: vi.fn(),
   updateFullName: vi.fn(),
   userHasEntity: vi.fn(),
-}));
-
-vi.mock("~/api/dashboard.api", () => ({
-  getDashboards: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -88,21 +73,12 @@ vi.mock("~/lib/utils/utils", () => ({
 
 // Add this mock for utils
 vi.mock("~/lib/utils", () => ({
-  getWidgetsWithSupportedAssetClass: vi.fn().mockReturnValue([]),
   COLORS: ["#000000", "#111111"],
-  getJsonWidget: vi.fn(),
+  getWidgetDefinition: vi.fn(),
   isLight: vi.fn(),
   generateRandomColor: vi.fn().mockReturnValue("#FF0000"),
   cn: vi.fn(),
   formatDate: vi.fn(),
-}));
-
-vi.mock("~/components/Charting/FinancialMetricsTabs", () => ({
-  default: vi.fn().mockImplementation(() => null),
-}));
-
-vi.mock("~/components/Charting/TVIndicatorsDialog", () => ({
-  default: vi.fn().mockImplementation(() => null),
 }));
 
 describe("DeveloperOnboardingHomepage", () => {
@@ -124,20 +100,9 @@ describe("DeveloperOnboardingHomepage", () => {
       items: [],
     }));
 
-    (useShallowThemeStore as any).mockImplementation(() => ({
-      theme: "dark",
-      defaultTicker: "AAPL",
-    }));
-
-    (useShallowFeatureFlagsStore as any).mockImplementation(() => ({
-      featureFlags: {},
-    }));
-
     // Setup default API responses
     vi.mocked(authApi.userHasEntity).mockResolvedValue({ success: true });
     vi.mocked(authApi.getDeveloperOnboardingQuestions).mockResolvedValue(null);
-    // @ts-expect-error - ignored for now
-    vi.mocked(dashboardApi.getDashboards).mockResolvedValue({ owned: {} });
   });
 
   it("renders the form with all required fields", async () => {

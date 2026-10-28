@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DataConnectors from "~/routes/newDataConnectors";
-import { mockConfig } from "../../mocks/runtimeConfig";
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -22,10 +21,6 @@ vi.mock("~/lib/contexts/MyDataConnectorsContext", () => ({
 
 vi.mock("~/components/DataConnectors/MyWidgetsTab", () => ({
   MyWidgetsTab: () => <div data-testid="my-widgets-tab">My Widgets Tab</div>,
-}));
-
-vi.mock("~/components/DataConnectors/PackagedDataTab", () => ({
-  PackagedDataTab: () => <div data-testid="packaged-data-tab">Packaged Data Tab</div>,
 }));
 
 vi.mock("~/components/LayoutAuth/Skeleton/SettingsLayout", () => ({
@@ -63,7 +58,6 @@ vi.mock("~/utils/dataConnectorsHelpers", () => ({
 describe("DataConnectors", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockConfig.data.packageDataEnabled = true;
   });
 
   it("renders the Widgets Library title", () => {
@@ -106,55 +100,14 @@ describe("DataConnectors", () => {
     expect(screen.getByText("My Data")).toBeInTheDocument();
   });
 
-  it("renders Sandbox Data tab when FF is enabled", () => {
-    mockConfig.data.packageDataEnabled = true;
-
+  it("shows the user data tab without a packaged-data catalogue", () => {
     render(
       <BrowserRouter>
         <DataConnectors />
       </BrowserRouter>,
     );
 
-    expect(screen.getByText("Sandbox Data")).toBeInTheDocument();
-  });
-
-  it("renders PackagedDataTab when FF is enabled", () => {
-    mockConfig.data.packageDataEnabled = true;
-
-    render(
-      <BrowserRouter>
-        <DataConnectors />
-      </BrowserRouter>,
-    );
-
-    // Verify the packaged-data tab trigger exists
-    const tabTrigger = screen.getByRole("tab", { name: "Sandbox Data" });
-    expect(tabTrigger).toBeInTheDocument();
-
-    // Verify the packaged-data tab panel exists (even if hidden)
-    const tabPanels = screen.getAllByRole("tabpanel", { hidden: true });
-    const packagedDataPanel = tabPanels.find((panel) =>
-      panel.getAttribute("aria-labelledby")?.includes("packaged-data"),
-    );
-    expect(packagedDataPanel).toBeDefined();
-  });
-});
-
-describe("DataConnectors without packaged data FF", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockConfig.data.packageDataEnabled = false;
-  });
-
-  it("does not render PackagedDataTab when FF is disabled", () => {
-    render(
-      <BrowserRouter>
-        <DataConnectors />
-      </BrowserRouter>,
-    );
-
-    // The PackagedDataTab should not be rendered when FF is disabled
-    // This depends on how the component reads the env var at runtime
-    expect(screen.getByTestId("settings-layout")).toBeInTheDocument();
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
+    expect(screen.getByRole("tab", { name: "My Data" })).toBeInTheDocument();
   });
 });

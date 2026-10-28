@@ -34,19 +34,7 @@ type StarryNightInstance = {
 let starryNightInstance: StarryNightInstance | null = null;
 const starryNightListeners = new Set<() => void>();
 
-const starryNightReady = import("@wooorm/starry-night")
-  .then(({ common, createStarryNight }) =>
-    createStarryNight(common, {
-      getOnigurumaUrlFetch: () =>
-        new URL("/assets/wasm/onig.wasm", window.location.href),
-    }),
-  )
-  .then((instance) => {
-    starryNightInstance = instance;
-    starryNightListeners.forEach((l) => l());
-    starryNightListeners.clear();
-    return instance;
-  });
+let starryNightReady: Promise<StarryNightInstance> | undefined;
 
 function useStarryNight() {
   const [sn, setSn] = useState(starryNightInstance);
@@ -58,6 +46,19 @@ function useStarryNight() {
     }
     const listener = () => setSn(starryNightInstance);
     starryNightListeners.add(listener);
+    starryNightReady ??= import("@wooorm/starry-night")
+      .then(({ common, createStarryNight }) =>
+        createStarryNight(common, {
+          getOnigurumaUrlFetch: () =>
+            new URL("/assets/wasm/onig.wasm", window.location.href),
+        }),
+      )
+      .then((instance) => {
+        starryNightInstance = instance;
+        starryNightListeners.forEach((l) => l());
+        starryNightListeners.clear();
+        return instance;
+      });
     return () => {
       starryNightListeners.delete(listener);
     };

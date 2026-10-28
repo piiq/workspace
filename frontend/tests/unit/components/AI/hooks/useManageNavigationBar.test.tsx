@@ -24,7 +24,7 @@ vi.mock("~/lib/utils", async (importOriginal) => {
   return {
     ...actual,
     triggerCustomEvent: (...args: unknown[]) => mockTriggerCustomEvent(...args),
-    getJsonWidget: (...args: unknown[]) => mockGetJsonWidget(...args),
+    getWidgetDefinition: (...args: unknown[]) => mockGetJsonWidget(...args),
   };
 });
 

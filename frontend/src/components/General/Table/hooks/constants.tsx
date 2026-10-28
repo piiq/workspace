@@ -6,24 +6,7 @@ import {
   iconSetAlpine,
   themeAlpine,
 } from "ag-grid-community";
-import type { WidgetId } from "~/components/Widgets";
 import type { ThemeDefaultParamsT } from "~/lib/state/tableChartThemes";
-export const ignoreTranspose = ["institutional_ownership", "financial_ratios"] as const;
-
-export const doAutoFitColumns = [
-  "analyst_consensus",
-  "key_metrics",
-  "share_statistics",
-  "dividend_payment",
-  "company_filings",
-  "institutional_ownership",
-  "management_team",
-  "earning_history",
-  "watchlist",
-  "analyst_price_target",
-  "etf_holdings",
-] as WidgetId[];
-
 export const ignoreSources = [
   "rangeSelection",
   "cellSelection",

@@ -10,10 +10,6 @@ export function getEnabledIdentityProviders(): IdentityProvidersAvailable[] {
   );
 }
 
-export function getAllowedDataVendors(): string[] {
-  return getConfig().data.allowedDataVendors;
-}
-
 export function getAllowedDBTypes(): string[] {
   return getConfig().data.allowedDbTypes;
 }

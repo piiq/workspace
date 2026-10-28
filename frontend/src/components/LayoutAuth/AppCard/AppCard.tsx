@@ -186,11 +186,6 @@ const AppCard = memo<AppCardProps>((props) => {
     [template.description, descriptionRef],
   );
 
-  const isOpenBBSandbox = useMemo(
-    () => template?.name?.includes("Sandbox App (FMP Data)"),
-    [template?.name],
-  );
-
   const isListedApp = template.type === "listed";
   const isBackendApp =
     template.source?.id && template.type !== "generated" && !isListedApp;
@@ -203,8 +198,8 @@ const AppCard = memo<AppCardProps>((props) => {
     const tagName = template.vendorName || template.source?.name;
     if (tagName) return <Tag name={tagName} />;
 
-    return isOpenBBSandbox ? <Tag name="OpenBB" /> : null;
-  }, [template.type, template.source?.name, template.vendorName, isOpenBBSandbox]);
+    return null;
+  }, [template.type, template.source?.name, template.vendorName]);
 
   const dropDownItems = useMemo<AppCardDropdownItem[]>(() => {
     if (isListedApp) {
@@ -405,10 +400,7 @@ const AppCard = memo<AppCardProps>((props) => {
       );
     }
 
-    if (
-      !(isOpenBBSandbox || template.creator) &&
-      (template.type === "openbb" || template.type === "shared" || template.isShared)
-    ) {
+    if (!template.creator && (template.type === "shared" || template.isShared)) {
       items.push(
         <HoverPopover
           key="shared"
@@ -445,7 +437,6 @@ const AppCard = memo<AppCardProps>((props) => {
     }
 
     if (
-      !isOpenBBSandbox &&
       template.type === "generated" &&
       template.creator &&
       template.sharedWith &&
@@ -463,7 +454,6 @@ const AppCard = memo<AppCardProps>((props) => {
     return items;
   }, [
     template,
-    isOpenBBSandbox,
     uniqueId,
     widgetTooltipItems,
     mcpServer,

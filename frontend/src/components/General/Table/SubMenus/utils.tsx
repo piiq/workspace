@@ -10,11 +10,13 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { MySQL } from "dt-sql-parser";
 
-const mysql = new MySQL();
+let mysql: Promise<import("dt-sql-parser").MySQL> | undefined;
 
-const sqlLinter = linter((view) => {
+const sqlLinter = linter(async (view) => {
+  const parser = await (mysql ??= import("dt-sql-parser").then(
+    ({ MySQL }) => new MySQL(),
+  ));
   const diagnostics: Diagnostic[] = [];
 
   syntaxTree(view.state)
@@ -22,7 +24,7 @@ const sqlLinter = linter((view) => {
     .iterate((node) => {
       const text = view.state.sliceDoc(node.from, node.to).toUpperCase();
       if (node.name === "Statement") {
-        const errors = mysql.validate(text);
+        const errors = parser.validate(text);
         if (errors.length === 0) return;
         for (const error of errors) {
           const { startLine, endColumn, startColumn, endLine } = error;

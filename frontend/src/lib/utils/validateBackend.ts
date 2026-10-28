@@ -22,6 +22,7 @@ function normalizeBackendTemplate(template: unknown) {
   return obj;
 }
 
+import { builtinWidgets } from "~/lib/plugins/builtinWidgets";
 import {
   cleanSearchParams,
   convertHeadersToRecord,
@@ -30,7 +31,6 @@ import {
   createURLString,
   createWidgetInitParams,
 } from "~/lib/utils/widgetParams";
-import WIDGETS from "~/lib/widgets.json";
 import {
   detectUnrecognizedKeys,
   KNOWN_WIDGET_KEYS,
@@ -595,15 +595,6 @@ export async function validateBackend(
   } as ValidateBackend;
 }
 
-export function getJsonWidget(widget: string | Partial<WidgetT>): WidgetT | null {
-  if (typeof widget === "string") {
-    widget = WIDGETS[widget] as Partial<WidgetT>;
-    if (!widget) return null;
-  }
-
-  return cloneDeep({ ...(WIDGETS[widget?.widgetId] ?? widget) });
-}
-
 export async function validateSource(
   source: Source,
   options?: GetApiSourceWidgetsOptions | boolean,
@@ -624,7 +615,7 @@ export async function validateSource(
     for (const tab of Object.values(t.tabs || {})) {
       for (const layout of tab.layout || []) {
         const widgetId = layout.i;
-        if (getJsonWidget(widgetId)?.name) continue; // skip if it's a built-in widget
+        if (builtinWidgets[widgetId]) continue;
 
         if (!tabWidgets[t.name]) tabWidgets[t.name] = {};
         if (!tabWidgets[t.name][tab.id]) tabWidgets[t.name][tab.id] = [];

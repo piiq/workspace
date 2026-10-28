@@ -213,7 +213,7 @@ describe("DraggableCard", () => {
     expect(screen.queryByTestId("widget-content")).not.toBeInTheDocument();
   });
 
-  it("shows error message when widget ID is in blocked list", () => {
+  it("shows the access error from permissions", () => {
     mockUseWidgetContext.mockReturnValue({
       widgetRef: {
         current: {
@@ -254,7 +254,7 @@ describe("DraggableCard", () => {
     expect(screen.queryByTestId("widget-content")).not.toBeInTheDocument();
   });
 
-  it("renders normally when widget ID is not in blocked list", () => {
+  it("renders an accessible widget", () => {
     mockUseWidgetContext.mockReturnValue({
       widgetRef: {
         current: {
@@ -285,7 +285,7 @@ describe("DraggableCard", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders normally when external widget has blocked ID", () => {
+  it("renders a declared widget", () => {
     mockUseWidgetContext.mockReturnValue({
       widgetRef: {
         current: {
@@ -297,8 +297,8 @@ describe("DraggableCard", () => {
       widgetFromJSON: null,
       widget: {
         sourceId: "source-1",
-        widgetId: "yield_curve", // This is in BLOCKED_WIDGET_IDS
-        external: true, // But it's external, so should not be blocked
+        widgetId: "yield_curve",
+        external: true,
         endpoint: { url: "https://external-api.com" },
         sourceName: "External Source",
       },

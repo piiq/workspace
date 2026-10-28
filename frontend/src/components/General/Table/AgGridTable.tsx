@@ -1,16 +1,11 @@
-import type { UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import DraggableCard from "~/components/DraggableCard";
-import { HideOnResize } from "~/components/DraggableCard/SetLoadingOnResize";
-import { AdvancedSelect } from "~/components/NewAdvancedSelect";
 import { useWidgetContext } from "~/components/Widget.context";
 import { processAgGridTableData } from "~/components/Widgets/dataProcessors";
-import { FINANCIAL_RATIOS } from "~/components/Widgets/Equity/ComparisonAnalysis/constants";
 import { type StateDispatch, useStateReducer } from "~/hooks/useStateReducer";
 import { useJsonData } from "~/lib/api";
-import * as sdkQuery from "~/lib/api/sdkComponents";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import { cn, getJsonColDefs, getWidgetDataSource } from "~/lib/utils";
+import { cn, getWidgetColumnDefs } from "~/lib/utils";
 import { getContextMenuItems, onPivotModeChanged } from "./AgGridUtils";
 import { ChartViewButton, ChartViewElement } from "./Chart/AgChartView";
 import useChartOptions, {
@@ -28,16 +23,8 @@ import { useCopilotFilteredWidgetData } from "./hooks/useCopilotFilteredData";
 import { PeriodParams, useWidgetParamsPositions } from "./NavBar/QueryParams";
 import TableSettings, { type EnableSettings } from "./SubMenus/TableSettings";
 
-const DISPLAY_CURRENCY_WIDGETIDS = [
-  "insider_trading",
-  "stock_ownership",
-  "dividend_payment",
-  "analyst_consensus",
-];
-
 type AgGridTableState = {
   decimalDigitsSettings: number;
-  selectedGroup: string;
   failingUrl: string | undefined;
   enableSettings?: EnableSettings;
 };
@@ -46,60 +33,18 @@ export function useGetTableData(
   state: AgGridTableState,
   dispatch: StateDispatch<AgGridTableState>,
 ) {
-  const { widget, widgetFromJSON, getWidget } = useWidgetContext();
+  const { widget, getWidget } = useWidgetContext();
   const columnDefsFromJSON = useMemo(
-    () => getJsonColDefs(widget),
+    () => getWidgetColumnDefs(widget),
     [widget.widgetId, widget?.data?.table?.columnsDefs],
   );
   const period: "annual" | "quarter" | "ttm" =
     widget?.storage?.params?.period ?? "annual";
-  const hasPeriod = !!widgetFromJSON?.data?.table?.period;
 
   const decimalDigits = useShallowThemeStore((s) => s.decimalDigits);
   const decimalDigitsToUse = widget?.storage?.decimalDigits ?? decimalDigits;
 
-  const useQueryFn = useCallback((options: any, queryOptions: any) => {
-    const query = widgetFromJSON?.sdkFunc ? "useSdk" : "useJson";
-    const funcs = {
-      useJson: useJsonData,
-      // check if widget.endpoint is in sdkQuery
-      useSdk:
-        widgetFromJSON?.sdkFunc in sdkQuery
-          ? // biome-ignore lint/performance/noDynamicNamespaceImportAccess: --- IGNORE --
-            sdkQuery[widgetFromJSON?.sdkFunc as string]
-          : useJsonData,
-    };
-
-    return funcs[query](options, queryOptions) as UseQueryResult<any, Error>;
-  }, []);
-
   const options = useMemo(() => {
-    const query = widgetFromJSON?.sdkFunc ? "useSdk" : "useJson";
-    const period: "annual" | "quarter" | "ttm" =
-      widget?.storage?.params?.period ?? "annual";
-
-    const provider = getWidgetDataSource(widget)?.[0] ?? "fmp";
-    if (query === "useSdk") {
-      const periodParam = ["ttm", "quarter"].includes(period) ? "quarter" : "annual";
-      const symbol = widget.data?.mainTicker?.symbol;
-
-      return {
-        queryParams: {
-          provider: provider,
-          limit: hasPeriod ? (period?.toLowerCase() === "annual" ? 12 : 40) : 1000,
-          ...(symbol && { symbol }),
-          sort: "asc",
-          ...Object.fromEntries(
-            Object.entries(widget?.storage?.params || {}).filter(
-              ([key, value]) =>
-                key !== "symbol" && !["", undefined, null].some((v) => v === value),
-            ),
-          ),
-          ...(hasPeriod && { period: periodParam }),
-        },
-      };
-    }
-
     const newParams = Object.fromEntries(
       Object.entries({
         ...(widget?.endpoint?.query ?? {}),
@@ -109,10 +54,10 @@ export function useGetTableData(
     return {
       url: widget.endpoint?.url,
       endpointHeaders: widget.endpoint?.headers ?? {},
-      endpointMethod: widget.endpoint?.method ?? "GET",
+      method: widget.endpoint?.method ?? "GET",
       params: newParams,
       onError: (error: Error) => {
-        if (!widgetFromJSON?.sdkFunc && error?.message === "Failed to fetch") {
+        if (error?.message === "Failed to fetch") {
           dispatch({ failingUrl: widget.endpoint?.url });
         }
       },
@@ -124,10 +69,10 @@ export function useGetTableData(
     error,
     isLoading,
     dataUpdatedAt,
-  } = useQueryFn(options, {
+  } = useJsonData(options, {
     enabled: true,
     staleTime: widget?.staleTime ?? 1000 * 60 * 15,
-  } as Omit<UseQueryOptions<any, Error>, "queryKey">);
+  });
 
   const widgetMemo = useMemo(() => {
     const w = getWidget();
@@ -139,7 +84,6 @@ export function useGetTableData(
         params: {
           ...(widget.storage?.params ?? {}),
           period,
-          selectedGroup: state.selectedGroup,
         },
         enableAdvanced: state.enableSettings.enableAdvanced,
       },
@@ -155,7 +99,6 @@ export function useGetTableData(
     };
   }, [
     period,
-    state.selectedGroup,
     state.enableSettings.enableAdvanced,
     widget?.storage?.transpose,
     widget?.data?.table?.showAll,
@@ -219,7 +162,6 @@ export default function AgGridTable() {
 
   const [state, dispatch] = useStateReducer<AgGridTableState>({
     decimalDigitsSettings: decimalDigitsToUse,
-    selectedGroup: widget?.storage?.selectedGroup ?? "liquidity",
     failingUrl: undefined,
     enableSettings: {
       enableStats: !!widget.storage?.enableStats,
@@ -249,11 +191,6 @@ export default function AgGridTable() {
       return getContextMenuItems(params, { enableChart, widgetId: widget?.id });
     },
     [widget?.external, widgetFromJSON?.data?.table?.enableCharts],
-  );
-
-  const showCurrency = useMemo(
-    () => DISPLAY_CURRENCY_WIDGETIDS.includes(widget?.widgetId),
-    [],
   );
 
   const agChartViewProps = useChartOptions();
@@ -296,34 +233,7 @@ export default function AgGridTable() {
       exportFns={exportFns}
       elementRightNextToTitle={renderRow0Params}
       elementBelowNavbar={renderBelowNavbarRows}
-      elementNextToTitle={
-        <>
-          <PeriodParams />
-          {widget.widgetId === "financial_ratios" && (
-            <AdvancedSelect
-              className="obb-parameter"
-              popupWidth={200}
-              label={
-                FINANCIAL_RATIOS.find((r) => r.value === state.selectedGroup)?.label ??
-                "Ratio"
-              }
-              selected={state.selectedGroup}
-              onSelect={(selectedGroup) => {
-                if (!selectedGroup) return;
-                updateWidget((prev) => ({
-                  ...prev,
-                  storage: {
-                    ...prev.storage,
-                    selectedGroup: String(selectedGroup),
-                  },
-                }));
-                dispatch({ selectedGroup: String(selectedGroup) });
-              }}
-              values={FINANCIAL_RATIOS as unknown as { label: string; value: string }[]}
-            />
-          )}
-        </>
-      }
+      elementNextToTitle={<PeriodParams />}
       extraNavbarElements={
         (!!widget?.storage?.chartView ||
           widget?.external ||
@@ -336,8 +246,7 @@ export default function AgGridTable() {
       {chartView && <ChartViewElement />}
       <div
         className={cn("flex grow h-full", {
-          "h-[calc(100%-20px)]": showCurrency && !chartView,
-          "h-[calc(100%-6px)] min-h-[100px]": !(showCurrency || chartView),
+          "h-[calc(100%-6px)] min-h-[100px]": !chartView,
           "h-0 w-0 max-h-0": chartView,
         })}
       >
@@ -350,13 +259,6 @@ export default function AgGridTable() {
           {...agChartViewProps}
         />
       </div>
-      <HideOnResize>
-        {showCurrency && widget.data?.mainTicker?.currency && (
-          <p className="text-light-300 dark:text-light-600 text-xs mt-1">
-            {`Current Currency: ${widget.data?.mainTicker?.currency}`}
-          </p>
-        )}
-      </HideOnResize>
     </DraggableCard>
   );
 }

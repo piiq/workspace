@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenBB Hub Admin CLI - v2.2.0
+OpenBB Hub Admin CLI - v2.2.1
 
 A single-file CLI tool for managing OpenBB Hub entities and users.
 Dependencies: Python 3.8+ stdlib only (no external packages required)
@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("openbb-admin")
 
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 
 CONFIG_FILE = Path(
     os.environ.get("OPENBB_CONFIG_FILE", str(Path.home() / ".openbb-hub/config.json"))
@@ -64,7 +64,6 @@ DEFAULT_ENTITLEMENT = {
     "tier": "pro",
     "number_copilot_calls_day": 10_000,
     "total_file_upload_size_gb": 10,
-    "bundle_name": "On-Premise",
 }
 
 
@@ -1131,7 +1130,6 @@ def entitlement_sample(args: argparse.Namespace) -> None:
         "support": True,
         "excel_add_in": True,
         "data_add_ons_redistribution": True,
-        "bundle_name": "On-Premise",
         "allow_custom_backends": True,
     }
     print(json.dumps(sample, indent=2))

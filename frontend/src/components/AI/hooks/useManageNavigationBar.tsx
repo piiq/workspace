@@ -4,7 +4,7 @@ import type { WidgetT } from "~/components/types";
 import type { InnerTab, InnerTabsT } from "~/lib/state/app";
 import { useAppStore } from "~/lib/state/app";
 import type { CopilotCommandResultT } from "~/lib/state/copilot";
-import { getJsonWidget, slugify, triggerCustomEvent } from "~/lib/utils";
+import { getWidgetDefinition, slugify, triggerCustomEvent } from "~/lib/utils";
 import type { ManageNavigationBarInputArgumentsT } from "~/lib/utils/ai";
 
 /** Match a tab by slug or case-insensitive name. */
@@ -161,7 +161,7 @@ export function useManageNavigationBar() {
             name: t.name,
           }));
 
-          const navWidget = getJsonWidget("navigation_bar");
+          const navWidget = getWidgetDefinition("navigation_bar");
           if (!navWidget) {
             return [
               {

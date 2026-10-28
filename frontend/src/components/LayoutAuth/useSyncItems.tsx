@@ -28,10 +28,7 @@ export default function useSyncItems() {
   const { pathname } = useLocation();
   useGetAppWidgets(); // Initialize the app widgets store
 
-  const { user, checkNewBundles } = useShallowAuthStore((state) => ({
-    user: state.user,
-    checkNewBundles: state.checkNewBundles,
-  }));
+  const user = useShallowAuthStore((state) => state.user);
   const updateThemeSettings = useShallowTableChartThemesStore(
     (state) => state.updateThemeSettings,
   );
@@ -105,7 +102,6 @@ export default function useSyncItems() {
 
         if (data.entity_theme_settings) updateThemeSettings(data.entity_theme_settings);
 
-        checkNewBundles(data.feature_entitlements.tier === "pro");
         updateThemeState(data.pro_display_settings || {});
         updateBackendConnector({
           storedFiles: data.file_widgets || [],

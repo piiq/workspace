@@ -66,53 +66,6 @@ class TestUserHasEntity:
         assert "application/json" in content_type
 
 
-class TestEnabledBundles:
-    """Tests for /pro/enabled-bundles endpoints"""
-
-    @pytest.mark.asyncio
-    async def test_get_bundles_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.get("/pro/enabled-bundles")
-        assert response.status_code in {401, 403}
-        # Validate error response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        assert "detail" in data or "message" in data or "error" in data
-
-    @pytest.mark.asyncio
-    async def test_get_bundles_authenticated(self, auth_client):
-        """Should return enabled bundles"""
-        response = await auth_client.get("/pro/enabled-bundles")
-        assert response.status_code == 200
-        # Validate response structure
-        data = response.json()
-        assert isinstance(data, (list, dict))
-        content_type = response.headers.get("content-type", "")
-        assert "application/json" in content_type
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.put("/pro/enabled-bundles", json={})
-        assert response.status_code in {401, 403, 422}
-        # Validate error response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        assert "detail" in data or "message" in data or "error" in data
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_authenticated(self, auth_client):
-        """Should update enabled bundles"""
-        response = await auth_client.put("/pro/enabled-bundles", json={"bundles": []})
-        # 200 for success, 422 for validation error
-        assert response.status_code in {200, 422}
-        # Validate response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        content_type = response.headers.get("content-type", "")
-        assert "application/json" in content_type
-
-
 class TestUsage:
     """Tests for /pro/usage endpoint"""
 
@@ -201,68 +154,12 @@ class TestTierInputValidation:
 
 
 # =============================================================================
-# BUNDLES INPUT VALIDATION TESTS
-# =============================================================================
-
-
-class TestBundlesInputValidation:
-    """Tests for enabled bundles endpoint input validation"""
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_invalid_format(self, auth_client):
-        """Invalid bundles format should be handled"""
-        response = await auth_client.put(
-            "/pro/enabled-bundles", json={"bundles": "not-an-array"}
-        )
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_null_value(self, auth_client):
-        """Null bundles value should be handled"""
-        response = await auth_client.put("/pro/enabled-bundles", json={"bundles": None})
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_invalid_bundle_name(self, auth_client):
-        """Invalid bundle name should be handled"""
-        response = await auth_client.put(
-            "/pro/enabled-bundles", json={"bundles": ["nonexistent_bundle_xyz"]}
-        )
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_sql_injection(self, auth_client):
-        """SQL injection in bundles should be handled safely"""
-        response = await auth_client.put(
-            "/pro/enabled-bundles", json={"bundles": ["'; DROP TABLE users; --"]}
-        )
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_bundles_large_array(self, auth_client):
-        """Large bundles array should be handled"""
-        response = await auth_client.put(
-            "/pro/enabled-bundles", json={"bundles": ["bundle"] * 100}
-        )
-        assert response.status_code in {200, 400, 422}
-
-
-# =============================================================================
 # FEATURES OUTPUT VALIDATION TESTS
 # =============================================================================
 
 
 class TestFeaturesOutputValidation:
     """Tests for features endpoint output validation"""
-
-    @pytest.mark.asyncio
-    async def test_bundles_response_schema(self, auth_client):
-        """Enabled bundles response should have expected schema"""
-        response = await auth_client.get("/pro/enabled-bundles")
-        if response.status_code == 200:
-            data = response.json()
-            # Should be a list or dict with bundle info
-            assert isinstance(data, (list, dict))
 
     @pytest.mark.asyncio
     async def test_permissions_response_schema(self, auth_client):
@@ -316,12 +213,6 @@ class TestFeaturesAdmin:
         assert response.status_code in {200, 400, 403, 404}
 
     @pytest.mark.asyncio
-    async def test_admin_can_get_bundles(self, admin_client):
-        """Admin should be able to get enabled bundles"""
-        response = await admin_client.get("/pro/enabled-bundles")
-        assert response.status_code == 200
-
-    @pytest.mark.asyncio
     async def test_admin_can_get_permissions(self, admin_client):
         """Admin should be able to get resource permissions"""
         response = await admin_client.get("/pro/resource-permissions")
@@ -335,16 +226,6 @@ class TestFeaturesAdmin:
 
 class TestFeaturesCrossUserSecurity:
     """Tests for cross-user access prevention in features"""
-
-    @pytest.mark.asyncio
-    async def test_bundles_isolated_per_user(self, auth_client, second_user_client):
-        """Each user should only see their own bundles"""
-        response1 = await auth_client.get("/pro/enabled-bundles")
-        response2 = await second_user_client.get("/pro/enabled-bundles")
-
-        assert response1.status_code == 200
-        assert response2.status_code == 200
-        # Bundles may be the same (default) but should be isolated endpoints
 
     @pytest.mark.asyncio
     async def test_permissions_isolated_per_user(self, auth_client, second_user_client):
@@ -379,7 +260,7 @@ class TestFeaturesAuthEdgeCases:
     async def test_features_with_expired_token(self, client):
         """Expired token should be rejected"""
         client.headers["Authorization"] = "Bearer expired.token.here"
-        response = await client.get("/pro/enabled-bundles")
+        response = await client.get("/pro/resource-permissions")
         assert response.status_code in {401, 403}
 
     @pytest.mark.asyncio

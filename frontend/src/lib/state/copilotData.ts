@@ -174,7 +174,13 @@ export const useCopilotDataStore = createWithEqualityFn<CopilotDataStore>()(
         },
         checkWidgetSignature: (uuid, signature) => {
           if (!(uuid && signature)) return false;
-          return compareSignatures(get().signaturesMap[uuid], signature);
+          const { widgetsInCurrentDashboard, dashboardWidgetsData } = get();
+          const widget = widgetsInCurrentDashboard.find((widget) => widget.id === uuid);
+          // Export can run before the debounced signature index updates.
+          const current = widget
+            ? createSignatureMap([widget], dashboardWidgetsData)[uuid]
+            : undefined;
+          return compareSignatures(current, signature);
         },
         setWidgetsInCurrentDashboard: (widgets) => {
           set({ widgetsInCurrentDashboard: widgets });
