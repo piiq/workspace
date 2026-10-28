@@ -2,16 +2,17 @@ import { expect, test } from "@playwright/test";
 import { connectPluginBackend } from "./fixtures/pluginBackend";
 import { saveDashboard, waitForWorkspace } from "./helpers";
 
-test("connected backend widgets and apps survive saving and reopening", async ({
+test("connected backend widgets retain ticker parameters after a reload", async ({
   page,
 }) => {
-  const {
-    plugin: widget,
-    dashboardUrl,
-    appName,
-  } = await connectPluginBackend(page, {
+  const editorRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/dt-sql-parser|starry[-_]night/.test(new URL(request.url()).pathname)) {
+      editorRequests.push(request.url());
+    }
+  });
+  const { plugin: widget } = await connectPluginBackend(page, {
     plugin: false,
-    app: true,
   });
   await expect(
     widget.getByRole("textbox", { name: "Ticker symbol", exact: true }),
@@ -34,7 +35,16 @@ test("connected backend widgets and apps survive saving and reopening", async ({
   await expect(
     widget.getByRole("gridcell", { name: "NVDA", exact: true }),
   ).toBeVisible();
+  expect(editorRequests).toEqual([]);
+});
 
+test("connected backend apps retain tab and ticker state after a reload", async ({
+  page,
+}) => {
+  const { dashboardUrl, appName } = await connectPluginBackend(page, {
+    plugin: false,
+    app: true,
+  });
   await page.goto("/app");
   await page
     .locator('[role="button"]')
