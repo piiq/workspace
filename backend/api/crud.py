@@ -1071,11 +1071,6 @@ async def remove_pro_data(db: AsyncSession, user_uuid: UUID):
     )
     await db.execute(tv_state)
 
-    bundle_settings = delete(models.EnabledWidgetBundles).where(
-        models.EnabledWidgetBundles.user_uuid == user_uuid
-    )
-    await db.execute(bundle_settings)
-
     mcp_servers = delete(models.MCPServers).where(
         models.MCPServers.user_uuid == user_uuid
     )

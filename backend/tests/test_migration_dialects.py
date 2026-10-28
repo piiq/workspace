@@ -39,8 +39,8 @@ needs_docker = pytest.mark.skipif(not _DOCKER_AVAILABLE, reason="Docker not avai
 
 _BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Tables seeded by 0002_seed_data
-_SEED_TABLES = {"tier": 2, "default_tier": 2, "data_bundle": 3}
+# Seed tables present after upgrading to head.
+_SEED_TABLES = {"tier": 2, "default_tier": 2}
 
 # Minimum expected tables (model-created tables)
 _MIN_TABLES = 40
@@ -113,6 +113,10 @@ def _inspect_and_verify(engine: sa.engine.Engine, dialect_name: str):
     tables = inspector.get_table_names()
     assert "copilot_chat_old" not in tables
     assert "copilot_chats" not in tables
+    assert "data_bundle" not in tables
+    assert "enabled_widget_bundles" not in tables
+    for table in ("entitlement", "entity_entitlement"):
+        assert "data_bundle_uuid" not in {column["name"] for column in inspector.get_columns(table)}
     assert {"copilot_chat", "copilot_messages"}.issubset(tables)
 
     widget_type = next(
@@ -369,7 +373,7 @@ class TestPostgreSQLMigrations:
 class TestSQLiteMigrations:
     """Test alembic upgrade head on a fresh SQLite database."""
 
-    def test_sqlite_upgrade_head(self):
+    async def test_sqlite_upgrade_head(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test.db")
 
@@ -410,6 +414,19 @@ class TestSQLiteMigrations:
                         )
                     )
                     session.flush()
+                    session.add(models.Entitlement(
+                        user_uuid=user_id,
+                        tier_id=models.PRO_TIER_ID,
+                        number_copilot_calls_day=10_000,
+                        total_file_upload_size_gb=10,
+                        share_widgets="public",
+                        bring_your_own_data=True,
+                        bring_your_own_copilot=True,
+                        admin_access=True,
+                        support=True,
+                        excel_add_in=True,
+                        data_add_ons_redistribution=True,
+                    ))
                     session.add(
                         models.WidgetMetadata(
                             user_uuid=user_id,
@@ -438,6 +455,22 @@ class TestSQLiteMigrations:
                     assert widget.widget_config == config
             finally:
                 engine.dispose()
+
+            from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+            from routers.pro.helpers import get_entitlement
+
+            async_engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
+            try:
+                async with async_sessionmaker(async_engine)() as session:
+                    entitlement = await get_entitlement(session, user_id)
+                    assert entitlement.number_copilot_calls_day == 10_000
+                    assert entitlement.total_file_upload_size_gb == 10
+                    assert entitlement.excel_add_in is True
+                    assert "data_bundle_info" not in entitlement.model_dump()
+                    assert "bundle_name" not in entitlement.model_dump()
+            finally:
+                await async_engine.dispose()
 
     @pytest.mark.parametrize("remove_account", ["replace", "delete"])
     async def test_unused_chat_tables_do_not_block_account_removal(self, tmp_path, remove_account):

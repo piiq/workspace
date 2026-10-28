@@ -14,14 +14,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy_utils import UUIDType
 
-from api.models.model_helpers import Base, DateMixin, JSONType, UUIDMixin
+from api.models.model_helpers import Base, DateMixin, UUIDMixin
 
 PRO_TIER_ID = 1
 TERMINAL_TIER_ID = 2
-
-DATA_BUNDLE_DEFAULT = "Default"
-DATA_BUNDLE_EQUITY_RESEARCH = "Equity Research"
-DATA_BUNDLE_PRO_TRIAL = "Pro Trial"
 
 
 class Tier(Base, DateMixin):
@@ -47,7 +43,6 @@ class TierDefaults(Base, UUIDMixin, DateMixin):
     number_copilot_calls_day = Column(Integer)
     total_file_upload_size_gb = Column(Integer)
     share_widgets = Column(String(20))
-    data_bundle = Column(Boolean)
     bring_your_own_data = Column(Boolean)
     bring_your_own_copilot = Column(Boolean)
     admin_access = Column(Boolean)
@@ -79,7 +74,6 @@ class EntityEntitlement(Base, UUIDMixin, DateMixin):
     number_copilot_calls_day = Column(Integer)
     total_file_upload_size_gb = Column(Integer)
     share_widgets = Column(String(20))
-    data_bundle = Column(Boolean)
     bring_your_own_data = Column(Boolean)
     bring_your_own_copilot = Column(Boolean)
     admin_access = Column(Boolean)
@@ -87,11 +81,6 @@ class EntityEntitlement(Base, UUIDMixin, DateMixin):
     excel_add_in = Column(Boolean)
     data_add_ons_redistribution = Column(Boolean)
     allow_custom_backends: Mapped[bool | None] = mapped_column(Boolean, default=True)
-
-    data_bundle_uuid = Column(
-        UUIDType, ForeignKey("data_bundle.uuid"), nullable=True, default=None
-    )
-    data_bundle = relationship("DataBundle")
 
     __table_args__ = (
         CheckConstraint(
@@ -125,37 +114,12 @@ class Entitlement(Base, UUIDMixin, DateMixin):
     data_add_ons_redistribution = Column(Boolean)
     allow_custom_backends: Mapped[bool | None] = mapped_column(Boolean, default=True)
 
-    data_bundle_uuid = Column(
-        UUIDType, ForeignKey("data_bundle.uuid"), nullable=True, default=None
-    )
-    data_bundle = relationship("DataBundle")
-
     __table_args__ = (
         CheckConstraint(
             share_widgets.in_(["public", "private"]),
             name="check_share_widgets_values_entitlements",
         ),
     )
-
-
-class DataBundle(Base, UUIDMixin, DateMixin):
-    """Bundles for users."""
-
-    __tablename__ = "data_bundle"
-
-    bundle_name = Column(String(50), nullable=False, unique=True)
-    except_widgets: Mapped[list[str]] = mapped_column(JSONType)
-    except_dashboard_templates: Mapped[list[str]] = mapped_column(JSONType)
-    except_team_collaboration: Mapped[list[str] | None] = mapped_column(JSONType)
-    excel_add_in = Column(Boolean, nullable=False, default=False)
-    data_export = Column(Boolean, nullable=False, default=False)
-    providers: Mapped[list[str] | None] = mapped_column(JSONType)
-    dashboards_at_launch: Mapped[list[str] | None] = mapped_column(JSONType)
-    my_dashboards: Mapped[list[str] | None] = mapped_column(JSONType)
-    invite_your_colleagues = Column(Boolean, nullable=False, default=False)
-    number_copilot_calls_day = Column(Integer)
-    total_file_upload_size_gb = Column(Integer)
-    allow_custom_backends: Mapped[bool | None] = mapped_column(Boolean, default=True)
 
 
 class EntitlementUsage(Base, UUIDMixin, DateMixin):

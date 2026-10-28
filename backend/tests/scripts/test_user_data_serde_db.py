@@ -140,12 +140,6 @@ def _sample_rows() -> dict[str, object]:
             charts_state={"charts": [{"symbol": "AAPL"}]},
             settings={"theme": "dark"},
         ),
-        "enabled_widget_bundles": models.EnabledWidgetBundles(
-            uuid=uuid4(),
-            user_uuid=USER_UUID,
-            enabled_bundles=["equity", "crypto"],
-            disabled_widgets=["noisy_widget"],
-        ),
         "single_widget": models.SingleWidget(
             uuid=uuid4(),
             user_uuid=USER_UUID,

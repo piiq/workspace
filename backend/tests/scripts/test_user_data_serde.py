@@ -126,18 +126,15 @@ def test_gzip_string_content_round_trips():
 
 
 def test_scalar_list_round_trips():
-    spec = scope.spec_by_table("enabled_widget_bundles")
-    bundles = models.EnabledWidgetBundles(
+    spec = scope.spec_by_table("file_widget")
+    widget = models.FileWidget(
         uuid=uuid4(),
-        user_uuid=uuid4(),
-        enabled_bundles=["equity", "crypto"],
-        disabled_widgets=["some_widget"],
+        source=["research", "custom"],
     )
 
-    result = _round_trip(spec, bundles)
+    result = _round_trip(spec, widget)
 
-    assert result["enabled_bundles"] == ["equity", "crypto"]
-    assert result["disabled_widgets"] == ["some_widget"]
+    assert result["source"] == ["research", "custom"]
 
 
 def test_pydantic_column_decodes_back_to_a_model_instance():

@@ -547,15 +547,8 @@ async def get_entitlement(
             models.Entitlement.excel_add_in,
             models.Entitlement.data_add_ons_redistribution,
             models.Entitlement.allow_custom_backends,
-            # DataBundle fields
-            models.DataBundle.bundle_name,
         )
         .select_from(models.Entitlement)
-        .join(
-            models.DataBundle,
-            models.Entitlement.data_bundle_uuid == models.DataBundle.uuid,
-            isouter=True,
-        )
         .where(models.Entitlement.user_uuid == user_uuid)
         .limit(1)
     )
@@ -563,7 +556,6 @@ async def get_entitlement(
     if result is None:
         raise HTTPException(404, detail="Entitlement not found")
 
-    # The result is sent with no data bundle info on purpose since it's not needed for the admin panel
     return result
 
 
@@ -590,11 +582,6 @@ async def patch_entitlement(
         await pro_helpers.check_against_entity_tier(db, user_uuid, tier)
 
         entitlement_dict["tier_id"] = tiers_match.get(tier)
-
-    if bundle_name := entitlement_dict.pop("bundle_name", None):
-        entitlement_dict["data_bundle_uuid"] = await pro_helpers.get_data_bundle_uuid(
-            db, bundle_name
-        )
 
     query = (
         update(models.Entitlement)

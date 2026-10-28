@@ -24,31 +24,12 @@ EXCEPTION_401 = HTTPException(
 TierType = Literal["pro", "terminal"]
 
 
-ON_PREM_DATA_BUNDLE = schemas.DataBundle(
-    bundle_name="On-Premise",
-    except_widgets=[],
-    except_dashboard_templates=[
-        "calendars",
-        "charting",
-        "countryEconomics",
-        "comparison",
-        "earnings",
-        "etfTemplate",
-        "equity",
-        "equityAnalyst",
-        "news",
-        "onboarding",
-    ],
-    except_team_collaboration=None,
-    excel_add_in=1,
-    data_export=1,
-    providers=None,
-    dashboards_at_launch=[],
-    my_dashboards=[],
-    invite_your_colleagues=0,
-    number_copilot_calls_day=10_000,
-    total_file_upload_size_gb=10,
-)
+ON_PREM_ENTITLEMENTS = {
+    "number_copilot_calls_day": 10_000,
+    "total_file_upload_size_gb": 10,
+    "excel_add_in": True,
+    "allow_custom_backends": True,
+}
 
 
 async def is_trial(db: AsyncSession, user_uuid: UUID) -> bool:
@@ -57,24 +38,6 @@ async def is_trial(db: AsyncSession, user_uuid: UUID) -> bool:
     )
     result = (await db.execute(query)).scalar_one_or_none()
     return result == settings.PRO_TRIAL_MAPPING
-
-
-async def is_trial_entity(db: AsyncSession, entity_uuid: UUID) -> bool:
-    """
-    Check if the given entity UUID corresponds to the trial entity.
-
-    Args:
-        db (AsyncSession): The database session.
-        entity_uuid (UUID): The UUID of the entity to check.
-
-    Returns:
-        bool: True if the entity is a trial entity, False otherwise.
-    """
-    query = select(models.PermissionsEntityMap.entity_uuid).where(
-        models.PermissionsEntityMap.uuid == settings.PRO_TRIAL_MAPPING,
-    )
-    result = (await db.execute(query)).scalar_one_or_none()
-    return result == entity_uuid
 
 
 async def is_developer_entity(db: AsyncSession, entity_uuid: UUID) -> bool:
@@ -336,31 +299,6 @@ async def _get_tier_defaults(db: AsyncSession, tier: TierType):
     return tier_id, tier_defaults
 
 
-async def _handle_data_bundle(db: AsyncSession, tier: TierType, trial: bool = False):
-    if settings.is_onprem() and tier == "pro":
-        return await get_data_bundle_uuid(db, "On-Premise")
-    if tier == "terminal":
-        return await get_data_bundle_uuid(db, models.DATA_BUNDLE_DEFAULT)
-    if tier == "pro" and trial:
-        return await get_data_bundle_uuid(db, models.DATA_BUNDLE_PRO_TRIAL)
-    return None
-
-
-async def get_data_bundle_uuid(db: AsyncSession, bundle_name: str):
-    if not isinstance(bundle_name, str):
-        raise ValueError(
-            f"bundle_name must be a string, got {type(bundle_name).__name__}"
-        )
-
-    return (
-        await db.execute(
-            select(models.DataBundle.uuid).where(
-                models.DataBundle.bundle_name == bundle_name
-            )
-        )
-    ).scalar_one_or_none()
-
-
 async def check_against_entity_tier(db: AsyncSession, user_uuid: UUID, tier: TierType):
     entity_uuid = await get_entity_uuid(db, user_uuid)
     entity_entitlement = await get_entity_entitlement(db, entity_uuid)
@@ -377,8 +315,6 @@ async def insert_entitlement(db: AsyncSession, user_uuid: UUID, tier: TierType):
     await check_against_entity_tier(db, user_uuid, tier)
 
     tier_id, tier_defaults = await _get_tier_defaults(db, tier)
-    is_trial_user = await is_trial(db, user_uuid)
-    data_bundle_uuid = await _handle_data_bundle(db, tier, is_trial_user)
 
     query = insert(models.Entitlement).values(
         user_uuid=user_uuid,
@@ -392,7 +328,6 @@ async def insert_entitlement(db: AsyncSession, user_uuid: UUID, tier: TierType):
         support=tier_defaults.support,
         excel_add_in=tier_defaults.excel_add_in,
         data_add_ons_redistribution=tier_defaults.data_add_ons_redistribution,
-        data_bundle_uuid=data_bundle_uuid,
     )
     await db.execute(query)
     await db.commit()
@@ -402,8 +337,6 @@ async def update_entitlement(db: AsyncSession, user_uuid: UUID, tier: TierType):
     await check_against_entity_tier(db, user_uuid, tier)
 
     tier_id, tier_defaults = await _get_tier_defaults(db, tier)
-    is_trial_user = await is_trial(db, user_uuid)
-    data_bundle_uuid = await _handle_data_bundle(db, tier, is_trial_user)
 
     query = (
         update(models.Entitlement)
@@ -419,7 +352,6 @@ async def update_entitlement(db: AsyncSession, user_uuid: UUID, tier: TierType):
             support=tier_defaults.support,
             excel_add_in=tier_defaults.excel_add_in,
             data_add_ons_redistribution=tier_defaults.data_add_ons_redistribution,
-            data_bundle_uuid=data_bundle_uuid,
         )
     )
     await db.execute(query)
@@ -492,32 +424,9 @@ async def get_entitlement(db: AsyncSession, user_uuid: UUID):
             models.Entitlement.support,
             models.Entitlement.excel_add_in,
             models.Entitlement.data_add_ons_redistribution,
-            models.Entitlement.data_bundle_uuid,
             models.Entitlement.allow_custom_backends,
-            # DataBundle fields
-            models.DataBundle.bundle_name,
-            models.DataBundle.except_widgets,
-            models.DataBundle.except_dashboard_templates,
-            models.DataBundle.except_team_collaboration,
-            models.DataBundle.excel_add_in.label("data_bundle_excel_add_in"),
-            models.DataBundle.data_export,
-            models.DataBundle.providers,
-            models.DataBundle.dashboards_at_launch,
-            models.DataBundle.my_dashboards,
-            models.DataBundle.invite_your_colleagues,
-            models.DataBundle.number_copilot_calls_day.label(
-                "data_bundle_number_copilot_calls_day"
-            ),
-            models.DataBundle.total_file_upload_size_gb.label(
-                "data_bundle_total_file_upload_size_gb"
-            ),
         )
         .select_from(models.Entitlement)
-        .join(
-            models.DataBundle,
-            models.Entitlement.data_bundle_uuid == models.DataBundle.uuid,
-            isouter=True,
-        )
         .where(models.Entitlement.user_uuid == user_uuid)
         .limit(1)
     )
@@ -526,43 +435,7 @@ async def get_entitlement(db: AsyncSession, user_uuid: UUID):
     if not entitlement:
         return entitlement
 
-    entitlement_dict = entitlement._asdict()
-    data_bundle_uuid = entitlement_dict.pop("data_bundle_uuid", None)
-    data_bundle_dict = {
-        k: entitlement_dict.pop(k)
-        for k in [
-            "bundle_name",
-            "except_widgets",
-            "except_dashboard_templates",
-            "except_team_collaboration",
-            "data_bundle_excel_add_in",
-            "data_export",
-            "providers",
-            "dashboards_at_launch",
-            "my_dashboards",
-            "invite_your_colleagues",
-            "data_bundle_number_copilot_calls_day",
-            "data_bundle_total_file_upload_size_gb",
-        ]
-        if k in entitlement_dict
-    }
-    data_bundle_dict["excel_add_in"] = data_bundle_dict.pop(
-        "data_bundle_excel_add_in", None
-    )
-    data_bundle_dict["number_copilot_calls_day"] = data_bundle_dict.pop(
-        "data_bundle_number_copilot_calls_day", None
-    )
-    data_bundle_dict["total_file_upload_size_gb"] = data_bundle_dict.pop(
-        "data_bundle_total_file_upload_size_gb", None
-    )
-
-    entitlement_get = schemas.EntitlementGet(**entitlement_dict)
-
-    if data_bundle_uuid and data_bundle_dict:
-        entitlement_get.bundle_name = data_bundle_dict["bundle_name"]
-        entitlement_get.data_bundle_info = schemas.DataBundle(**data_bundle_dict)
-
-    return entitlement_get
+    return schemas.EntitlementGet(**entitlement._asdict())
 
 
 async def has_usage(db: AsyncSession, user_uuid: UUID):
@@ -594,8 +467,6 @@ async def insert_entity_entitlement(
     db: AsyncSession, entity_uuid: UUID, tier: TierType
 ):
     tier_id, tier_defaults = await _get_tier_defaults(db, tier)
-    trial = await is_trial_entity(db, entity_uuid)
-    data_bundle_uuid = await _handle_data_bundle(db, tier, trial)
 
     query = insert(models.EntityEntitlement).values(
         entity_uuid=entity_uuid,
@@ -609,51 +480,14 @@ async def insert_entity_entitlement(
         support=tier_defaults.support,
         excel_add_in=tier_defaults.excel_add_in,
         data_add_ons_redistribution=tier_defaults.data_add_ons_redistribution,
-        data_bundle_uuid=data_bundle_uuid,
     )
     await db.execute(query)
-    await db.commit()
-
-    if not data_bundle_uuid and settings.is_onprem() and tier == "pro":
-        await insert_entity_data_bundle(db, entity_uuid, ON_PREM_DATA_BUNDLE)
-
-
-async def insert_entity_data_bundle(
-    db: AsyncSession, entity_uuid: UUID, data_bundle: schemas.DataBundle
-):
-    data_bundle_uuid = await get_data_bundle_uuid(db, data_bundle.bundle_name)
-
-    if data_bundle_uuid is None:
-        query = insert(models.DataBundle).values(
-            bundle_name=data_bundle.bundle_name,
-            except_widgets=data_bundle.except_widgets,
-            except_dashboard_templates=data_bundle.except_dashboard_templates,
-            except_team_collaboration=data_bundle.except_team_collaboration,
-            excel_add_in=data_bundle.excel_add_in,
-            data_export=data_bundle.data_export,
-            providers=data_bundle.providers,
-            dashboards_at_launch=data_bundle.dashboards_at_launch,
-            my_dashboards=data_bundle.my_dashboards,
-            invite_your_colleagues=data_bundle.invite_your_colleagues,
-            number_copilot_calls_day=data_bundle.number_copilot_calls_day,
-            total_file_upload_size_gb=data_bundle.total_file_upload_size_gb,
-            allow_custom_backends=data_bundle.allow_custom_backends,
+    if settings.is_onprem() and tier == "pro":
+        await db.execute(
+            update(models.EntityEntitlement)
+            .where(models.EntityEntitlement.entity_uuid == entity_uuid)
+            .values(**ON_PREM_ENTITLEMENTS)
         )
-        result = await db.execute(query)
-        data_bundle_uuid = result.inserted_primary_key[0]
-
-    query = (
-        update(models.EntityEntitlement)
-        .where(models.EntityEntitlement.entity_uuid == entity_uuid)
-        .values(
-            number_copilot_calls_day=data_bundle.number_copilot_calls_day,
-            total_file_upload_size_gb=data_bundle.total_file_upload_size_gb,
-            excel_add_in=data_bundle.excel_add_in,
-            data_bundle_uuid=data_bundle_uuid,
-            allow_custom_backends=data_bundle.allow_custom_backends,
-        )
-    )
-    await db.execute(query)
     await db.commit()
 
 
@@ -680,32 +514,9 @@ async def get_entity_entitlement(db: AsyncSession, entity_uuid: UUID):
             models.EntityEntitlement.support,
             models.EntityEntitlement.excel_add_in,
             models.EntityEntitlement.data_add_ons_redistribution,
-            models.EntityEntitlement.data_bundle_uuid,
             models.EntityEntitlement.allow_custom_backends,
-            # DataBundle fields
-            models.DataBundle.bundle_name,
-            models.DataBundle.except_widgets,
-            models.DataBundle.except_dashboard_templates,
-            models.DataBundle.except_team_collaboration,
-            models.DataBundle.excel_add_in.label("data_bundle_excel_add_in"),
-            models.DataBundle.data_export,
-            models.DataBundle.providers,
-            models.DataBundle.dashboards_at_launch,
-            models.DataBundle.my_dashboards,
-            models.DataBundle.invite_your_colleagues,
-            models.DataBundle.number_copilot_calls_day.label(
-                "data_bundle_number_copilot_calls_day"
-            ),
-            models.DataBundle.total_file_upload_size_gb.label(
-                "data_bundle_total_file_upload_size_gb"
-            ),
         )
         .select_from(models.EntityEntitlement)
-        .join(
-            models.DataBundle,
-            models.EntityEntitlement.data_bundle_uuid == models.DataBundle.uuid,
-            isouter=True,
-        )
         .where(models.EntityEntitlement.entity_uuid == entity_uuid)
         .limit(1)
     )
@@ -715,43 +526,7 @@ async def get_entity_entitlement(db: AsyncSession, entity_uuid: UUID):
     if not entitlement:
         return entitlement
 
-    entitlement_dict = entitlement._asdict()
-    data_bundle_uuid = entitlement_dict.pop("data_bundle_uuid", None)
-    data_bundle_dict = {
-        k: entitlement_dict.pop(k)
-        for k in [
-            "bundle_name",
-            "except_widgets",
-            "except_dashboard_templates",
-            "except_team_collaboration",
-            "data_bundle_excel_add_in",
-            "data_export",
-            "providers",
-            "dashboards_at_launch",
-            "my_dashboards",
-            "invite_your_colleagues",
-            "data_bundle_number_copilot_calls_day",
-            "data_bundle_total_file_upload_size_gb",
-        ]
-        if k in entitlement_dict
-    }
-    data_bundle_dict["excel_add_in"] = data_bundle_dict.pop(
-        "data_bundle_excel_add_in", None
-    )
-    data_bundle_dict["number_copilot_calls_day"] = data_bundle_dict.pop(
-        "data_bundle_number_copilot_calls_day", None
-    )
-    data_bundle_dict["total_file_upload_size_gb"] = data_bundle_dict.pop(
-        "data_bundle_total_file_upload_size_gb", None
-    )
-
-    entitlement_get = schemas.EntitlementGet(**entitlement_dict)
-
-    if data_bundle_uuid and data_bundle_dict:
-        entitlement_get.bundle_name = data_bundle_dict["bundle_name"]
-        entitlement_get.data_bundle_info = schemas.DataBundle(**data_bundle_dict)
-
-    return entitlement_get
+    return schemas.EntitlementGet(**entitlement._asdict())
 
 
 async def has_entity_entitlement(db: AsyncSession, entity_uuid: UUID):
@@ -791,7 +566,6 @@ async def update_user_entitlement_with_entity_entitlement(
         support=entity_entitlements.support,
         excel_add_in=entity_entitlements.excel_add_in,
         data_add_ons_redistribution=entity_entitlements.data_add_ons_redistribution,
-        data_bundle_uuid=entity_entitlements.data_bundle_uuid,
         allow_custom_backends=entity_entitlements.allow_custom_backends,
     )
     if has_entitlement_:
@@ -894,26 +668,6 @@ async def handle_tier_change(
 
     # Having the user change permissions_uuid should also toggle the welcome screen
     await toggle_welcome_screen(db, user_uuid, True)
-
-
-async def get_enabled_widget_bundles(
-    db: AsyncSession, user: models.User
-) -> schemas.EnabledBundles:
-    query = (
-        select(models.EnabledWidgetBundles)
-        .where(models.EnabledWidgetBundles.user_uuid == user.uuid)
-        .limit(1)
-    )
-    result = (await db.execute(query)).scalar_one_or_none()
-    if not result:
-        return schemas.EnabledBundles(
-            enabled_bundles=[],
-            disabled_widgets=[],
-        )
-    return schemas.EnabledBundles(
-        enabled_bundles=result.enabled_bundles,
-        disabled_widgets=result.disabled_widgets,
-    )
 
 
 async def get_widget_metadata(

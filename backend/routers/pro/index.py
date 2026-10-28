@@ -522,9 +522,6 @@ async def login(  # noqa: PLR0914, PLR0915
     # Get Entitlements
     entitlements = await pro_helpers.get_entitlement(db, db_user.uuid)
 
-    # Get Enabled Widget Bundles
-    enabled_widget_bundles = await pro_helpers.get_enabled_widget_bundles(db, db_user)
-
     # Get Developer Onboarding Info
     developer_onboarding_info = await pro_helpers.get_developer_onboarding_info(
         db, db_user
@@ -579,7 +576,6 @@ async def login(  # noqa: PLR0914, PLR0915
             db_user.is_superuser or db_user.can_submit_marketplace
         ),
         "moved_to_developer": moved_to_developer,
-        "enabled_widget_bundles": enabled_widget_bundles,
         "developer_onboarding_info": developer_onboarding_info,
         "usage": usage,
         "custom_copilots": custom_copilots,
@@ -1440,11 +1436,6 @@ async def patch_entitlement(
     if tier := entitlement_dict.pop("tier", None):
         entitlement_dict["tier_id"] = tiers_match.get(tier)
 
-    if bundle_name := entitlement_dict.pop("bundle_name", None):
-        entitlement_dict["data_bundle_uuid"] = await pro_helpers.get_data_bundle_uuid(
-            db, bundle_name
-        )
-
     query = (
         update(models.Entitlement)
         .where(models.Entitlement.user_uuid == user.uuid)
@@ -1649,71 +1640,6 @@ async def delete_widget_metadata(
 
     # Fetch remaining widget metadata for the user
     return await pro_helpers.get_widget_metadata(db=db, user=user)
-
-
-@router.put("/enabled-bundles", response_model=SuccessReturn)
-async def put_enabled_bundles(
-    bundles: schemas.EnabledBundles,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Endpoint to update or insert enabled bundles for a user.
-
-    This endpoint updates the enabled bundles and disabled widgets associated with the current authenticated user.
-    If no record exists for the user, a new record is inserted.
-
-    Args:
-        bundles (schemas.EnabledBundles): The enabled bundles and disabled widgets to be updated or inserted.
-        user: The current authenticated user.
-
-    Returns:
-        SuccessReturn: An instance indicating the operation was successful.
-    """
-    query = (
-        select(models.EnabledWidgetBundles.uuid)
-        .where(models.EnabledWidgetBundles.user_uuid == user.uuid)
-        .limit(1)
-    )
-    enabled_widget_bundles_uuid = (await db.execute(query)).scalar_one_or_none()
-    if not enabled_widget_bundles_uuid:
-        insert_query = insert(models.EnabledWidgetBundles).values(
-            user_uuid=user.uuid,
-            enabled_bundles=bundles.enabled_bundles,
-            disabled_widgets=bundles.disabled_widgets,
-        )
-        await db.execute(insert_query)
-    else:
-        update_query = (
-            update(models.EnabledWidgetBundles)
-            .where(models.EnabledWidgetBundles.uuid == enabled_widget_bundles_uuid)
-            .values(
-                enabled_bundles=bundles.enabled_bundles,
-                disabled_widgets=bundles.disabled_widgets,
-            )
-        )
-        await db.execute(update_query)
-    await db.commit()
-    return SuccessReturn.success_instance()
-
-
-@router.get("/enabled-bundles", response_model=schemas.EnabledBundles)
-async def get_enabled_bundles(
-    db: Annotated[AsyncSession, Depends(aget_read_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Endpoint to retrieve enabled bundles for a user.
-
-    This endpoint fetches the enabled bundles and disabled widgets associated with the current authenticated user.
-
-    Args:
-        user: The current authenticated user.
-
-    Returns:
-        schemas.EnabledBundles: The enabled bundles and disabled widgets for the user.
-    """
-    return await pro_helpers.get_enabled_widget_bundles(db, user)
 
 
 @router.get("/user-has-entity", response_model=schemas.SuccessReturn)

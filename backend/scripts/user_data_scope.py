@@ -31,7 +31,7 @@ from api import models
 # Scope version. Bump when INCLUDED changes shape; the importer refuses an
 # archive whose manifest records a different value.
 # --------------------------------------------------------------------------- #
-SCOPE_VERSION = 2
+SCOPE_VERSION = 3
 
 # Columns never written to the archive, regardless of table.
 #
@@ -208,11 +208,6 @@ INCLUDED: list[TableSpec] = [
         model=models.TradingView,
         link_column="user_uuid",
         label="TradingView chart state and settings",
-    ),
-    TableSpec(
-        model=models.EnabledWidgetBundles,
-        link_column="user_uuid",
-        label="Enabled widget bundles and disabled widgets",
     ),
 ]
 
