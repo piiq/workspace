@@ -1389,19 +1389,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 11px;
 }
 
-.walkthrough-active {
-  pointer-events: none;
-}
-
-.walkthrough-active .react-floater,
-.walkthrough-active .react-floater * {
-  pointer-events: auto;
-}
-
-.walkthrough-overlay {
-  pointer-events: auto;
-}
-
 /* replace docked chart close icon with chevron right to prevent conflict with our widget close icon */
 .ag-chart-docked-container .ag-icon-cross {
   /* set a new image */

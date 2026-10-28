@@ -20,7 +20,6 @@ import {
 } from "~/lib/state/workspaceBridge";
 import { cn } from "~/lib/utils";
 import { groupVariants } from "../ds/atoms/Input";
-import FeatureLock from "../General/FeatureLock";
 import Sidebar from "../General/Sidebar";
 import SnowflakeHide from "../General/SnowflakeHide";
 import Icon from "../Icon";
@@ -40,8 +39,6 @@ type TabLinkProps = {
   href: string;
   label: string;
   icon: string;
-  locked?: boolean;
-  lockMessage?: string;
 };
 
 const TABS_LINKS: Record<string, TabLinkProps[]> = {
@@ -193,7 +190,7 @@ function AuthSidebar({ isMobile }: { isMobile?: boolean }) {
 function TabLink(props: TabLinkProps) {
   const collapsed = useShallowSidebarStore((state) => !state.effectiveExpanded);
 
-  const { id, href, label, icon, locked, lockMessage } = props;
+  const { id, href, label, icon } = props;
 
   const classNameCb = useCallback(
     (props: NavLinkRenderProps) =>
@@ -241,29 +238,6 @@ function TabLink(props: TabLinkProps) {
     ),
     [id, href, label, classNameCb, childrenCb, collapsed],
   );
-
-  if (locked) {
-    return collapsed ? (
-      <Tooltip id={`links-${id}-lock-tooltip`} message={lockMessage} position="right">
-        <span className="opacity-50">
-          <span className="pointer-events-none">
-            <NavLink
-              key={`auth-sidebar-${id}`}
-              to={href}
-              id={id}
-              end={true}
-              className={classNameCb}
-              children={childrenCb}
-            />
-          </span>
-        </span>
-      </Tooltip>
-    ) : (
-      <FeatureLock isLocked={true} message={lockMessage} className="max-w-[220px]">
-        {linkContent}
-      </FeatureLock>
-    );
-  }
 
   return linkContent;
 }

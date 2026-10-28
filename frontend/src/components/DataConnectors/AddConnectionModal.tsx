@@ -1,7 +1,7 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import type { ReactNode } from "react";
 import { ExtensionOptions } from "~/lib/constants";
-import { useTutorialStore } from "~/lib/state/tutorial";
+
 import { cn } from "~/lib/utils";
 import { BaseDialog } from "../ds/dialogs/BaseDialog";
 import { DialogDescription, DialogTitle } from "../ds/dialogs/Dialog";
@@ -62,16 +62,12 @@ export const DataConnectionTabs = ({
   showIcons?: boolean;
 }) => {
   const { dcTab, setTab, mode } = useDataConnectorContext();
-  const { currentTutorial, currentStep, goToStep } = useTutorialStore();
 
   return (
     <TabsPrimitive.Root
       defaultValue={dcTab === "snowflake" ? "database" : dcTab}
       value={dcTab === "snowflake" ? "database" : dcTab}
       onValueChange={(value: DcTabT) => {
-        if (currentTutorial === "data_connectors" && currentStep === 2) {
-          setTimeout(() => goToStep(3), 500);
-        }
         setTab(value);
       }}
       orientation="horizontal"

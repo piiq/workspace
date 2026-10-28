@@ -9,9 +9,7 @@ interface BaseResponse {
 }
 
 interface EntityInfo {
-  expiration_date: null | string;
-  used_seats: number;
-  seats: number;
+  user_count: number;
 }
 
 interface App {
@@ -88,11 +86,6 @@ export async function resetUserPassword(id: string) {
 
 export async function resetUser2FA(id: string) {
   const { data } = await apiClient.post<BaseResponse>(`/admin/reset-2fa/${id}`);
-  return data;
-}
-
-export async function extendTrialUser(id: string) {
-  const { data } = await apiClient.get<BaseResponse>(`/admin/extend-trial/${id}`);
   return data;
 }
 

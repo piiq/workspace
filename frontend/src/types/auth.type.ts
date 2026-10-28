@@ -47,8 +47,7 @@ export interface DashSyncT {
   shared?: Record<string, SharedItem>;
   entity_shared?: Record<string, SharedItem>;
   entity_theme_settings: EntityThemeSettings;
-  feature_entitlements?: Omit<FeatureFlags, "is_trial" | "can_submit_marketplace">;
-  is_trial_entity?: boolean;
+  account_permissions?: Pick<FeatureFlags, "admin_access" | "allow_custom_backends">;
   can_submit_marketplace?: boolean;
   usage?: Usage;
   copilot_chats?: Chat[];
@@ -75,8 +74,7 @@ export type Detail = { status: number; detail: string };
 export interface ProLoginResponse {
   is_first_login: boolean;
   custom_copilots: CustomCopilot[];
-  feature_entitlements: Omit<FeatureFlags, "is_trial" | "can_submit_marketplace">;
-  is_trial_entity: boolean;
+  account_permissions: Pick<FeatureFlags, "admin_access" | "allow_custom_backends">;
   can_submit_marketplace: boolean;
   usage: Usage;
   uuid: string;
@@ -91,11 +89,6 @@ export interface ProLoginResponse {
   entity_name: null | string;
   entity_theme_settings: EntityThemeSettings;
   role: null | string;
-  entitlements: {
-    userMgmt: string;
-    proAccess: boolean;
-    sharedViews: boolean;
-  };
   show_changelog: boolean;
   status?: number;
   detail?: string;
@@ -107,8 +100,6 @@ export interface ProLoginResponse {
   questions_history: string[];
   mcp_servers: McpServer[];
   developer_onboarding_info: null | DeveloperOnboardingQuestions;
-  moved_to_developer: boolean;
-  show_welcome_screen: boolean;
 }
 
 export type ProLogin2FAResponse = Detail & { access_token?: string };
@@ -139,14 +130,6 @@ export interface ProInfo {
   primaryUsage: null | string;
 }
 
-export interface Challenges {
-  data_connectors: string | null;
-}
-
-export type Walkthroughs = {
-  analyst_walkthrough: string | null;
-};
-
 export interface ProUserResponse {
   expiration_date: string;
   features_pro_info: null | ProInfo;
@@ -157,7 +140,6 @@ export interface ProUserResponse {
   feedback_improve: null | string;
   feedback_to_pay: null | string;
   pro_display_settings: DisplaySettings;
-  pro_zero_to_hero: Challenges;
   api_sources: Source[];
   single_widgets: SingleWidget[];
   file_widgets: StoredFile[];

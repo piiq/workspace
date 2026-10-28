@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { type Mock, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { AdminInviteUsersDialog } from "~/components/AdminUsers/AdminInviteUsersDialog";
 
 vi.mock("@tanstack/react-query", () => {
@@ -69,13 +69,13 @@ describe("AdminInviteUsersDialog", () => {
   });
 
   it("renders the tabbed interface when permissions UUID is present", () => {
-    renderComponent([{ name: "Trial", uuid: "trial-uuid" }]);
+    renderComponent([{ name: "User", uuid: "user-uuid" }]);
     expect(screen.getByText("Add a single user")).toBeInTheDocument();
     expect(screen.getByText("Import users")).toBeInTheDocument();
   });
 
   it("renders InviteSingleUser and ImportUsers with correct permissions", () => {
-    renderComponent([{ name: "Trial", uuid: "trial-uuid" }]);
+    renderComponent([{ name: "User", uuid: "user-uuid" }]);
     expect(screen.getByText("Add a single user")).toBeInTheDocument();
     expect(screen.getByText("Import users")).toBeInTheDocument();
     // Further checks can be added here to verify props passed to InviteSingleUser and ImportUsers
@@ -84,13 +84,15 @@ describe("AdminInviteUsersDialog", () => {
   it("displays error message when no permissions UUID is found", () => {
     renderComponent([{ name: "Other", uuid: "other-uuid" }]);
     expect(
-      screen.getByText("This entity does not have a User entitlement, please add one."),
+      screen.getByText(
+        "This organization has no User role. Create one before inviting users.",
+      ),
     ).toBeInTheDocument();
   });
 
   // TODO: The conditions for this test are not clear.
   it("switches tabs correctly", () => {
-    renderComponent([{ name: "Trial", uuid: "trial-uuid" }]);
+    renderComponent([{ name: "User", uuid: "user-uuid" }]);
     const singleTab = screen.getByText("Add a single user");
     const importTab = screen.getByText("Import users");
 

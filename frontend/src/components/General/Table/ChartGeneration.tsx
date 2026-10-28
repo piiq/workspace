@@ -8,7 +8,7 @@ import Icon from "~/components/Icon";
 import Tooltip from "~/components/Tooltip";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import { useTutorialStore } from "~/lib/state/tutorial";
+
 import { cn } from "~/lib/utils";
 import { checkCellRange, getContextMenuItems } from "./AgGridUtils";
 import { ensureAgGrid, useAgGridContext } from "./hooks";
@@ -23,17 +23,13 @@ export default function ChartGeneration({
 }) {
   const { isPreview } = useWidgetContext();
   const { gridRef } = useAgGridContext();
-  const { currentTutorial, currentStep, goToStep } = useTutorialStore();
+
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const onClick = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
       if (!params?.api || params?.api?.isDestroyed()) return;
-      if (currentTutorial === "table_charting" && currentStep === 2) {
-        setTimeout(() => {
-          goToStep(3);
-        }, 500);
-      }
+
       let column = null;
       const cellRangeParams = params.api.getCellRanges();
       const rowModelType = params.api.getGridOption("rowModelType");
@@ -96,7 +92,7 @@ export default function ChartGeneration({
         });
       }, 100);
     },
-    [params, currentTutorial, currentStep, goToStep, gridRef],
+    [params, gridRef],
   );
 
   const {

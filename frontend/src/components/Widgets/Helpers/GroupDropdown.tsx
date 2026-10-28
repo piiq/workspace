@@ -31,7 +31,6 @@ import {
 import { useShallowSharedAppStore } from "~/lib/state/sharedApp";
 import { useTableChartThemesStore } from "~/lib/state/tableChartThemes";
 import { useShallowThemeStore, useThemeStore } from "~/lib/state/theme";
-import { useShallowTutorialStore } from "~/lib/state/tutorial";
 import {
   COLORS,
   cn,
@@ -119,14 +118,6 @@ export const GroupDropdown = forwardRef<HTMLButtonElement, GroupDropdownProps>(
 
       return paramDef?.options?.map((o: any) => o.value) || [];
     }, [params, paramDef?.options, paramDef?.type, props?.type, props?.groupById]);
-
-    const { currentTutorial, currentStep, goToStep } = useShallowTutorialStore(
-      (state) => ({
-        currentTutorial: state.currentTutorial,
-        currentStep: state.currentStep,
-        goToStep: state.goToStep,
-      }),
-    );
 
     const [state, dispatch] = useStateReducer({
       canGroup: false,
@@ -244,22 +235,6 @@ export const GroupDropdown = forwardRef<HTMLButtonElement, GroupDropdownProps>(
       );
     }, [group?.name, groupParamValueDetails]);
 
-    const triggerOnClick = useCallback(() => {
-      if (currentTutorial) {
-        if (currentTutorial === "grouping") {
-          if (currentStep === 1) {
-            setTimeout(() => {
-              goToStep(2);
-            }, 500);
-          } else if (currentStep === 3) {
-            setTimeout(() => {
-              goToStep(4);
-            }, 500);
-          }
-        }
-      }
-    }, [currentStep, currentTutorial, goToStep]);
-
     const groupContentMemo = useMemo(() => <GroupContent {...props} />, [props]);
 
     const childrenMemo = useMemo(() => children, [children]);
@@ -371,7 +346,7 @@ export const GroupDropdown = forwardRef<HTMLButtonElement, GroupDropdownProps>(
         >
           <DropdownMenu.Root open={show} onOpenChange={setShow} modal={false}>
             <Tooltip className="max-w-[365px]" message={currentGroupTooltip}>
-              <DropdownMenu.Trigger onClick={triggerOnClick} asChild={true}>
+              <DropdownMenu.Trigger asChild={true}>
                 <button className="_group-dropdown-trigger w-full h-full flex items-center justify-center">
                   {group?.name ? (
                     <span
@@ -429,13 +404,6 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
   const { type, groupById, paramDef } = props;
 
   const { widget, activeDashboardId } = useWidgetContext();
-  const { currentTutorial, currentStep, goToStep } = useShallowTutorialStore(
-    (state) => ({
-      currentTutorial: state.currentTutorial,
-      currentStep: state.currentStep,
-      goToStep: state.goToStep,
-    }),
-  );
 
   const getDashboardById = useShallowSharedAppStore((s) => s.getDashboardById);
 
@@ -522,14 +490,6 @@ function GroupContent(props: Omit<GroupDropdownProps, "children">) {
 
     addGroup(activeDashboardId, newGroup);
     setWidgetGroupId(activeDashboardId, widget?.id, newGroup);
-
-    if (currentTutorial === "grouping") {
-      if (currentStep === 2) {
-        setTimeout(() => {
-          goToStep(3);
-        }, 500);
-      }
-    }
   }, [widget, groups, widgetAssetClasses, type, groupById]);
 
   return (
@@ -566,13 +526,7 @@ const GroupContentItem = memo(
       } = {},
       activeDashboardId,
     } = useWidgetContext();
-    const { currentTutorial, currentStep, goToStep } = useShallowTutorialStore(
-      (state) => ({
-        currentTutorial: state.currentTutorial,
-        currentStep: state.currentStep,
-        goToStep: state.goToStep,
-      }),
-    );
+
     const groupedInfo = useMemo(() => {
       const canGroup = validateAssetClass(element);
       const groupedValue = getGroupLabel(element);
@@ -614,14 +568,6 @@ const GroupContentItem = memo(
           return;
         }
 
-        if (currentTutorial === "grouping") {
-          if (currentStep === 4) {
-            setTimeout(() => {
-              goToStep(5);
-            }, 500);
-          }
-        }
-
         // For the single widget, check if it's already in the group
         if (selected) {
           // If it is, remove it from the group
@@ -633,8 +579,6 @@ const GroupContentItem = memo(
       },
       [
         groupedInfo,
-        currentStep,
-        currentTutorial,
         deleteGroup,
         element,
         updateGroup,

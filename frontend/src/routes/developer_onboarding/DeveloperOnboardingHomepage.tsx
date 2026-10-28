@@ -8,7 +8,6 @@ import {
   getDeveloperOnboardingQuestions,
   submitDeveloperOnboardingQuestions,
   updateFullName,
-  userHasEntity,
 } from "~/api/auth.api";
 import { Button } from "~/components/ds/atoms/Button";
 import { FormInput } from "~/components/ds/atoms/Input";
@@ -18,7 +17,7 @@ import { type StateDispatch, useStateReducer } from "~/hooks/useStateReducer";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowAuthStore } from "~/lib/state/auth";
-import { setupNewEntity } from "~/lib/utils/setupNewEntity";
+import { initializeWorkspace } from "~/lib/utils/initializeWorkspace";
 import { ORGANIZATIONS, ROLES } from "../onboarding/constants";
 
 const uiShowOnboardingQuestionsFF = getConfig().ui.showOnboardingQuestions;
@@ -72,9 +71,6 @@ type State = {
   isLoading: boolean;
   showOtherRole: boolean;
   showOtherOrganization: boolean;
-  hasLoadedEntity: boolean;
-  hasEntity: boolean;
-  pendingNavigation: string | null;
 };
 
 export default function DeveloperOnboardingHomepage() {
@@ -82,9 +78,6 @@ export default function DeveloperOnboardingHomepage() {
   const { items, updateOnlyItems } = useShallowAppStore((state) => ({
     items: state.items,
     updateOnlyItems: state.updateOnlyItems,
-  }));
-  const { entityName } = useShallowAuthStore((state) => ({
-    entityName: state.user?.entity_name,
   }));
 
   const { name, onBoardingData, updateOnboardingData, updateOnboarding, user } =
@@ -100,9 +93,6 @@ export default function DeveloperOnboardingHomepage() {
     isLoading: false,
     showOtherRole: false,
     showOtherOrganization: false,
-    hasLoadedEntity: false,
-    hasEntity: false,
-    pendingNavigation: null,
   });
 
   const form = useForm<OnboardingUnion>({
@@ -122,17 +112,6 @@ export default function DeveloperOnboardingHomepage() {
     },
     mode: "onChange",
   });
-
-  useEffect(() => {
-    userHasEntity()
-      .then((res) => {
-        dispatch({ hasEntity: res.success, hasLoadedEntity: true });
-      })
-      .catch((error) => {
-        console.error(error);
-        dispatch({ hasLoadedEntity: true });
-      });
-  }, []);
 
   useEffect(() => {
     getDeveloperOnboardingQuestions()
@@ -175,13 +154,6 @@ export default function DeveloperOnboardingHomepage() {
       });
   }, [updateOnboardingData]);
 
-  useEffect(() => {
-    if (state.pendingNavigation) {
-      setTimeout(() => navigate(state.pendingNavigation));
-      dispatch({ pendingNavigation: null });
-    }
-  }, [state.pendingNavigation, navigate]);
-
   const handleSubmit = useCallback(
     async (data: OnboardingQuestions) => {
       dispatch({ isLoading: true });
@@ -204,28 +176,8 @@ export default function DeveloperOnboardingHomepage() {
           });
           if (res.success) {
             updateOnboarding(false);
-            if (state.hasEntity) {
-              // Prepare entity name for URL
-              const trimmedEntityName = entityName
-                .trim()
-                .toLowerCase()
-                .replace(/\s+/g, "");
-              navigate(`/app?welcome=${trimmedEntityName}`);
-            } else {
-              const result = await setupNewEntity({
-                items,
-                updateOnlyItems,
-              });
-              if (result.success) {
-                setTimeout(() => {
-                  dispatch({
-                    pendingNavigation: "/app/data-connectors?welcome=openbbdeveloper",
-                  });
-                }, 300);
-              } else {
-                toastError.title = "Failed to setup your account";
-              }
-            }
+            initializeWorkspace({ items, updateOnlyItems });
+            navigate("/app");
             return;
           }
           toastError.title = "Failed to update your preferences";
@@ -244,7 +196,7 @@ export default function DeveloperOnboardingHomepage() {
         dispatch({ isLoading: false });
       }
     },
-    [state.hasEntity, navigate, updateOnboarding, items, updateOnlyItems, dispatch],
+    [navigate, updateOnboarding, items, updateOnlyItems, dispatch],
   );
 
   const handleSkip = useCallback(
@@ -262,37 +214,13 @@ export default function DeveloperOnboardingHomepage() {
         }
 
         updateOnboarding(false);
-        if (state.hasEntity) {
-          // Prepare entity name for URL
-          const trimmedEntityName =
-            entityName?.trim().toLowerCase().replace(/\s+/g, "") || "";
-
-          // Update the user's onboarding info to skip onboarding
-          const res = await submitDeveloperOnboardingQuestions({
-            skipOnboarding: true,
-          });
-
-          if (!res.success) {
-            toastError.title = "Failed to update your preferences";
-            return;
-          }
-
-          navigate(`/app?welcome=${trimmedEntityName}`);
-        } else {
-          const result = await setupNewEntity({
-            items,
-            updateOnlyItems,
-          });
-          if (result.success) {
-            setTimeout(() => {
-              dispatch({
-                pendingNavigation: "/app/data-connectors?welcome=openbbdeveloper",
-              });
-            }, 300);
-          } else {
-            toastError.title = "Failed to setup your account";
-          }
+        const res = await submitDeveloperOnboardingQuestions({ skipOnboarding: true });
+        if (!res.success) {
+          toastError.title = "Failed to update your preferences";
+          return;
         }
+        initializeWorkspace({ items, updateOnlyItems });
+        navigate("/app");
       } catch (error) {
         toastError.title = "Failed to update your preferences";
       } finally {
@@ -305,7 +233,7 @@ export default function DeveloperOnboardingHomepage() {
         dispatch({ isLoading: false });
       }
     },
-    [state.hasEntity, navigate, updateOnboarding, entityName, items, updateOnlyItems],
+    [navigate, updateOnboarding, items, updateOnlyItems],
   );
 
   if (!user) {
@@ -420,7 +348,7 @@ export default function DeveloperOnboardingHomepage() {
                     >
                       Continue
                     </Button>
-                    {state.hasEntity && uiShowOnboardingQuestionsFF && (
+                    {uiShowOnboardingQuestionsFF && (
                       <Button
                         variant="secondary"
                         type="button"

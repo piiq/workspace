@@ -24,6 +24,7 @@ import {
   type Source,
   useShallowBackendConnectorStore,
 } from "~/lib/state/backendConnector";
+import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { cn, dispatchSaveState } from "~/lib/utils";
 import { createCustomTemplateTab } from "~/lib/utils/createTemplates";
@@ -75,6 +76,9 @@ const getInitialState = () => ({ ...initialState });
 type AppDialogState = typeof initialState;
 
 export default function ManageAppDialog() {
+  const allowCustomBackends = useShallowFeatureFlagsStore(
+    (state) => state.featureFlags?.allow_custom_backends !== false,
+  );
   const { manageAppDialog, setManageAppDialog, setManageAppsDialogOpen } =
     useShallowThemeStore((state) => ({
       manageAppDialog: state.manageAppDialog,
@@ -407,6 +411,17 @@ export default function ManageAppDialog() {
       { shouldValidate: false },
     );
   }, [form.getValues, form.setValue]);
+
+  if (!allowCustomBackends) {
+    return (
+      <BaseDialog open={manageAppDialog.isOpen || add} onClose={closeDialog}>
+        <DialogTitle>Connect backend</DialogTitle>
+        <p role="status">
+          Your organization requires backends configured by an administrator.
+        </p>
+      </BaseDialog>
+    );
+  }
 
   return (
     <BaseDialog

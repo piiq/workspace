@@ -55,15 +55,7 @@ vi.mock("~/lib/state/theme", () => ({
   ),
 }));
 
-vi.mock("~/lib/state/tutorial", () => ({
-  useShallowTutorialStore: vi.fn((selector) =>
-    selector({
-      currentTutorial: null,
-      goToStep: vi.fn(),
-      currentStep: 0,
-    }),
-  ),
-}));
+
 
 vi.mock("~/lib/providers/MobileProvider", () => ({
   useMobile: vi.fn(() => false),

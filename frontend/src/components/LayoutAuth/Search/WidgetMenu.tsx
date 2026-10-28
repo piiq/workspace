@@ -30,7 +30,6 @@ import { useMobile } from "~/lib/providers/MobileProvider";
 import { useAppStore, useShallowAppStore } from "~/lib/state/app";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import { useShallowTutorialStore } from "~/lib/state/tutorial";
 import { beautifySlug, cn, generateRandomName, getWidgetSourceInfo } from "~/lib/utils";
 import type { SearchDialogState, SearchTabId } from "./SearchDialog";
 import CopilotPromptBanner from "./useCopilotPrompt";
@@ -649,13 +648,6 @@ const WidgetMenu = memo((props: WidgetMenuProps) => {
       ) as SearchTabId,
     }));
 
-  const { currentTutorial, goToStep, currentStep } = useShallowTutorialStore(
-    (state) => ({
-      currentTutorial: state.currentTutorial,
-      goToStep: state.goToStep,
-      currentStep: state.currentStep,
-    }),
-  );
   const { id: currentDashboardId } = useParams();
   const [searchParams] = useSearchParams();
   const { addWidgets, getTabById } = useShallowAppStore((state) => ({
@@ -744,21 +736,13 @@ const WidgetMenu = memo((props: WidgetMenuProps) => {
     } else {
       toast.warning("Please select at least one widget to add.");
     }
-    if (currentTutorial === "grouping") {
-      if (currentStep === 4) {
-        setTimeout(() => {
-          goToStep(5);
-        }, 500);
-      }
-    }
+
     onOpenChange(false);
   }, [
     state.selectedWidgets,
-    currentTutorial,
     addWidgets,
     navigate,
     currentDashboardId,
-    goToStep,
     onOpenChange,
     isMobile,
     currentTab,
@@ -1247,24 +1231,8 @@ const WidgetMenu = memo((props: WidgetMenuProps) => {
     (checked: boolean, widgetItem: WidgetItem) => {
       dispatch({ anchorWidgetId: widgetItem.uniqueId });
       handleChange(checked, widgetItem);
-
-      if (
-        checked &&
-        currentTutorial === "grouping" &&
-        currentStep === 3 &&
-        state.selectedOption !== "external"
-      ) {
-        setTimeout(() => goToStep(4), 500);
-      }
     },
-    [
-      handleChange,
-      dispatch,
-      currentTutorial,
-      currentStep,
-      goToStep,
-      state.selectedOption,
-    ],
+    [handleChange, dispatch],
   );
 
   const multiSelectState = useMemo(

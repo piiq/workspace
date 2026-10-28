@@ -57,7 +57,6 @@ vi.mock("~/api/auth.api", () => ({
   getDeveloperOnboardingQuestions: vi.fn(),
   submitDeveloperOnboardingQuestions: vi.fn(),
   updateFullName: vi.fn(),
-  userHasEntity: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -101,7 +100,6 @@ describe("DeveloperOnboardingHomepage", () => {
     }));
 
     // Setup default API responses
-    vi.mocked(authApi.userHasEntity).mockResolvedValue({ success: true });
     vi.mocked(authApi.getDeveloperOnboardingQuestions).mockResolvedValue(null);
   });
 

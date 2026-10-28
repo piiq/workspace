@@ -51,10 +51,6 @@ vi.mock("~/components/MoveToDropDown", () => ({
   MoveToTabsDropdownMenu: () => <div data-testid="move-to-tabs">Move</div>,
 }));
 
-vi.mock("~/components/General/FeatureLock", () => ({
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 describe("EllipsisDropdownMenu", () => {
   const defaultProps: EllipsisDropdownMenuProps = {
     dispatch: vi.fn(),

@@ -1,14 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
-import { getRemainingInvites, sendInvite } from "~/api/user.api";
+import { sendInvite } from "~/api/user.api";
 import { useShallowAuthStore } from "~/lib/state/auth";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { validateEmail } from "~/utils/validators";
 import { zodEmail } from "~/utils/zodForms";
 import { Button } from "../ds/atoms/Button";
@@ -36,22 +34,7 @@ function InviteSection() {
 
   const message = form.watch("message");
 
-  const invitesQuery = useQuery({
-    queryKey: ["remainingInvites"],
-    queryFn: getRemainingInvites,
-  });
-
-  const remaining = invitesQuery?.data?.remaining ?? null;
-  const inviteDisabled = remaining === 0 || loading || message.length > 500;
-
-  const { isProTier, isTrial } = useShallowFeatureFlagsStore((state) => ({
-    isProTier: state.featureFlags?.tier === "pro",
-    isTrial: state.featureFlags?.is_trial,
-  }));
-
-  useEffect(() => {
-    invitesQuery.refetch();
-  }, []);
+  const inviteDisabled = loading || message.length > 500;
 
   async function handleSubmit({ email, message: inviteMessage }: TInviteForm) {
     setLoading(true);
@@ -62,15 +45,12 @@ function InviteSection() {
       const response = await sendInvite(email, inviteMessage);
       if (response.status === 200) {
         toast.success("Your invitation was successfully sent.");
-        invitesQuery.refetch();
         // clear the form values after the invite is successfully sent
         form.reset();
-      } else if (response.status === 400) {
-        toast.error("You no longer have any invite codes remaining.");
       } else if (response.status === 422) {
         toast.error("Invalid data sent.");
       } else if (response.status === 409) {
-        toast.error("This email has already been invited or began a trial.");
+        toast.error("This email already has an account or invitation.");
       } else {
         toast.error("An unknown error occurred.");
       }
@@ -92,13 +72,6 @@ function InviteSection() {
             section
           </p>
         </div>
-      ) : isProTier && !isTrial ? (
-        <div>
-          <p>
-            <strong className="mr-1">Contact Admin</strong>
-            to invite colleagues
-          </p>
-        </div>
       ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -117,11 +90,6 @@ function InviteSection() {
                 );
               }}
             />
-            {remaining !== null && (
-              <p className="mt-2 inline-flex w-full flex-col text-xs text-[#46464F]">
-                {remaining} invite codes remaining
-              </p>
-            )}
             <div className="mb-8" />
             <FormField
               name="message"

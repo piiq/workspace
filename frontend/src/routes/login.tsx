@@ -35,10 +35,7 @@ import { type StateDispatch, useStateReducer } from "~/hooks/useStateReducer";
 import { inSnowflakeNativeApp } from "~/lib/constants";
 import { loginRequest } from "~/lib/microsoft-auth-config";
 import { oktaLoginRequest } from "~/lib/okta-auth-config";
-import {
-  getEnabledIdentityProviders,
-  isOnPremDeployment,
-} from "~/lib/onPremFeatureFlags";
+import { getEnabledIdentityProviders } from "~/lib/onPremFeatureFlags";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useAppStore } from "~/lib/state/app";
 import { useAuthStore, useShallowAuthStore } from "~/lib/state/auth";
@@ -50,7 +47,6 @@ import { useSharedAppStore } from "~/lib/state/sharedApp";
 import { useSkillsLibraryStore } from "~/lib/state/skillsLibrary";
 import { useTableChartThemesStore } from "~/lib/state/tableChartThemes";
 import { useThemeStore } from "~/lib/state/theme";
-import { useTutorialStore } from "~/lib/state/tutorial";
 import { useUserAppsStore } from "~/lib/state/userApps";
 import { cn } from "~/lib/utils";
 import {
@@ -74,19 +70,13 @@ export function getErrorMessage(
     case 202:
       return undefined;
     case 400:
-      return isOnPremDeployment()
-        ? "Your access has expired. Please contact your admin."
-        : "The trial has expired. Please contact sales@openbb.co for an extension.";
-    case 402: {
-      if (detail === "User is not currently assigned a seat") {
-        return "Your account is not assigned a seat. Please contact your admin to get assigned a seat.";
-      }
-      return isOnPremDeployment()
-        ? "Your account does not have access. Please contact your admin."
-        : "Your account does not have access to OpenBB Workspace. Please contact sales@openbb.co";
-    }
+      return detail || "Unable to sign in. Please contact your administrator.";
+    case 402:
+      return "Your account does not have access. Please contact your administrator.";
     case 403: {
       if (detail === "Registration is disabled") return "Registration is disabled.";
+      if (detail === "Account has no organization role; contact your administrator")
+        return detail;
       return "Please confirm your account to proceed.";
     }
     case 404:
@@ -102,9 +92,8 @@ export function getErrorMessage(
   }
 }
 
-const UnexpectedError = isOnPremDeployment()
-  ? "An unexpected error occurred. Please contact your admin if it persists."
-  : "An unexpected error occurred. Please contact support@openbb.co if it persists.";
+const UnexpectedError =
+  "An unexpected error occurred. Please contact your administrator if it persists.";
 
 const loginSchema = z.object({
   email: zodEmail,
@@ -126,8 +115,6 @@ export type LoginState = {
   // fill in any pop ups, we send them to the next page
   loggedIn: boolean;
   error: null | string;
-  movedToDeveloper: boolean;
-  welcomeScreen: boolean;
 };
 
 export type LoginMethod = "password" | "google" | "microsoft" | "okta" | "snowflake";
@@ -157,8 +144,6 @@ export default function LoginPage() {
     enterQR: false,
     loggedIn: user !== null,
     error: null,
-    movedToDeveloper: false,
-    welcomeScreen: false,
   });
 
   const {
@@ -452,36 +437,20 @@ function useLogin(props: {
 
   useEffect(() => {
     if (urlError) toast.error("Error", { description: urlError });
-
-    if (extended)
-      toast.success("Successfully extended your OpenBB Enterprise Trial by 1 week");
-  }, [urlError, extended]);
+  }, [urlError]);
 
   useEffect(() => {
     if (state.loggedIn && !state.showQR && !state.showReset) {
       if (authStore.needsOnboarding) {
         navigate("/onboarding");
       } else {
-        const nextPage = authStore.lastVisitedPage;
-        const searchParams = new URLSearchParams();
-        if (state.movedToDeveloper) {
-          searchParams.append("moved_to_developer", "true");
-        }
-        if (state.welcomeScreen) {
-          const entityName = authStore.user?.entity_name || "";
-          const trimmedEntityName = entityName.trim().toLowerCase().replace(/\s+/g, "");
-          searchParams.append("welcome", trimmedEntityName);
-        }
-        const queryString = searchParams.toString();
-        navigate(`${nextPage}${queryString ? `?${queryString}` : ""}`);
+        navigate(authStore.lastVisitedPage);
       }
     }
   }, [
     state.loggedIn,
     state.showQR,
     state.showReset,
-    state.movedToDeveloper,
-    state.welcomeScreen,
     authStore.needsOnboarding,
     navigate,
     authStore.lastVisitedPage,
@@ -815,13 +784,11 @@ export async function loginSuccess(data: ProLoginResponse) {
   const isOnboardingValid = useAuthStore.getState().login(data);
   const user = data.user;
   // initiateDataConnector(user.data_connector_url);
-  useTutorialStore.getState().setCompletedDates(user.pro_zero_to_hero);
 
   // moving this here for onboarding
   useFeatureFlagsStore.getState().setFeatureFlagsAndUsage(
     {
-      ...data.feature_entitlements,
-      is_trial: data.is_trial_entity,
+      ...data.account_permissions,
       can_submit_marketplace: data.can_submit_marketplace,
     },
     data.usage,
@@ -874,7 +841,5 @@ export async function loginSuccess(data: ProLoginResponse) {
     showQR,
     showReset: data.temporary_password,
     loggedIn: true,
-    movedToDeveloper: data.moved_to_developer,
-    welcomeScreen: data.show_welcome_screen,
   };
 }

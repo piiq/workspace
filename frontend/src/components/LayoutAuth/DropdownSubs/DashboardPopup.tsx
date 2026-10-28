@@ -3,12 +3,10 @@ import clsx from "clsx";
 import { Fragment, memo, useCallback, useMemo } from "react";
 import type { TreeItem } from "react-complex-tree";
 import { useNavigate, useParams } from "react-router-dom";
-import FeatureLock from "~/components/General/FeatureLock";
 import MoveTo from "~/components/LayoutAuth/DropdownSubs/MoveTo";
 import Tooltip from "~/components/Tooltip";
 import { inSnowflakeNativeApp } from "~/lib/constants";
 import { useShallowAppStore } from "~/lib/state/app";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { dispatchSaveState } from "~/lib/utils";
 
@@ -52,10 +50,6 @@ export function DashboardPopup(props: DashboardPopupProps) {
     moveTabToFolder: s.moveTabToFolder,
     getTabById: s.getTabById,
   }));
-
-  const isProTier = useShallowFeatureFlagsStore(
-    (state) => state.featureFlags?.tier === "pro",
-  );
 
   const hasAdvancedBackendWidgets = useMemo(() => {
     const tab = getTabById(item.index);
@@ -111,7 +105,6 @@ export function DashboardPopup(props: DashboardPopupProps) {
         action: () => {
           setShareDashboardPopupId(item.index);
         },
-        locked: !isProTier,
       },
       {
         shortcut: "t",
@@ -126,7 +119,6 @@ export function DashboardPopup(props: DashboardPopupProps) {
         label: "Export PDF",
         disabled: item.index !== id,
         action: toggleExportPopup,
-        locked: !isProTier,
       },
       ...(import.meta.env.VITE_EXCEL_ADD_IN_ENABLED === "true" && !inSnowflakeNativeApp
         ? [
@@ -137,7 +129,6 @@ export function DashboardPopup(props: DashboardPopupProps) {
                 setExcelExportItem(item);
                 setExcelExportPopup(true);
               },
-              locked: !isProTier,
               disabled: !hasAdvancedBackendWidgets,
               disabledTooltip: "No Excel-compatible widgets found in this dashboard",
             },
@@ -158,7 +149,6 @@ export function DashboardPopup(props: DashboardPopupProps) {
         shortcut: "t",
         label: inSnowflakeNativeApp ? "Save App from Dashboard" : "Save App",
         action: () => setGenerateAppDashboardId(item.index),
-        locked: !isProTier && !inSnowflakeNativeApp,
       },
       ...(inSnowflakeNativeApp
         ? []
@@ -177,7 +167,6 @@ export function DashboardPopup(props: DashboardPopupProps) {
       duplicateTab,
       handleExportTemplate,
       id,
-      isProTier,
       item,
       moveTabToFolder,
       navigate,
@@ -196,7 +185,7 @@ export function DashboardPopup(props: DashboardPopupProps) {
   return (
     <div key={`dashboard-popup-${item.index}`}>
       {tabMenuItems.map(
-        ({ label, color, action: actionCb, locked, disabled, disabledTooltip }, i) =>
+        ({ label, color, action: actionCb, disabled, disabledTooltip }, i) =>
           label === "Move to" ? (
             <MoveTo
               key={`${label}-${i}`}
@@ -210,39 +199,36 @@ export function DashboardPopup(props: DashboardPopupProps) {
               {(label === "Export PDF" || label === "Export apps.json") && (
                 <DropdownMenuPrimitive.Separator className="my-1 h-px w-full bg-light-200 dark:bg-[#36363F]" />
               )}
-              <FeatureLock isLocked={!!locked}>
-                {disabled && !locked ? (
-                  <Tooltip
-                    message={
-                      disabledTooltip ||
-                      "You need to be inside the dashboard to be able to use this feature."
-                    }
-                    position="right"
-                  >
-                    <DropdownMenuPrimitive.Item
-                      onClick={(e) => e.stopPropagation()}
-                      className="obb-dropdown-item hover:bg-transparent! dark:hover:bg-transparent! opacity-50 cursor-not-allowed"
-                    >
-                      <span className={clsx("grow", color)}>{label}</span>
-                    </DropdownMenuPrimitive.Item>
-                  </Tooltip>
-                ) : (
+
+              {disabled ? (
+                <Tooltip
+                  message={
+                    disabledTooltip ||
+                    "You need to be inside the dashboard to be able to use this feature."
+                  }
+                  position="right"
+                >
                   <DropdownMenuPrimitive.Item
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-
-                      if (locked) return;
-
-                      actionCb();
-                      setOpen?.(false);
-                    }}
-                    className="obb-dropdown-item"
+                    onClick={(e) => e.stopPropagation()}
+                    className="obb-dropdown-item hover:bg-transparent! dark:hover:bg-transparent! opacity-50 cursor-not-allowed"
                   >
                     <span className={clsx("grow", color)}>{label}</span>
                   </DropdownMenuPrimitive.Item>
-                )}
-              </FeatureLock>
+                </Tooltip>
+              ) : (
+                <DropdownMenuPrimitive.Item
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    actionCb();
+                    setOpen?.(false);
+                  }}
+                  className="obb-dropdown-item"
+                >
+                  <span className={clsx("grow", color)}>{label}</span>
+                </DropdownMenuPrimitive.Item>
+              )}
             </Fragment>
           ),
       )}

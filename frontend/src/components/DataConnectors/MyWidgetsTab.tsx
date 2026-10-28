@@ -13,8 +13,7 @@ import {
 } from "~/lib/contexts/MyDataConnectorsContext";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
-import { useTutorialStore } from "~/lib/state/tutorial";
+
 import { cn, handleWidgetDeletion } from "~/lib/utils";
 import { Button } from "../ds/atoms/Button";
 import { Checkbox } from "../ds/atoms/Checkbox";
@@ -71,7 +70,7 @@ export function MyWidgetsTab() {
     removeWidget: s.removeWidget,
     getWidgetsByAttribute: s.getWidgetsByAttribute,
   }));
-  const { currentTutorial, currentStep, goToStep } = useTutorialStore();
+
   const { setOpen } = useDataConnectorContext();
 
   const [state, dispatch] = useStateReducer(null, () => ({
@@ -339,9 +338,6 @@ export function MyWidgetsTab() {
                 size="sm"
                 variant="primary"
                 onClick={() => {
-                  if (currentTutorial === "data_connectors" && currentStep === 1) {
-                    setTimeout(() => goToStep(2), 500);
-                  }
                   setOpen(true, {
                     dcTab: "backend",
                     mode: "create",
@@ -504,9 +500,6 @@ function SourceTypeSection<T extends POSSIBLE_SOURCES>({
 
   const [isOpen, setIsOpen] = useState(!!hasMatchingBackend);
   const [userClosed, setUserClosed] = useState(false);
-  const isProTier = useShallowFeatureFlagsStore(
-    (state) => state.featureFlags?.tier === "pro",
-  );
 
   const isEmpty = items.length === 0;
 

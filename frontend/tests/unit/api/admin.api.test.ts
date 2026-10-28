@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createUser,
   deleteUser,
-  extendTrialUser,
   getEntity,
   getEntityInfo,
   getEntityMap,
@@ -119,16 +118,6 @@ describe("API functions", () => {
     });
     const response = await deleteUser(userId, "user");
     expect(apiClient.delete).toHaveBeenCalledWith(`/admin/users/${userId}`);
-    expect(response).toEqual(mockData.baseResponse);
-  });
-
-  it("should extend a trial user", async () => {
-    const userId = "1";
-    (apiClient.get as MockedAxiosMethod).mockResolvedValueOnce({
-      data: mockData.baseResponse,
-    });
-    const response = await extendTrialUser(userId);
-    expect(apiClient.get).toHaveBeenCalledWith(`/admin/extend-trial/${userId}`);
     expect(response).toEqual(mockData.baseResponse);
   });
 

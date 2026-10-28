@@ -19,14 +19,6 @@ export function userInfo(): { username: string; email: string; password: string 
   };
 }
 
-//set this up for env later - but for now we just want free users
-export enum UserType {
-  Free = "free",
-  Paid = "paid",
-}
-
-export const userType: UserType = UserType.Free;
-
 export async function waitForWorkspace(page: Page) {
   await expect(page.getByTestId("sidebar")).toBeVisible({ timeout: 30_000 });
 }
@@ -105,11 +97,8 @@ export async function onboardUser(page: Page) {
 }
 
 export async function acceptTermsAndConditions(page: Page) {
-  if (userType === UserType.Free) {
-    return; // Skip the acceptance process for Free users
-  }
-
   const tosLastElement = page.locator(`p[aria-label="tos-last-element"]`);
+  if (!(await tosLastElement.isVisible())) return;
   await tosLastElement.scrollIntoViewIfNeeded();
 
   const tosAccept = page.locator(`button[aria-label="tos-accept-button"]`);

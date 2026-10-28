@@ -2,18 +2,14 @@ import { usePostHog } from "posthog-js/react";
 import { memo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { saveDashboards } from "~/api/dashboard.api";
-import FeatureLock from "~/components/General/FeatureLock";
 import Icon from "~/components/Icon";
 import { inSnowflakeNativeApp } from "~/lib/constants";
-import { getShowDemoRequestButton } from "~/lib/onPremFeatureFlags";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useShallowAuthStore } from "~/lib/state/auth";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useShallowSidebarStore } from "~/lib/state/sidebar";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { useShallowWorkspaceBridgeStore } from "~/lib/state/workspaceBridge";
 import { Avatar } from "../ds/atoms/Avatar";
-import { Button } from "../ds/atoms/Button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,18 +26,15 @@ const isWhitelabel =
   (hmLeftSidebarLogo && hmLeftSidebarLogo !== "") ||
   (hmWlName && hmWlName !== "OpenBB Workspace");
 
-const showDemoRequestButton = getShowDemoRequestButton();
-
 function UserInformation({ toggleHamburgerMenu }: { toggleHamburgerMenu: () => void }) {
   const { user, name } = useShallowAuthStore((s) => ({ user: s.user, name: s.name }));
-  const admin_access = useShallowFeatureFlagsStore((s) => s.featureFlags?.admin_access);
   const { pathname } = useLocation();
   const fullName = [name.first, name.last].filter(Boolean).join(" ");
   return (
     <div className="space-y-2">
       {user.entity_name && (
         <Tag color="grey" className="text-2xs!">
-          {user.entity_name?.replace("OpenBB Developer", "OpenBB Free")}
+          {user.entity_name}
         </Tag>
       )}
       <div className="flex items-center gap-2">
@@ -51,25 +44,18 @@ function UserInformation({ toggleHamburgerMenu }: { toggleHamburgerMenu: () => v
           <div className="dark:text-dark-50 text-light-500">{user.email}</div>
         </div>
       </div>
-      {user.role === "Admin" && (
-        <FeatureLock isLocked={!admin_access}>
-          {pathname.startsWith("/admin") ? (
-            <Link to="/app" className="obb-dropdown-item" onClick={toggleHamburgerMenu}>
-              <Icon id="layout" />
-              <span>Workspace</span>
-            </Link>
-          ) : (
-            <Link
-              to="/admin"
-              className="obb-dropdown-item"
-              onClick={toggleHamburgerMenu}
-            >
-              <Icon id="user-edit" />
-              <span>Admin Portal</span>
-            </Link>
-          )}
-        </FeatureLock>
-      )}
+      {user.role === "Admin" &&
+        (pathname.startsWith("/admin") ? (
+          <Link to="/app" className="obb-dropdown-item" onClick={toggleHamburgerMenu}>
+            <Icon id="layout" />
+            <span>Workspace</span>
+          </Link>
+        ) : (
+          <Link to="/admin" className="obb-dropdown-item" onClick={toggleHamburgerMenu}>
+            <Icon id="user-edit" />
+            <span>Admin Portal</span>
+          </Link>
+        ))}
     </div>
   );
 }
@@ -92,12 +78,9 @@ function MenuLinks() {
   const toggleHamburgerMenu = useShallowSidebarStore(
     (state) => state.toggleHamburgerMenu,
   );
-  const isProTier = useShallowFeatureFlagsStore(
-    (state) => state.featureFlags?.tier === "pro",
-  );
 
   const openDataPlatformInstallerEnabled =
-    openDataPlatformInstallerEnabledFF && !isWhitelabel && !isProTier;
+    openDataPlatformInstallerEnabledFF && !isWhitelabel;
 
   const BOTTOM_MENU_LINKS = [
     {
@@ -222,34 +205,6 @@ type IconTypes =
   | "download"
   | "log-in-02";
 
-function HamburgerMenuCTA() {
-  const setBookingOpen = useShallowThemeStore((s) => s.setBookingOpen);
-  const toggleHamburgerMenu = useShallowSidebarStore(
-    (state) => state.toggleHamburgerMenu,
-  );
-  const showUpgrade = useShallowFeatureFlagsStore(
-    (state) => state.featureFlags?.tier !== "pro" || state.featureFlags?.is_trial,
-  );
-
-  if (!showUpgrade || !showDemoRequestButton) return null;
-
-  return (
-    <div className="rounded bg-surface-card p-2 text-2xs flex justify-between items-center w-full gap-2">
-      <p className="body-xs-bold text-general-label whitespace-nowrap">Need more?</p>
-      <Button
-        variant="primary"
-        size="xs"
-        onClick={() => {
-          setBookingOpen(true);
-          toggleHamburgerMenu();
-        }}
-      >
-        Let's talk
-      </Button>
-    </div>
-  );
-}
-
 function HamburgerMenu({ isMobile = false }: { isMobile?: boolean }) {
   const { isHamburgerMenuOpen, toggleHamburgerMenu } = useShallowSidebarStore(
     (state) => ({
@@ -288,7 +243,6 @@ function HamburgerMenu({ isMobile = false }: { isMobile?: boolean }) {
           <UserInformation toggleHamburgerMenu={toggleHamburgerMenu} />
           <hr />
           <MenuLinks />
-          <HamburgerMenuCTA />
         </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenu>

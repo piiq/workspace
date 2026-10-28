@@ -23,7 +23,6 @@ import { PostHogProvider } from "posthog-js/react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useMcpAuthHandler } from "./components/AI/hooks/mcp/onMcpAuth";
 import { setGlobalGridOptions } from "./components/General/Table/AgGrid";
-import AuthWelcome from "./components/LayoutAuth/AuthWelcome";
 import {
   inSnowflakeNativeApp,
   TOOLTIP_OPEN_DELAY_MS,
@@ -153,18 +152,21 @@ function RouterErrorElement() {
 }
 
 const AuthGuard = memo(({ children }: { children?: ReactNode }) => {
-  const needsOnboarding = useShallowAuthStore(
-    (s) => s.user?.token && s.needsOnboarding,
-  );
+  const { token, needsOnboarding } = useShallowAuthStore((state) => ({
+    token: state.user?.token,
+    needsOnboarding: state.needsOnboarding,
+  }));
 
   return useMemo(() => {
+    if (!token) return <Navigate to="/login" replace={true} />;
     const Wrapper = getEnabledIdentityProviders().includes("microsoft")
       ? MsalTokenRefresh
       : Fragment;
 
-    return needsOnboarding ? null : (
+    return needsOnboarding ? (
+      <Navigate to="/onboarding" replace={true} />
+    ) : (
       <Fragment key="auth-guard">
-        <AuthWelcome key="auth-welcome" />
         <Suspense fallback={null}>
           <Wrapper key="auth-wrapper">
             <S children={<App key="app">{children}</App>} />
@@ -172,7 +174,7 @@ const AuthGuard = memo(({ children }: { children?: ReactNode }) => {
         </Suspense>
       </Fragment>
     );
-  }, [needsOnboarding, children]);
+  }, [token, needsOnboarding, children]);
 });
 
 const S = ({ children }: { children: ReactNode }) => (
