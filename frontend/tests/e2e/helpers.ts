@@ -133,20 +133,6 @@ export async function handleFirstTime(page: Page) {
   }
 }
 
-export async function clickOnNews(page: Page, tab: string) {
-  // change to a given tab on the news page
-  await page.getByRole("tab", { name: tab }).click();
-  // clicks the 1st element on a given page/tab
-  await page
-    .locator(".group\\/widget > div:nth-child(2) > div[data-state='closed']")
-    .first()
-    .click();
-}
-
-export async function clickExitButton(page: Page) {
-  await page.locator("._dialog-header > div > .flex > button:nth-child(2)").click();
-}
-
 export async function uploadFileToDashboard(page: Page, extension: "csv" | "json") {
   const name = `${extension.toUpperCase()} test ${randomUUID().slice(0, 8)}`;
   await page.goto("/app/widgets");

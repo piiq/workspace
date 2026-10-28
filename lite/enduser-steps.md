@@ -114,7 +114,6 @@ proxy or point it at external services.
 | --- | --- | --- |
 | `BACKEND_URL` | `/api` | Base URL for the backend API. |
 | `AI_API_URL` | *(empty)* | AI service URL. |
-| `PLATFORM_URL` | *(empty)* | Platform service URL. |
 | `DATABASE_API_URL` | *(empty)* | Database API URL. |
 | `AUTHENTICATION_SEND_USER_EMAIL_AS_HEADER` | `false` | Forward the signed-in user's email as a request header (for proxy-based auth). |
 

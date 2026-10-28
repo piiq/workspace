@@ -140,7 +140,7 @@ bun run playwright test tests/e2e/auth.spec.ts
 bun run playwright codegen http://127.0.0.1:1420
 ```
 
-See [the browser test setup](tests/e2e/README.md) for source servers, account provisioning, and deployment URLs. Tests use local data and do not require hosted OpenBB accounts or data subscriptions. Provider and subscription tests require `PLAYWRIGHT_HOSTED_TESTS=true`.
+See [the browser test setup](tests/e2e/README.md) for source servers, account provisioning, and deployment URLs. Tests use local data and do not require hosted OpenBB accounts or data subscriptions. Onboarding-question and PDF-export scenarios require `PLAYWRIGHT_HOSTED_TESTS=true` and a deployment with those features enabled.
 
 ### Storybook Accessibility Tests
 
