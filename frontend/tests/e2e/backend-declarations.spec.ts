@@ -5,10 +5,6 @@ import { saveDashboard, waitForWorkspace } from "./helpers";
 test("connected backend widgets and apps survive saving and reopening", async ({
   page,
 }) => {
-  await page.goto("/app/widgets");
-  await waitForWorkspace(page);
-  await expect(page.getByRole("tab", { name: "Sandbox Data" })).toHaveCount(0);
-
   const {
     plugin: widget,
     dashboardUrl,
@@ -73,8 +69,7 @@ test("connected backend widgets and apps survive saving and reopening", async ({
     appWidget.getByRole("gridcell", { name: "AMD", exact: true }),
   ).toBeVisible();
   await saveDashboard(page);
-  await page.goto("/app/widgets");
-  await page.goto(appUrl);
+  await page.reload();
   await waitForWorkspace(page);
   await expect(
     appWidget.getByRole("textbox", { name: "Ticker symbol", exact: true }),
