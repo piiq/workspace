@@ -446,7 +446,7 @@ async def get_table_task(token: UUID, table: str, pro: bool = False):
             .join(real_table, real_table.user_uuid == models.User.uuid, isouter=True)
         )
         if pro:
-            to_return = to_return.where(models.Session.pro.is_(True))
+            to_return = to_return.where(models.Session.pro.is_(True), models.User.permissions_uuid.is_not(None))
 
         return [
             result.get(table)
@@ -478,7 +478,7 @@ async def get_columns_task(token: UUID, columns: list[str], pro: bool = False):
             .join(models.User, models.User.uuid == models.Session.user_uuid)
         )
         if pro:
-            to_return = to_return.where(models.Session.pro.is_(True))
+            to_return = to_return.where(models.Session.pro.is_(True), models.User.permissions_uuid.is_not(None))
 
         return (await db.execute(to_return)).all()
 
@@ -566,7 +566,7 @@ async def get_current_superuser(
         select(models.Session.expiration_date, models.User)
         .select_from(models.Session)
         .join(models.User, models.User.uuid == models.Session.user_uuid)
-        .where(models.Session.uuid == token, models.User.deleted.is_(False))
+        .where(models.Session.uuid == token, models.User.deleted.is_(False), models.User.permissions_uuid.is_not(None))
     )
     async with database.AsyncWriteSessionLocal.session() as db:
         session = (await db.execute(query2)).first()
@@ -800,12 +800,10 @@ CURRENT_PRO_USER = {
         "username",
         "email",
         "uuid",
-        "pro_entitlements",
         "accepted_pro_tos",
         "first_name",
         "last_name",
         "pro_display_settings",
-        "pro_zero_to_hero",
         "primary_usage",
     ],
     "tables": ["SingleWidget", "ApiSource", "FileWidget"],
@@ -816,11 +814,11 @@ CURRENT_PRO_USER = {
 async def update_admin_user_permissions(
     db: AsyncSession, user_email: str, is_admin: bool
 ):
-    if is_admin and settings.ON_PREM_ADMIN_MAPPING is not None:
+    if is_admin and settings.DEFAULT_ADMIN_PERMISSIONS_UUID is not None:
         await db.execute(
             update(models.User)
             .where(models.User.email == user_email)
-            .values(permissions_uuid=settings.ON_PREM_ADMIN_MAPPING, is_superuser=1)
+            .values(permissions_uuid=settings.DEFAULT_ADMIN_PERMISSIONS_UUID, is_superuser=1)
         )
         await db.commit()
         logger.info(

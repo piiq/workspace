@@ -3,6 +3,7 @@
 A single-file Python tool for managing OpenBB Hub entities and users. Zero dependencies (Python 3.8+ stdlib only).
 
 **Two ways to use:**
+
 1. **CLI** - Command-line interface for shell scripts and manual operations
 2. **Python Client** - `HubAPIClient` class for programmatic access
 
@@ -103,8 +104,6 @@ Create a config file `new-entity.json`:
   "organization_size": "10-50",
   "aum": 10000000,
   "country": "USA",
-  "seats": 50,
-  "expiration_date": "2025-12-31T00:00:00Z",
   "admin_email": "admin@acme.com"
 }
 ```
@@ -119,8 +118,6 @@ Create a config file `new-entity.json`:
 - `organization_size` (string, required) - e.g., "10-50", "50-100"
 - `aum` (integer, required) - Assets Under Management
 - `country` (string, required) - ISO country code or name
-- `seats` (integer, required) - Number of licensed seats
-- `expiration_date` (datetime, required) - ISO 8601 format
 
 Then create:
 
@@ -134,19 +131,18 @@ Or generate a template:
 ./openbb-admin entity sample > new-entity.json
 ```
 
+Organization roles control administration and sharing. Backend settings `COPILOT_CALLS_PER_DAY` and `FILE_UPLOAD_LIMIT_GB` define the same limits for every user. Usage is counted separately for each account; a 10 GB setting gives each user 10 GB. Individual limit overrides are not supported.
+
 ### 3. Update an Entity
 
 **Simple update (inline JSON):**
 
 ```bash
-# Increase seat count
-./openbb-admin entity update <entity-uuid> --data '{"seats": 100}'
-
-# Update expiration date
-./openbb-admin entity update <entity-uuid> --data '{"expiration_date": "2026-12-31T00:00:00Z"}'
+# Set assets under management
+./openbb-admin entity update <entity-uuid> --data '{"aum": 20000000}'
 
 # Update multiple fields
-./openbb-admin entity update <entity-uuid> --data '{"seats": 75, "aum": 15000000}'
+./openbb-admin entity update <entity-uuid> --data '{"country": "USA", "aum": 15000000}'
 ```
 
 **Update from file:**
@@ -155,8 +151,8 @@ Create `update-entity.json`:
 
 ```json
 {
-  "seats": 100,
-  "expiration_date": "2026-12-31T00:00:00Z"
+  "aum": 20000000,
+  "country": "USA"
 }
 ```
 
@@ -173,8 +169,7 @@ Create `update-entity.json`:
 - `organization_size` - Organization size
 - `aum` - Assets Under Management
 - `country` - Country
-- `seats` - Number of seats
-- `expiration_date` - Expiration date (ISO 8601)
+- `allow_custom_backends` - Whether members can connect personal backends (default `true`)
 
 ### 4. List Users
 
@@ -375,8 +370,6 @@ Edit `provision.json`:
     "organization_size": "10-50",
     "aum": 10000000,
     "country": "USA",
-    "seats": 50,
-    "expiration_date": "2025-12-31T00:00:00Z",
     "admin_email": "admin@acme.com"
   },
   "admins": [
@@ -440,28 +433,15 @@ Data backends are API sources connected by default to an entity. Users in the en
 
 **Header format:** `key:value` or `key:value:location` where location is `headers` (default) or `query`.
 
-**Controlling whether users can add their own backends:**
-
-By default, entity users can add their own backends from the frontend. To restrict an entity so users can only use the admin-configured backends:
+To restrict members to administrator-configured backends:
 
 ```bash
-# Disable custom backends - users only see admin-added backends
-./openbb-admin entitlement update <entity-uuid> \
-  --data '{"allow_custom_backends": false}'
-
-# Re-enable custom backends
-./openbb-admin entitlement update <entity-uuid> \
-  --data '{"allow_custom_backends": true}'
+./openbb-admin entity update <entity-uuid> --data '{"allow_custom_backends": false}'
 ```
+
+Set `allow_custom_backends` to `true` to allow personal backends. The setting applies to every member of that organization, including admins using personal connections. Superusers manage organization backends with `data-backend add`, `list`, and `delete`. Disabling personal backends hides saved personal connections and blocks their creation and updates; their records remain stored. File uploads, single-endpoint widgets, and database connections are unaffected.
 
 ## Advanced Examples
-
-### Extend Entity Expiration
-
-```bash
-./openbb-admin entity update <entity-uuid> \
-  --data '{"expiration_date": "2026-12-31T00:00:00Z"}'
-```
 
 ### Get Entity Details
 
@@ -482,11 +462,11 @@ By default, entity users can add their own backends from the frontend. To restri
 
 ---
 
-# Python Client (`HubAPIClient`)
+## Python Client (`HubAPIClient`)
 
 The `HubAPIClient` class provides programmatic access to the OpenBB Hub API. It's embedded in the same `openbb-admin` file and can be imported directly.
 
-## Quick Start
+### Import the client
 
 ```python
 from pathlib import Path
@@ -525,8 +505,8 @@ entities = client.entity_list(page=1, size=100)
 # Get entity by UUID
 entity = client.entity_get("entity-uuid")
 
-# Create entity with auto-configured entitlements
-entity = client.entity_create_with_entitlements({
+# Create an organization
+entity = client.entity_create({
     "name": "Acme Corp",
     "entity_type_uuid": "entity-type-uuid",
     "email": "billing@acme.com",
@@ -534,14 +514,12 @@ entity = client.entity_create_with_entitlements({
     "company_type": "Investment Firm",
     "organization_size": "10-50",
     "aum": 10000000,
-    "country": "USA",
-    "seats": 50,
-    "expiration_date": "2025-12-31T00:00:00Z",
+    "country": "USA"
 })
 
 # Update entity (smart partial update - only specify changed fields)
-client.entity_update("entity-uuid", seats=100)
-client.entity_update("entity-uuid", seats=75, aum=15000000)
+client.entity_update("entity-uuid", aum=20000000)
+client.entity_update("entity-uuid", country="USA", aum=15000000)
 ```
 
 ### Entity Type Operations
@@ -623,16 +601,6 @@ backends = client.data_backend_list("entity-uuid")
 client.data_backend_delete("entity-uuid", "my-backend")
 ```
 
-### Entitlement Operations
-
-```python
-# Disable custom backends for an entity
-client.entitlement_update("entity-uuid", {"allow_custom_backends": False})
-
-# Re-enable custom backends
-client.entitlement_update("entity-uuid", {"allow_custom_backends": True})
-```
-
 ### Bulk Provisioning
 
 ```python
@@ -646,9 +614,7 @@ results = client.provision_full({
         "company_type": "Investment Firm",
         "organization_size": "10-50",
         "aum": 10000000,
-        "country": "USA",
-        "seats": 50,
-        "expiration_date": "2025-12-31T00:00:00Z",
+        "country": "USA"
     },
     "users": [
         {"email": "admin@acme.com", "first_name": "Admin", "last_name": "User", "role": "admin"},
@@ -685,8 +651,8 @@ client.access_token = client.auth_login(email, password)
 entity_types = client.entity_type_list()
 entity_type_uuid = entity_types["items"][0]["uuid"]
 
-# Create entity with entitlements
-entity = client.entity_create_with_entitlements({
+# Create an organization
+entity = client.entity_create({
     "name": "My New Entity",
     "entity_type_uuid": entity_type_uuid,
     "email": "billing@example.com",
@@ -694,9 +660,7 @@ entity = client.entity_create_with_entitlements({
     "company_type": "Investment Firm",
     "organization_size": "10-50",
     "aum": 10000000,
-    "country": "USA",
-    "seats": 10,
-    "expiration_date": "2026-12-31T00:00:00Z",
+    "country": "USA"
 })
 print(f"Created entity: {entity['entity_uuid']}")
 
@@ -720,8 +684,8 @@ analyst = client.user_create(
 print(f"Analyst password: {analyst['temporary_password']}")
 
 # Update entity
-client.entity_update(entity["entity_uuid"], seats=20)
-print("Updated seats to 20")
+client.entity_update(entity["entity_uuid"], aum=20000000)
+print("Updated assets under management")
 ```
 
 ## Error Handling
@@ -738,16 +702,14 @@ except APIError as e:
 | Operation | CLI | Python Client |
 |-----------|-----|---------------|
 | Create user with role | `--role admin` | `role="admin"` |
-| Partial entity update | `--data '{"seats": 100}'` | `entity_update(uuid, seats=100)` |
+| Partial entity update | `--data '{"aum": 20000000}'` | `entity_update(uuid, aum=20000000)` |
 | Bulk provisioning | `provision apply --config file.json` | `provision_full(config_dict)` |
 | Find user by email | `user list --email X` | `user_get_by_email(email)` |
 | Add data backend | `data-backend add <uuid> --name X --url Y` | `data_backend_add(uuid, name, url)` |
-| Toggle custom backends | `entitlement update <uuid> --data '{...}'` | `entitlement_update(uuid, {...})` |
 
 **Key benefits of the Python client:**
 
 - No need to look up permission UUIDs - just use role names (`"admin"` or `"user"`)
-- `entity_create_with_entitlements()` configures entity quotas
 - `entity_update()` does smart partial updates (fetches current state, merges changes)
 - `provision_full()` creates entity + all users in a single call
 - Proper error handling with `APIError` exceptions

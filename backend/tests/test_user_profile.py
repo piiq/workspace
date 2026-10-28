@@ -21,23 +21,6 @@ class TestInvites:
     """Tests for /pro/invites/* endpoints"""
 
     @pytest.mark.asyncio
-    async def test_get_remaining_invites_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.get("/pro/invites/remaining")
-        assert response.status_code in {401, 403}
-        # Validate error response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        assert "detail" in data or "message" in data or "error" in data
-
-    @pytest.mark.asyncio
-    async def test_get_remaining_invites_authenticated(self, auth_client):
-        """Should return remaining invites count"""
-        response = await auth_client.get("/pro/invites/remaining")
-        # 200 for success, 400/404 if feature not available
-        assert response.status_code in {200, 400, 404}
-
-    @pytest.mark.asyncio
     async def test_create_invite_unauthenticated(self, client):
         """Should fail without auth"""
         response = await client.post(

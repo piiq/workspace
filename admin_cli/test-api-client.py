@@ -98,9 +98,9 @@ def main():
         sys.exit(1)
 
     # =========================================================================
-    # 3. CREATE ENTITY WITH ENTITLEMENTS (High-level method)
+    # 3. CREATE ENTITY
     # =========================================================================
-    log_step("Step 3: Creating entity with entitlements...")
+    log_step("Step 3: Creating entity...")
 
     entity_config = {
         "name": f"Test Entity {timestamp}",
@@ -111,17 +111,14 @@ def main():
         "organization_size": "10-50",
         "aum": 10000000,
         "country": "USA",
-        "seats": 50,
-        "expiration_date": "2025-12-31T00:00:00Z",
     }
 
     try:
-        # This high-level method creates entity AND configures entitlements
-        entity_resp = client.entity_create_with_entitlements(entity_config)
+        # Create the organization.
+        entity_resp = client.entity_create(entity_config)
         entity_uuid = entity_resp["entity_uuid"]
         log_success(f"Entity created: {entity_uuid}")
         print(f"    Name: {entity_config['name']}")
-        print(f"    Seats: {entity_config['seats']}")
     except APIError as e:  # noqa: F821  # type: ignore[unresolved-reference]
         log_error(f"Failed to create entity: {e}")
         sys.exit(1)
@@ -176,20 +173,20 @@ def main():
     # =========================================================================
     # 6. UPDATE ENTITY (Partial update via high-level method)
     # =========================================================================
-    log_step("Step 6: Updating entity (seats: 50 -> 100)...")
+    log_step("Step 6: Updating entity assets under management...")
 
     try:
         # Smart partial update - only specify what you want to change
-        _ = client.entity_update(entity_uuid, seats=100)
+        _ = client.entity_update(entity_uuid, aum=20000000)
         log_success("Entity updated")
 
         # Verify
         entity_details = client.entity_get(entity_uuid)
-        actual_seats = entity_details.get("seats")
-        if actual_seats == 100:
-            log_success(f"Verified: seats = {actual_seats}")
+        actual_aum = entity_details.get("aum")
+        if actual_aum == 20000000:
+            log_success(f"Verified: aum = {actual_aum}")
         else:
-            log_error(f"Verification failed: expected 100, got {actual_seats}")
+            log_error(f"Verification failed: expected 20000000, got {actual_aum}")
     except APIError as e:  # noqa: F821  # type: ignore[unresolved-reference]
         log_error(f"Failed to update entity: {e}")
 
@@ -221,18 +218,6 @@ def main():
             print(f"    {b.get('name')} | {b.get('url')}")
     except APIError as e:  # noqa: F821  # type: ignore[unresolved-reference]
         log_error(f"Failed to list data backends: {e}")
-
-    # =========================================================================
-    # 9. UPDATE ENTITLEMENT (disable custom backends)
-    # =========================================================================
-    log_step("Step 9: Disabling custom backends via entitlement update...")
-
-    try:
-        ent_resp = client.entitlement_update(entity_uuid, {"allow_custom_backends": False})
-        log_success("Custom backends disabled")
-        print(f"    Response: {ent_resp}")
-    except APIError as e:  # noqa: F821  # type: ignore[unresolved-reference]
-        log_error(f"Failed to update entitlement: {e}")
 
     # =========================================================================
     # 10. DELETE DATA BACKEND
@@ -329,8 +314,6 @@ def main():
             "organization_size": "50-100",
             "aum": 50000000,
             "country": "UK",
-            "seats": 25,
-            "expiration_date": "2026-06-30T00:00:00Z",
         },
         "users": [
             {
@@ -355,7 +338,7 @@ def main():
     }
 
     try:
-        # Single call creates entity + entitlements + all users
+        # Create the organization and its users.
         results = client.provision_full(provision_config)
 
         bulk_entity_uuid = results["entity"]["entity_uuid"]
@@ -391,7 +374,7 @@ def main():
     print("High-level methods tested:")
     print("  - auth_login(email, password)")
     print("  - entity_type_list()")
-    print("  - entity_create_with_entitlements(config)")
+    print("  - entity_create(config)")
     print("  - entity_get(uuid)")
     print("  - entity_update(uuid, **kwargs)")
     print("  - user_create(entity_uuid, email, first_name, last_name, role)")
@@ -402,12 +385,10 @@ def main():
     print("  - data_backend_add(entity_uuid, name, url)")
     print("  - data_backend_list(entity_uuid)")
     print("  - data_backend_delete(entity_uuid, backend_name)")
-    print("  - entitlement_update(entity_uuid, data)")
     print("  - provision_full(config)")
     print()
     print("Key benefits of HubAPIClient:")
     print("  - Pass role='admin' instead of looking up permission_uuid")
-    print("  - entity_create_with_entitlements() configures entity quotas")
     print("  - entity_update() does smart partial updates (fetch-merge-put)")
     print("  - provision_full() creates entity + all users in one call")
     print("  - user_get_by_email() abstracts pagination")

@@ -13,15 +13,7 @@ from .entity_models import (
 )
 from .general_models import Feedback, Log, StripeEvent
 from .marketplace_models import RateVendorApp, UserAppSubscription, Vendor, VendorApp
-from .tier_models import (
-    PRO_TIER_ID,
-    TERMINAL_TIER_ID,
-    Entitlement,
-    EntitlementUsage,
-    EntityEntitlement,
-    Tier,
-    TierDefaults,
-)
+from .usage_models import UserUsage
 from .user_models import (
     DeveloperOnboarding,
     Login,

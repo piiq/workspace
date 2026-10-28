@@ -1,15 +1,13 @@
-import json
 from uuid import UUID
 
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import case, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api import base, crud, schemas
+from api import base, schemas
 from api.email import EmailService
 from api.models import (
     Entity,
@@ -134,7 +132,6 @@ async def update_user_name(
 ):
     first_name = db_user.first_name or user.first_name
     last_name = db_user.last_name or user.last_name
-    billing_active = await crud.total_user_count_full(db, user.permissions_uuid)
     if first_name != db_user.first_name or last_name != db_user.last_name:
         update_query = (
             update(User)
@@ -142,7 +139,6 @@ async def update_user_name(
             .values(
                 first_name=first_name,
                 last_name=last_name,
-                billing_active=billing_active,
             )
         )
         await db.execute(update_query)
@@ -186,7 +182,7 @@ async def brand_new_pro_account(
     invite_uuid = invite_result.uuid if invite_result else None
     is_insert = invite_uuid is None
 
-    if invite_result and not information.shared_dashboard and not from_oauth:
+    if invite_result and not (information.shared_dashboard or information.shared_user_app) and not from_oauth:
         # Being here means that the user has already been invited
         # So we need to send the email with the original inviter
 
@@ -219,7 +215,6 @@ async def brand_new_pro_account(
             password=pw,
             inviter=inviter_email,
             message=user.message,
-            is_free_tier=user.permissions_uuid == settings.PRO_DEVELOPER_MAPPING,
         )
 
         raise HTTPException(
@@ -280,7 +275,6 @@ async def brand_new_pro_account(
                 password=rand_pass,
                 inviter=information.inviting_email,
                 message=user.message,
-                is_free_tier=user.permissions_uuid == settings.PRO_DEVELOPER_MAPPING,
             )
 
     except HTTPException as http_e:
@@ -332,11 +326,3 @@ async def register_pro_user(
     await db.commit()
 
     return new_invite_uuid if from_oauth else True
-
-
-async def update_all_redis(db: AsyncSession, query, entitlements: dict):
-    responses = (await db.execute(query)).all()
-    for response in responses:
-        json_string = json.dumps(jsonable_encoder(entitlements))
-        r = settings.get_redis_session("pro")
-        r.set(str(response.uuid), json_string, xx=True)

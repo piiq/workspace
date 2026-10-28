@@ -4,16 +4,17 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path
-from sqlalchemy import delete, insert, or_, select, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api import auth_helpers, crud, helpers, schemas
+from api import auth_helpers, helpers, schemas
 from api.database import aget_read_db, aget_write_db
 from api.models import ApiSource, FileWidget, SingleWidget
 from api.models.workspace_models import StoredFile
 from api.schemas import SuccessReturn
 from api.storage import FileStorage
+from routers.pro import helpers as pro_helpers
 from utilities.config import settings
 
 router = APIRouter(
@@ -187,19 +188,7 @@ async def get_user_api_sources(
     db: AsyncSession = Depends(aget_read_db),
 ):
     """Get all API sources for a user"""
-    filters = (ApiSource.user_uuid == user.uuid,)
-    if settings.is_onprem():
-        entity_uuid = await crud.get_user_entity_uuid(db, user.permissions_uuid)
-        filters += (ApiSource.entity_uuid == entity_uuid,)
-
-    select_query = (
-        select(ApiSource)
-        .where(
-            or_(*filters) if settings.is_onprem() else ApiSource.user_uuid == user.uuid
-        )
-        .order_by(ApiSource.updated_date.desc())
-    )
-    return (await db.execute(select_query)).scalars().all()
+    return await pro_helpers.get_user_api_sources(db, user.uuid)
 
 
 @router.post("/api-source/{source_uuid}", response_model=SuccessReturn)
@@ -212,6 +201,10 @@ async def post_user_api_source(
     db: AsyncSession = Depends(aget_write_db),
 ):
     """Create or update an Data Connector API Source"""
+    permissions = await pro_helpers.get_account_permissions(db, user.uuid)
+    if not permissions.allow_custom_backends:
+        raise HTTPException(403, detail="Your organization requires backends configured by an administrator.")
+
     insert_query = insert(ApiSource).values(
         uuid=source_uuid, user_uuid=user.uuid, **pro_info.model_dump()
     )
@@ -224,7 +217,8 @@ async def post_user_api_source(
             .where(ApiSource.uuid == source_uuid, ApiSource.user_uuid == user.uuid)
             .values(**pro_info.model_dump())
         )
-        await db.execute(update_query)
+        if (await db.execute(update_query)).rowcount == 0:
+            raise HTTPException(403, detail="Only the owner can update a personal backend")
 
     await db.commit()
     return SuccessReturn.success_instance()

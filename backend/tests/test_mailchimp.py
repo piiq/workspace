@@ -73,15 +73,10 @@ class TestCreateHtml:
 
 
 class TestTemplateEnum:
-    def test_workspace_invite_free_tier_value(self):
-        assert (
-            Template.WORKSPACE_INVITE_FREE_TIER.value
-            == "workspace-invite-free-tier-without-account"
-        )
 
-    def test_workspace_invite_pro_tier_value(self):
+    def test_workspace_invite_value(self):
         assert (
-            Template.WORKSPACE_INVITE_PRO_TIER.value
+            Template.WORKSPACE_INVITE.value
             == "workspace-invite-pro-tier-without-account"
         )
 
@@ -237,21 +232,21 @@ class TestSendTemplate:
 class TestSendCreateAccount:
     @patch("api.email.mailchimp.send_template")
     @patch("api.email.mailchimp.settings")
-    def test_pro_trial_uses_confirm_account_new(self, mock_settings, mock_send):
-        mock_settings.PRO_TRIAL_EMAIL = "trial@openbb.co"
+    def test_default_inviter_uses_confirm_account_new(self, mock_settings, mock_send):
+        mock_settings.DEFAULT_INVITER_EMAIL = "workspace-admin@openbb.co"
         mock_settings.SELFURL = "http://localhost:8000"
         mock_settings.PROURL = "http://localhost:3000"
         mock_send.return_value = True
 
         token = uuid4()
-        send_create_account(token, "user@test.com", "pass123", "trial@openbb.co")
+        send_create_account(token, "user@test.com", "pass123", "workspace-admin@openbb.co")
         mock_send.assert_called_once()
         assert mock_send.call_args[0][0] == Template.CONFIRM_ACCOUNT_NEW
 
     @patch("api.email.mailchimp.send_template")
     @patch("api.email.mailchimp.settings")
-    def test_free_tier_uses_workspace_invite_free(self, mock_settings, mock_send):
-        mock_settings.PRO_TRIAL_EMAIL = "trial@openbb.co"
+    def test_member_invite_uses_workspace_invite(self, mock_settings, mock_send):
+        mock_settings.DEFAULT_INVITER_EMAIL = "workspace-admin@openbb.co"
         mock_settings.SELFURL = "http://localhost:8000"
         mock_settings.PROURL = "http://localhost:3000"
         mock_send.return_value = True
@@ -263,35 +258,14 @@ class TestSendCreateAccount:
             "pass123",
             "admin@company.com",
             message="Join us!",
-            is_free_tier=True,
         )
         mock_send.assert_called_once()
-        assert mock_send.call_args[0][0] == Template.WORKSPACE_INVITE_FREE_TIER
-
-    @patch("api.email.mailchimp.send_template")
-    @patch("api.email.mailchimp.settings")
-    def test_pro_tier_uses_workspace_invite_pro(self, mock_settings, mock_send):
-        mock_settings.PRO_TRIAL_EMAIL = "trial@openbb.co"
-        mock_settings.SELFURL = "http://localhost:8000"
-        mock_settings.PROURL = "http://localhost:3000"
-        mock_send.return_value = True
-
-        token = uuid4()
-        send_create_account(
-            token,
-            "user@test.com",
-            "pass123",
-            "admin@company.com",
-            message="Join us!",
-            is_free_tier=False,
-        )
-        mock_send.assert_called_once()
-        assert mock_send.call_args[0][0] == Template.WORKSPACE_INVITE_PRO_TIER
+        assert mock_send.call_args[0][0] == Template.WORKSPACE_INVITE
 
     @patch("api.email.mailchimp.send_template")
     @patch("api.email.mailchimp.settings")
     def test_message_html_passed_in_data(self, mock_settings, mock_send):
-        mock_settings.PRO_TRIAL_EMAIL = "trial@openbb.co"
+        mock_settings.DEFAULT_INVITER_EMAIL = "workspace-admin@openbb.co"
         mock_settings.SELFURL = "http://localhost:8000"
         mock_settings.PROURL = "http://localhost:3000"
         mock_send.return_value = True
@@ -303,7 +277,6 @@ class TestSendCreateAccount:
             "pass123",
             "admin@company.com",
             message="hello",
-            is_free_tier=True,
         )
         data = mock_send.call_args[0][3]
         assert "message" in data
@@ -313,7 +286,7 @@ class TestSendCreateAccount:
     @patch("api.email.mailchimp.send_template")
     @patch("api.email.mailchimp.settings")
     def test_no_message_still_sends(self, mock_settings, mock_send):
-        mock_settings.PRO_TRIAL_EMAIL = "trial@openbb.co"
+        mock_settings.DEFAULT_INVITER_EMAIL = "workspace-admin@openbb.co"
         mock_settings.SELFURL = "http://localhost:8000"
         mock_settings.PROURL = "http://localhost:3000"
         mock_send.return_value = True
@@ -325,7 +298,6 @@ class TestSendCreateAccount:
             "pass123",
             "admin@company.com",
             message=None,
-            is_free_tier=True,
         )
         data = mock_send.call_args[0][3]
         assert data["message"] == "<br>"
@@ -366,12 +338,14 @@ class TestSendAccountTakeover:
 
 
 class TestSendWrappers:
-    @patch("api.email.mailchimp.send_template")
-    def test_send_welcome_email(self, mock_send):
-        mock_send.return_value = True
-        result = send_welcome_email("user@test.com")
-        assert result is True
-        assert mock_send.call_args[0][0] == Template.DAY_1_FREE_TIER_ANALYSTS
+    @patch("api.email.mailchimp.mailchimp", create=True)
+    @patch("api.email.mailchimp.settings")
+    def test_send_welcome_email(self, mock_settings, mock_mailchimp):
+        mock_settings.MODE = "production"
+        assert send_welcome_email("member@example.com") is True
+        payload = mock_mailchimp.messages.send_template.call_args.args[0]
+        assert payload["template_name"] == "welcome"
+        assert payload["message"]["to"] == [{"email": "member@example.com", "type": "to"}]
 
     @patch("api.email.mailchimp.send_template")
     @patch("api.email.mailchimp.settings")

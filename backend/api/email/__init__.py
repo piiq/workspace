@@ -45,10 +45,9 @@ class EmailService:
         password: str,
         inviter: str,
         message: None | str = None,
-        is_free_tier: bool = False,
     ) -> None:
         return email_provider.send_create_account(
-            token, to, password, inviter, message, is_free_tier
+            token, to, password, inviter, message
         )
 
     @staticmethod
@@ -64,10 +63,6 @@ class EmailService:
         return email_provider.send_support_received(to)
 
     @staticmethod
-    def four_days_no_use(to: str, first_name: str) -> None:
-        return email_provider.four_days_no_use(to, first_name)
-
-    @staticmethod
     def send_pat_warning(to: str, exp: datetime) -> None:
         return email_provider.send_pat_warning(to, exp)
 
@@ -80,10 +75,6 @@ class EmailService:
         token: str, to: str, inviter: str, message: None | str = None
     ) -> None:
         return email_provider.send_account_takeover(token, to, inviter, message)
-
-    @staticmethod
-    def extend_pro_trial(to: str, user_uuid: UUID) -> None:
-        return email_provider.extend_pro_trial(to, user_uuid)
 
     @staticmethod
     def send_dynamic_template(

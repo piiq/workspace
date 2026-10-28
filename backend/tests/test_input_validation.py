@@ -266,11 +266,10 @@ class TestUUIDValidation:
 
     @pytest.mark.asyncio
     async def test_valid_uuid_nonexistent_resource(self, auth_client):
-        """Valid UUID format but nonexistent resource should return 404 or 200"""
+        """A nonexistent dashboard does not grant access to sharing information"""
         valid_uuid = str(uuid4())
         response = await auth_client.get(f"/pro/dash/{valid_uuid}/shares")
-        # Should return 404 (not found) or 200 (empty list)
-        assert response.status_code in {200, 400, 404}
+        assert response.status_code == 403
 
 
 class TestJSONPayloadValidation:

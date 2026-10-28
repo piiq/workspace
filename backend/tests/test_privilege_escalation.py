@@ -307,16 +307,6 @@ class TestVerticalPrivilegeEscalationAdmin:
         assert response.status_code in {401, 403, 404, 405}
 
     @pytest.mark.asyncio
-    async def test_regular_user_cannot_modify_entitlements(self, auth_client):
-        """Regular user should not be able to modify entitlements"""
-        fake_user_uuid = str(uuid4())
-        response = await auth_client.put(
-            f"/entity/entitlement/{fake_user_uuid}",
-            json={"tier": "enterprise", "features": ["all"]},
-        )
-        assert response.status_code in {401, 403, 404, 405, 422}
-
-    @pytest.mark.asyncio
     async def test_regular_user_cannot_create_entity_types(self, auth_client):
         """Regular user should not be able to create entity types"""
         response = await auth_client.post(

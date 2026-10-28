@@ -23,7 +23,7 @@ from fastapi.responses import (
 from jwt import ExpiredSignatureError, PyJWTError
 from loguru import logger
 from pydantic import field_validator
-from sqlalchemy import Select, delete, func, insert, or_, select, update
+from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -33,7 +33,6 @@ from api import auth_helpers, base, crud, helpers, models, schemas
 from api.database import aget_read_db, aget_write_db
 from api.email import EmailService
 from api.models import (
-    DashboardShare,
     DeveloperOnboarding,
     Entity,
     PermissionsEntityMap,
@@ -48,9 +47,7 @@ from routers.entity import takeover_user
 from routers.routers_helpers import brand_new_pro_newsletter, register_pro_user
 from utilities.config import BaseModel, settings
 
-router = APIRouter(
-    prefix="/pro", tags=["pro"], dependencies=[Depends(auth_helpers.check_openbb)]
-)
+router = APIRouter(prefix="/pro", tags=["pro"], dependencies=[Depends(auth_helpers.check_openbb)])
 
 
 EXCEPTION_401 = HTTPException(
@@ -58,43 +55,6 @@ EXCEPTION_401 = HTTPException(
     detail="Incorrect username or password",
     headers={"WWW-Authenticate": "Bearer"},
 )
-
-
-@router.get("/extend-trial-email/{user_uuid}", response_class=RedirectResponse)
-async def extend_trial_email(
-    user_uuid: UUID, db: AsyncSession = Depends(aget_write_db)
-):
-    "Gives a user 2 more weeks of trial time. This will ONLY work if there is no previous trial."
-    base_url = f"{settings.PROURL}/login?"
-    message = quote("User not found, please confirm you have not already renewed.")
-
-    def add_where(
-        query: Select,
-    ) -> Select[tuple[datetime | None, int | None, str, int | None]]:
-        return query.where(
-            User.uuid == user_uuid,
-            User.permissions_uuid == settings.PRO_TRIAL_MAPPING,
-            User.deleted.is_(False),
-            or_(User.pro_trial_renewals == 0, User.pro_trial_renewals.is_(None)),
-            User.pro_trial_end.isnot(None),
-        )
-
-    select_query = select(User.pro_trial_end, User.pro_trial_renewals, User.email)
-    final_squery = add_where(select_query)
-    result = await db.execute(final_squery)
-    if (db_user := result.first()) is None:
-        return RedirectResponse(f"{base_url}error={message}")
-    update_query = update(User).values(
-        pro_trial_end=max(db_user.pro_trial_end, base.get_now()) + timedelta(days=14),
-        pro_trial_renewals=db_user.pro_trial_renewals or 0 + 1,
-    )
-    final_uquery = add_where(update_query)
-    response = await db.execute(final_uquery)
-    if response.rowcount == 0:
-        return RedirectResponse(f"{base_url}error={message}")
-    await db.commit()
-    # hubspot trial_extended sync removed — not needed for marketing provider
-    return RedirectResponse(f"{base_url}email={quote(db_user.email)}&extended=true")
 
 
 @router.get("/confirm-account", response_class=RedirectResponse)
@@ -161,36 +121,26 @@ async def transfer_user(
 
 @router.post("/invites/create", response_model=SuccessReturn)
 async def invite_user(
-    user: schemas.UserCreateAdmin,
+    user: schemas.UserInvite,
     db: AsyncSession = Depends(aget_write_db),
-    creator: User = Depends(
-        auth_helpers.GetCurrentUser(["uuid", "email", "permissions_uuid"], pro=True)
-    ),
+    creator: User = Depends(auth_helpers.GetCurrentUser(["uuid", "email", "permissions_uuid"], pro=True)),
 ):
     "Allows someone to invite a user"
-
-    data = await get_invites_remaining(db, user=creator)
-
-    if data.get("remaining", 0) <= 0:
-        raise HTTPException(status_code=403, detail="No invites remaining")
 
     await crud.check_clean_email(db, user.email)
 
     # Check if the user is already a pro user
-    query2 = select(User.uuid).where(
-        User.email == user.email, User.permissions_uuid.is_not(None)
-    )
+    query2 = select(User.uuid).where(User.email == user.email, User.permissions_uuid.is_not(None))
     result2 = (await db.execute(query2)).first()
     if result2 is not None:
         raise HTTPException(status_code=409, detail="User is already a pro user")
     try:
-        extra_info = schemas.RegisterProUser(
-            inviting_uuid=creator.uuid, inviting_email=creator.email
-        )
-        if creator.permissions_uuid == settings.PRO_DEVELOPER_MAPPING:
-            user.permissions_uuid = settings.PRO_DEVELOPER_MAPPING
+        extra_info = schemas.RegisterProUser(inviting_uuid=creator.uuid, inviting_email=creator.email)
+        creator_entity = await pro_helpers.get_entity_uuid(db, creator.uuid)
+        member_role = await crud.get_entity_member_permissions(db, creator_entity)
+        invite = schemas.UserCreateAdmin(**user.model_dump(), permissions_uuid=member_role)
 
-        response = await register_pro_user(db, user, extra_info)
+        response = await register_pro_user(db, invite, extra_info)
         return SuccessReturn.from_bool(response)
     except IntegrityError as exc:
         return helpers.handle_user_conflict(exc)
@@ -212,6 +162,7 @@ async def process_create_user(
         UserProInvite.email,
         UserProInvite.permissions_uuid,
         UserProInvite.shared_dashboards,
+        UserProInvite.shared_apps,
     ).where(
         UserProInvite.uuid == the_uuid,
         UserProInvite.used.is_(False),
@@ -225,11 +176,8 @@ async def process_create_user(
         return RedirectResponse(f"{settings.PROURL}/login?error={quote(error)}")
 
     if result.permissions_uuid is None:
-        result.permissions_uuid = settings.PRO_DEVELOPER_MAPPING
+        raise HTTPException(400, detail="Invite has no assigned entity role")
 
-    pro_trial_granted = result.permissions_uuid != settings.PRO_DEVELOPER_MAPPING
-    nowish = base.get_now()
-    billing_active = await crud.total_user_count_full(db, result.permissions_uuid)
     # hubspot contact creation removed — not needed for marketing provider
     if await crud.check_new_user(db, result.email):
         error = "A user with this email already exists"
@@ -243,28 +191,15 @@ async def process_create_user(
         password=result.data["password"],
         first_name=result.data["first_name"],
         last_name=result.data["last_name"],
-        billing_active=billing_active,
         pro_start=base.get_now(),
         confirmed=1,
         temporary_password=True,
-        pro_trial_granted=pro_trial_granted,
-        pro_trial_granted_date=nowish if pro_trial_granted else None,
         hear_about_us=result.data.get("hear_about_us", None),
         microsoft_id=microsoft_id,
     )
     response = await db.execute(insert_query)
     user_uuid = response.inserted_primary_key[0]
-    # Add shares
-    for key, value in (result.shared_dashboards or {}).items():
-        share_insert = insert(DashboardShare).values(
-            dashboard_item_uuid=key,
-            shared_user_uuid=user_uuid,
-            permissions=value,
-        )
-        await db.execute(share_insert)
-    update_query = (
-        update(UserProInvite).where(UserProInvite.uuid == the_uuid).values(used=True)
-    )
+    update_query = update(UserProInvite).where(UserProInvite.uuid == the_uuid).values(used=True)
     await db.execute(update_query)
     # Add role if provided
     if (role := result.data.get("role", None)) and role != "None" and role.strip():
@@ -275,15 +210,13 @@ async def process_create_user(
         await db.execute(role_insert)
     await db.commit()
 
+    await crud.accept_resource_shares(db, user_uuid, result.shared_dashboards, result.shared_apps)
+
     EmailService.send_welcome_email(result.email)
 
     encoded_email = quote(result.email)
 
-    return (
-        RedirectResponse(f"{settings.PROURL}/login?email={encoded_email}")
-        if not from_oauth
-        else user_uuid
-    )
+    return RedirectResponse(f"{settings.PROURL}/login?email={encoded_email}") if not from_oauth else user_uuid
 
 
 @router.get("/create-account/{the_uuid}", response_class=RedirectResponse)
@@ -317,9 +250,11 @@ async def register_user(
     await crud.check_clean_email(db, user.email)
     brand_new_pro_newsletter(user)
 
-    user.permissions_uuid = settings.PRO_DEVELOPER_MAPPING
+    if not (settings.DEFAULT_PERMISSIONS_UUID and settings.DEFAULT_INVITER_UUID and settings.DEFAULT_INVITER_EMAIL):
+        raise HTTPException(503, detail="Provision an organization with scripts.init_users before enabling registration")
+    user.permissions_uuid = settings.DEFAULT_PERMISSIONS_UUID
     extra_info = schemas.RegisterProUser(
-        inviting_uuid=settings.PRO_TRIAL_USER, inviting_email=settings.PRO_TRIAL_EMAIL
+        inviting_uuid=settings.DEFAULT_INVITER_UUID, inviting_email=settings.DEFAULT_INVITER_EMAIL
     )
     response = await register_pro_user(db, user, extra_info)
 
@@ -328,22 +263,6 @@ async def register_user(
 
 def bearer_header(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
-
-
-@router.get("/invites/remaining", response_model=schemas.RemainingCodes)
-async def get_invites_remaining(
-    db: AsyncSession = Depends(aget_read_db),
-    user: User = Depends(auth_helpers.GetCurrentUser(["uuid", "email"], pro=True)),
-):
-    # no longer being used
-    # if not helpers.email_is_public(user.email):
-    #     return {"remaining": None}
-    query = select(func.count(UserProInvite.uuid).label("invites")).where(
-        UserProInvite.inviting_user_uuid == user.uuid
-    )
-    result = (await db.execute(query)).first()
-    invites = result.invites if result else 0
-    return {"remaining": max(0, 15 - invites)}
 
 
 @router.post("/logout", response_model=SuccessReturn)
@@ -368,59 +287,18 @@ async def login(  # noqa: PLR0914, PLR0915
     user: schemas.ProUserLogin,
     db: AsyncSession = Depends(aget_write_db),
 ):
-    if not (
-        result := (await db.execute(helpers.get_user_pro_query(user.email))).first()
-    ):
+    if not (result := (await db.execute(helpers.get_user_pro_query(user.email))).first()):
         raise EXCEPTION_401
 
-    # If the user is not associated with an entity, means they registered on other OpenBB platforms (eg Hub)
-    # and we need to associate them with the developer entity.
-    if not result._asdict().get("permissions_uuid", None):
-        await pro_helpers.handle_tier_change(
-            db=db, user_uuid=result.uuid, tier="terminal"
-        )
-        # Re-fetch the user from the database
-        result = (await db.execute(helpers.get_user_pro_query(user.email))).first()
-
     db_user = schemas.UserProSchema.model_validate(result)
-    await pro_helpers.check_login(
-        db, user, db_user
-    )  # Will raise if a problem is encountered
-
-    # If the user does not have an entitlement, we assume it's an already existing pro user
-    # that doesn't went through the developer onboarding process.
-    has_entitlement = await pro_helpers.has_entitlement(db, db_user.uuid)
-    if not has_entitlement:
-        await pro_helpers.update_user_entitlement_with_entity_entitlement(
-            db=db, user_uuid=db_user.uuid
-        )
+    await pro_helpers.check_login(db, user, db_user)
+    if db_user.permissions_uuid is None:
+        raise HTTPException(403, detail="Account has no organization role; contact your administrator")
 
     if not db_user.confirmed:
-        return JSONResponse(
-            content={"message": "User is not confirmed"}, status_code=403
-        )
+        return JSONResponse(content={"message": "User is not confirmed"}, status_code=403)
 
-    try:
-        moved_to_developer = False
-        pro_trial_end = await helpers.check_pro_trial(db, db_user)
-    except HTTPException:
-        # If the trial ended, move the user to the OpenBB Developer Entity
-        await pro_helpers.handle_tier_change(
-            db=db, user_uuid=db_user.uuid, tier="terminal"
-        )
-        db_user = schemas.UserProSchema.model_validate(
-            (await db.execute(helpers.get_user_pro_query(user.email))).first()
-        )
-        # Assign the pro trial end date to None so the expiration date is calculated based on the current date
-        pro_trial_end = None
-        # Inform the user that the trial ended
-        moved_to_developer = True
-
-    if (
-        db_user.totp_secret
-        and db_user.totp_active
-        and int(pyotp.TOTP(db_user.totp_secret).now()) != user.totp_token
-    ):
+    if db_user.totp_secret and db_user.totp_active and int(pyotp.TOTP(db_user.totp_secret).now()) != user.totp_token:
         return JSONResponse(content={"message": "Invalid TOTP token"}, status_code=202)
 
     if db_user.require_authenticator and not db_user.totp_active:
@@ -441,18 +319,12 @@ async def login(  # noqa: PLR0914, PLR0915
             status_code=202,
         )
 
-    show_changelog = (
-        db_user.latest_version is not None and db_user.latest_version != user.version
-    )
+    show_changelog = db_user.latest_version is not None and db_user.latest_version != user.version
     if user.version and db_user.latest_version != user.version:
-        update_query = (
-            update(User)
-            .where(User.uuid == db_user.uuid)
-            .values(latest_version=user.version)
-        )
+        update_query = update(User).where(User.uuid == db_user.uuid).values(latest_version=user.version)
         await db.execute(update_query)
 
-    time_d = helpers.get_pro_session_expiration(pro_trial_end, db_user, user.remember)
+    time_d = helpers.get_pro_session_expiration(user.remember)
 
     sources = ["pro", "oauth-pro"] if user.source != "excel" else ["excel"]
 
@@ -468,18 +340,10 @@ async def login(  # noqa: PLR0914, PLR0915
     )
 
     # Check if the user is logging in for the first time
-    is_first_login = await helpers.check_first_login(
-        db, db_user.uuid, ["oauth-pro", "pro"]
-    )
+    is_first_login = await helpers.check_first_login(db, db_user.uuid, ["oauth-pro", "pro"])
 
     # Enter the login into our database
     helpers.handle_add_login(db_user.uuid, user.ip_address, user.source)
-    base.set_tpro_redis(db_user.uuid, db_user.pro_entitlements)
-    base_entity_uuid = await crud.get_trial_entity_uuid(db)
-
-    # Check if the user is on a trial
-    is_trial = base_entity_uuid == db_user.entity_uuid and not settings.is_onprem()
-
     # Get Copilot Chats
     chats = await pro_helpers.get_copilot_chats(db, db_user.uuid)
     questions_history = await pro_helpers.get_user_questions_history(db, db_user.uuid)
@@ -491,9 +355,7 @@ async def login(  # noqa: PLR0914, PLR0915
     tv_state = await pro_helpers.get_trading_view_state(db, db_user)
 
     # Get Theme Settings
-    entity_theme_settings = await pro_helpers.get_entity_theme_settings(
-        db, db_user.entity_uuid
-    )
+    entity_theme_settings = await pro_helpers.get_entity_theme_settings(db, db_user.entity_uuid)
 
     # Get Dashboards
     dashboards_complete = await pro_helpers.get_dashboards_complete(db_user)
@@ -502,37 +364,17 @@ async def login(  # noqa: PLR0914, PLR0915
     user_apps_complete = await pro_helpers.get_user_apps_complete(db_user)
 
     # Get User Data
-    curr_user = await auth_helpers.GetCurrentUser.call_logic(
-        token=access_token, **auth_helpers.CURRENT_PRO_USER
-    )
-
-    if settings.is_onprem():
-        entity_query = select(models.ApiSource).where(
-            models.ApiSource.entity_uuid == db_user.entity_uuid
-        )
-        entity_backends = (await db.execute(entity_query)).scalars().all()
-        if entity_backends and isinstance(curr_user.ApiSource, list):
-            curr_user.ApiSource.extend(entity_backends)
+    curr_user = await auth_helpers.GetCurrentUser.call_logic(token=access_token, **auth_helpers.CURRENT_PRO_USER)
 
     # Get Widget Metadata
     widget_metadata = await pro_helpers.get_widget_metadata(db=db, user=db_user)
     user_data = await pro_helpers.set_pro_user_data(curr_user, db)
     user_data.widget_metadata = widget_metadata
 
-    # Get Entitlements
-    entitlements = await pro_helpers.get_entitlement(db, db_user.uuid)
+    account_permissions = await pro_helpers.get_account_permissions(db, db_user.uuid)
 
     # Get Developer Onboarding Info
-    developer_onboarding_info = await pro_helpers.get_developer_onboarding_info(
-        db, db_user
-    )
-    if developer_onboarding_info and (
-        db_user.permissions_uuid == settings.PRO_DEVELOPER_MAPPING
-        and not settings.is_onprem()
-    ):
-        # If the user is on the developer tier, we don't want to skip the onboarding
-        developer_onboarding_info.skipOnboarding = False
-
+    developer_onboarding_info = await pro_helpers.get_developer_onboarding_info(db, db_user)
     # Get usage
     usage = await helpers.get_user_usage(db_user)
 
@@ -543,26 +385,19 @@ async def login(  # noqa: PLR0914, PLR0915
     user_skills = await pro_helpers.get_user_skill_state(db, db_user.uuid)
 
     # Show welcome screen if the user has not seen it yet and then toggle it to not show again
-    welcome_screen = db_user.welcome_screen
-    if welcome_screen:
-        await pro_helpers.toggle_welcome_screen(db, db_user.uuid, False)
 
     content = {
         "uuid": db_user.uuid,
         "email": db_user.email,
         "access_token": access_token,
         "username": db_user.username,
-        "entitlements": db_user.pro_entitlements,
         "expiration_date": base.get_now() + time_d,
-        "temporary_password": bool(db_user.temporary_password)
-        and user.source != "oauth-pro",
+        "temporary_password": bool(db_user.temporary_password) and user.source != "oauth-pro",
         "force_2fa": (db_user.require_authenticator or db_user.two_factor_auth)
         and not (db_user.totp_secret and db_user.totp_active),
         "entity_name": db_user.name,
         "role": db_user.role,
-        "is_trial_entity": is_trial,
         "entity_theme_settings": entity_theme_settings,
-        "pro_trial_end": pro_trial_end if is_trial else None,
         "show_changelog": show_changelog,
         "copilot_chats": chats,
         "questions_history": questions_history,
@@ -571,16 +406,12 @@ async def login(  # noqa: PLR0914, PLR0915
         "user_apps": user_apps_complete,
         "user_skills": user_skills,
         "user": user_data,
-        "feature_entitlements": entitlements,
-        "can_submit_marketplace": bool(
-            db_user.is_superuser or db_user.can_submit_marketplace
-        ),
-        "moved_to_developer": moved_to_developer,
+        "account_permissions": account_permissions,
+        "can_submit_marketplace": bool(db_user.is_superuser or db_user.can_submit_marketplace),
         "developer_onboarding_info": developer_onboarding_info,
         "usage": usage,
         "custom_copilots": custom_copilots,
         "mcp_servers": mcp_servers.servers if mcp_servers else None,
-        "show_welcome_screen": welcome_screen,
         "is_first_login": is_first_login,
     }
 
@@ -610,9 +441,7 @@ async def process_auth(token: str, provider: auth_helpers.ProviderT, request: Re
         return user_data
 
 
-async def handle_oauth_user(
-    request: Request, db: AsyncSession, user_data: dict, auth_data: schemas.AuthData
-):
+async def handle_oauth_user(request: Request, db: AsyncSession, user_data: dict, auth_data: schemas.AuthData):
     """Handles OAuth user sign-in and sign-up process."""
     user_email = user_data.get("email")
     is_admin = user_data.get("is_admin")
@@ -642,21 +471,22 @@ async def handle_oauth_user(
 
     user_uuid: UUID | None = None
     if not user_exists:
-        # User does not exist, proceed with sign-up
+        if not (settings.DEFAULT_PERMISSIONS_UUID and settings.DEFAULT_INVITER_UUID and settings.DEFAULT_INVITER_EMAIL):
+            raise HTTPException(
+                503, detail="Provision an organization with scripts.init_users before enabling registration"
+            )
         user_create = schemas.UserCreateProAdmin(
             first_name=user_data.get("given_name"),
             last_name=user_data.get("family_name"),
             email=user_email,
-            permissions_uuid=settings.PRO_DEVELOPER_MAPPING,
+            permissions_uuid=settings.DEFAULT_PERMISSIONS_UUID,
             newsletter=auth_data.newsletter,
         )
         extra_info = schemas.RegisterProUser(
-            inviting_uuid=settings.PRO_TRIAL_USER,
-            inviting_email=settings.PRO_TRIAL_EMAIL,
+            inviting_uuid=settings.DEFAULT_INVITER_UUID,
+            inviting_email=settings.DEFAULT_INVITER_EMAIL,
         )
-        invite_uuid = await register_pro_user(
-            db, user_create, extra_info, from_oauth=True
-        )
+        invite_uuid = await register_pro_user(db, user_create, extra_info, from_oauth=True)
         if not invite_uuid or not (
             user_uuid := await process_create_user(
                 invite_uuid, user_email, db, from_oauth=True, microsoft_id=microsoft_id
@@ -669,9 +499,7 @@ async def handle_oauth_user(
             await auth_helpers.update_admin_user_permissions(db, user_email, is_admin)
 
     if host_domain is not None and not settings.redis_cache("snowflake_created_v2"):
-        entity_uuid = await pro_helpers.get_entity_uuid(
-            db, user_uuid or user_exists["uuid"]
-        )
+        entity_uuid = await pro_helpers.get_entity_uuid(db, user_uuid or user_exists["uuid"])
         try:
             await db.execute(
                 insert(models.ApiSource).values(
@@ -688,16 +516,10 @@ async def handle_oauth_user(
             )
             settings.redis_cache("snowflake_created_v2", "true")
         except SQLAlchemyError as e:
-            logger.error(
-                f"Failed to create API source for Snowflake Entity {entity_uuid}: {e}"
-            )
+            logger.error(f"Failed to create API source for Snowflake Entity {entity_uuid}: {e}")
             await db.rollback()
 
-    if (
-        user_exists
-        and is_admin
-        and user_exists["permissions_uuid"] != settings.ON_PREM_ADMIN_MAPPING
-    ):
+    if user_exists and is_admin and user_exists["permissions_uuid"] != settings.DEFAULT_ADMIN_PERMISSIONS_UUID:
         await auth_helpers.update_admin_user_permissions(db, user_email, is_admin)
 
     # User exists, proceed with sign-in
@@ -712,11 +534,7 @@ async def handle_oauth_user(
 
     if (user_exists and user_exists["microsoft_id"] is None) and microsoft_id:
         # Update the user's Microsoft ID if it was not previously set
-        await db.execute(
-            update(User)
-            .where(User.uuid == user_exists["uuid"])
-            .values(microsoft_id=microsoft_id)
-        )
+        await db.execute(update(User).where(User.uuid == user_exists["uuid"]).values(microsoft_id=microsoft_id))
         await db.commit()
 
     return await login(request, user_login, db)
@@ -812,7 +630,6 @@ async def get_user_backend(
     session_query = (
         select(
             models.Session.expiration_date,
-            User.pro_entitlements,
             User.uuid,
             User.primary_usage,
             User.username,
@@ -838,12 +655,7 @@ async def get_user_backend(
     except HTTPException:
         raise HTTPException(status_code=401, detail="Session expired")
 
-    clean_data = {}
-    for key, value in session.pro_entitlements:
-        if value != "None":
-            clean_data[key] = getattr(session.api_keys, key)
-
-    clean_schema = schemas.ProKeys(**clean_data)
+    clean_schema = session.api_keys or schemas.ProKeys()
 
     return schemas.ProBackendReturn(
         expiration_date=session.expiration_date,
@@ -893,7 +705,7 @@ async def validate_and_get_items(
         user (User): Current user dependency.
 
     Returns:
-        schemas.ValidateAndSync: ValidateAndSync object with the feature entitlements.
+        schemas.ValidateAndSync: ValidateAndSync object with account permissions.
 
 
     Raises:
@@ -902,9 +714,8 @@ async def validate_and_get_items(
     res = await validate_user(db=db, token=user.token)
     if not res.success:
         raise HTTPException(status_code=401, detail="invalid token")
-    entitlements = await pro_helpers.get_entitlement(db=db, user_uuid=user.uuid)
     return schemas.ValidateAndSync(
-        feature_entitlements=entitlements,
+        account_permissions=await pro_helpers.get_account_permissions(db, user.uuid),
     )
 
 
@@ -1016,64 +827,7 @@ async def post_pro_settings(
     return SuccessReturn.success_instance()
 
 
-@router.post("/zero-to-hero", response_model=SuccessReturn)
-async def post_zero_to_hero(
-    pro_info: schemas.ProZeroToHero,
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-    db: AsyncSession = Depends(aget_write_db),
-):
-    # Get current values
-    result = await db.execute(
-        select(User.pro_zero_to_hero).where(User.uuid == user.uuid)
-    )
-    current_values = result.scalar_one_or_none()
-
-    # If there are current values, only update the non-None values from pro_info
-    if current_values:
-        update_values = current_values.model_dump()
-        for field, value in pro_info.model_dump().items():
-            if value is not None:
-                update_values[field] = value
-        pro_info = schemas.ProZeroToHero(**update_values)
-
-    query = update(User).where(User.uuid == user.uuid).values(pro_zero_to_hero=pro_info)
-    await db.execute(query)
-    await db.commit()
-    return SuccessReturn.success_instance()
-
-
-@router.get("/zero-to-hero", response_model=schemas.ProZeroToHero)
-async def get_zero_to_hero(
-    db: AsyncSession = Depends(aget_read_db),
-    user: User = Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Get zero to hero data for a user. Optionally filter by a specific property.
-
-    Args:
-        db (AsyncSession): Database session
-        user (User): Current authenticated user
-
-    Returns:
-        schemas.ProZeroToHero: Zero to hero data
-
-    Raises:
-        HTTPException: If no data is found or if property_name is invalid
-    """
-    result = await db.execute(
-        select(User.pro_zero_to_hero).where(User.uuid == user.uuid)
-    )
-    zero_to_hero_data = result.scalar_one_or_none()
-
-    if not zero_to_hero_data:
-        raise HTTPException(
-            status_code=404, detail="Zero to hero data not found for user"
-        )
-
-    return zero_to_hero_data
-
-
-@router.post("/copilot-chats", response_model=schemas.EntitlementUsageGet)
+@router.post("/copilot-chats", response_model=schemas.UsageGet)
 async def post_copilot_chats(
     chats: schemas.CopilotChatsCreate,
     db: Annotated[AsyncSession, Depends(aget_write_db)],
@@ -1101,11 +855,9 @@ async def post_copilot_chats(
     except SQLAlchemyError as e:
         logger.error(e)
         await db.rollback()
-        raise HTTPException(
-            status_code=400, detail="Could not successfully update the items"
-        ) from e
+        raise HTTPException(status_code=400, detail="Could not successfully update the items") from e
 
-    return await schemas.EntitlementUsageGet.check_cache(db, user)
+    return await schemas.UsageGet.check_cache(db, user)
 
 
 @router.get("/copilot-chats", response_model=list[schemas.Chat | schemas.ChatInfo])
@@ -1311,186 +1063,37 @@ async def get_tv_state(
     return result
 
 
-@router.put("/tier", response_model=schemas.TierPutResponse)
-async def put_tier(
-    tier: schemas.TierPut,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Endpoint to change the tier for a user.
-
-    Change the user entitlements and move the user to the corresponding entity.
-    Exclusively from/to Developer and Trial entities.
-
-    Args:
-        tier (schemas.TierPut): The tier to be changed to.
-
-    Returns:
-        schemas.TierPutResponse: info about the entitlement and usage.
-    """
-    await pro_helpers.handle_tier_change(db, user.uuid, tier.tier)
-    entitlements = await pro_helpers.get_entitlement(db, user.uuid)
-    usage = await helpers.get_user_usage(user)
-    is_trial = await pro_helpers.is_trial(db, user.uuid)
-
-    return schemas.TierPutResponse(
-        entitlement=entitlements, usage=usage, is_trial_entity=is_trial
-    )
-
-
-@router.post("/entitlement", response_model=SuccessReturn)
-async def post_entitlement(
-    entitlement: schemas.EntitlementPost,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Endpoint to create the entitlement for a user.
-
-    Args:
-        entitlement (schemas.EntitlementPost): The entitlement to be created or updated.
-
-    Returns:
-        SuccessReturn: An instance indicating the operation was successful.
-    """
-
-    has_entitlement = await pro_helpers.has_entitlement(db, user.uuid)
-    if not has_entitlement:
-        await pro_helpers.insert_entitlement(
-            db=db, user_uuid=user.uuid, tier=entitlement.tier
-        )
-    else:
-        raise HTTPException(status_code=400, detail="Entitlement already exists")
-    return SuccessReturn.success_instance()
-
-
-@router.put("/entitlement", response_model=SuccessReturn)
-async def put_entitlement(
-    entitlement: schemas.EntitlementPut,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    has_entitlement = await pro_helpers.has_entitlement(db, user.uuid)
-    if not has_entitlement:
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-
-    await pro_helpers.update_entitlement(
-        db=db, user_uuid=user.uuid, tier=entitlement.tier
-    )
-    return SuccessReturn.success_instance()
-
-
-@router.get("/entitlement", response_model=schemas.EntitlementGet)
-async def get_entitlement(
-    db: Annotated[AsyncSession, Depends(aget_read_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Endpoint to retrieve the entitlement for a user.
-
-    This endpoint retrieves the entitlement associated with the current authenticated user;
-    If the user is associated with an entity, the returned entitlement will be the one associated with the entity.
-
-    Args:
-
-    Raises:
-        HTTPException: If the entitlement is not found.
-
-    Returns:
-        schemas.EntitlementGet: The entitlement for the user.
-    """
-    result = await pro_helpers.get_entitlement(db, user.uuid)
-    if not result:
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-
-    return result
-
-
-@router.patch("/entitlement", response_model=SuccessReturn)
-async def patch_entitlement(
-    entitlement: schemas.EntitlementPatch,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-):
-    """
-    Endpoint to update the entitlement for a user.
-
-    This endpoint updates the entitlement associated with the current authenticated user.
-    One or all of the fields can be updated.
-
-    Args:
-        entitlement (schemas.EntitlementPatch): The entitlement to be updated.
-
-    Returns:
-        SuccessReturn: An instance indicating the operation was successful.
-    """
-    tiers_match = {
-        "pro": models.PRO_TIER_ID,
-        "terminal": models.TERMINAL_TIER_ID,
-    }
-    if not pro_helpers.has_entitlement(db, user.uuid):
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-
-    entitlement_dict = entitlement.model_dump(exclude_unset=True)
-    if tier := entitlement_dict.pop("tier", None):
-        entitlement_dict["tier_id"] = tiers_match.get(tier)
-
-    query = (
-        update(models.Entitlement)
-        .where(models.Entitlement.user_uuid == user.uuid)
-        .values(**entitlement_dict)
-    )
-    await db.execute(query)
-    await db.commit()
-    return SuccessReturn.success_instance()
-
-
-@router.put("/usage", response_model=schemas.EntitlementUsageGet)
+@router.put("/usage", response_model=schemas.UsageGet)
 async def put_usage(
-    usage: schemas.EntitlementUsagePut,
+    usage: schemas.UsagePut,
     db: Annotated[AsyncSession, Depends(aget_write_db)],
     user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
 ):
-    # await pro_helpers.check_usage_validity(db, usage, user.uuid)
-    add_count = usage.add_copilot_count
-    subtract_count = usage.subtract_copilot_count
+    user_usage = await schemas.UsageGet.check_cache(db, user)
+    total_copilot_calls = user_usage.number_copilot_calls_day_count + usage.add_copilot_count
+    if total_copilot_calls > settings.COPILOT_CALLS_PER_DAY:
+        return schemas.UsageLimitError.limit_error(user_usage)
 
-    has_usage = await pro_helpers.has_usage(db, user.uuid)
-    if not has_usage:
-        query = insert(models.EntitlementUsage).values(
-            user_uuid=user.uuid,
-            number_copilot_calls_day_count=add_count,
-        )
-    else:
-        user_usage = await schemas.EntitlementUsageGet.check_cache(db, user)
-        total_copilot_calls = (
-            user_usage.number_copilot_calls_day_count + add_count - subtract_count
-        )
-
-        if usage.reset_copilot_count:
-            total_copilot_calls = add_count
-
-        if total_copilot_calls > user_usage.copilot_calls_limit:
-            return schemas.UsageLimitError.limit_error(user_usage)
-
+    if await pro_helpers.has_usage(db, user.uuid):
         query = (
-            update(models.EntitlementUsage)
-            .where(models.EntitlementUsage.user_uuid == user.uuid)
+            update(models.UserUsage)
+            .where(models.UserUsage.user_uuid == user.uuid)
             .values(number_copilot_calls_day_count=total_copilot_calls)
         )
+    else:
+        query = insert(models.UserUsage).values(user_uuid=user.uuid, number_copilot_calls_day_count=total_copilot_calls)
 
     await db.execute(query)
     await db.commit()
     return await helpers.get_user_usage(user)
 
 
-@router.get("/usage", response_model=schemas.EntitlementUsageGet)
+@router.get("/usage", response_model=schemas.UsageGet)
 async def get_usage(
     db: Annotated[AsyncSession, Depends(aget_write_db)],
     user=Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
 ):
-    result = await schemas.EntitlementUsageGet.check_cache(db, user)
+    result = await schemas.UsageGet.check_cache(db, user)
     if not result:
         raise HTTPException(status_code=404, detail="Usage not found")
     return result
@@ -1640,25 +1243,6 @@ async def delete_widget_metadata(
 
     # Fetch remaining widget metadata for the user
     return await pro_helpers.get_widget_metadata(db=db, user=user)
-
-
-@router.get("/user-has-entity", response_model=schemas.SuccessReturn)
-async def user_has_entity(
-    user: User = Depends(auth_helpers.GetCurrentUser(["uuid"], pro=True)),
-    db: AsyncSession = Depends(aget_read_db),
-):
-    """
-    Check if the user has an entity which is not OpenBB default Developer Entity.
-    """
-    permissions_uuid_query = select(models.User.permissions_uuid).where(
-        models.User.uuid == user.uuid
-    )
-    permissions_uuid = (await db.execute(permissions_uuid_query)).scalar_one_or_none()
-    if permissions_uuid and (
-        permissions_uuid != settings.PRO_DEVELOPER_MAPPING or settings.is_onprem()
-    ):
-        return schemas.SuccessReturn.success_instance()
-    return schemas.SuccessReturn.failure_instance()
 
 
 @router.put("/custom-copilot", response_model=SuccessReturn)
@@ -1878,9 +1462,7 @@ class MCPProxyRequest(BaseModel):
         return v
 
 
-mcp_proxy_client = httpx.AsyncClient(
-    timeout=httpx.Timeout(10.0, read=300.0, connect=5.0)
-)
+mcp_proxy_client = httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=300.0, connect=5.0))
 
 
 def handle_cors(request: Response) -> dict[str, str]:

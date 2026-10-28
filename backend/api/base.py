@@ -2,7 +2,6 @@
 
 import enum
 import html
-import json
 import random
 import re
 import string
@@ -13,7 +12,6 @@ from uuid import UUID
 
 import bcrypt
 import jwt
-from fastapi.encoders import jsonable_encoder
 
 from utilities import config, rq_results
 
@@ -209,11 +207,6 @@ def check_email(email: str) -> bool:
     # The below is a RFC 5322 compliant regex: https://uibakery.io/regex-library/email-regex-python
     pattern = "(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])"  # noqa: E501
     return bool(re.match(pattern, email.lower()))
-
-
-def set_tpro_redis(key: UUID, value):
-    r = config.settings.get_redis_session("pro")
-    r.set(str(key), json.dumps(jsonable_encoder(value)))
 
 
 def remove_session_redis(key: UUID):

@@ -23,7 +23,6 @@ class EmailAbstract:
         password: str,
         inviter: str,
         message: None | str = None,
-        is_free_tier: bool = False,
     ) -> None:
         raise NotImplementedError
 
@@ -40,10 +39,6 @@ class EmailAbstract:
         raise NotImplementedError
 
     @staticmethod
-    def four_days_no_use(to: str, first_name: str) -> None:
-        raise NotImplementedError
-
-    @staticmethod
     def send_pat_warning(to: str, exp: datetime) -> None:
         raise NotImplementedError
 
@@ -55,10 +50,6 @@ class EmailAbstract:
     def send_account_takeover(
         token: str, to: str, inviter: str, message: None | str = None
     ) -> None:
-        raise NotImplementedError
-
-    @staticmethod
-    def extend_pro_trial(to: str, user_uuid: UUID) -> None:
         raise NotImplementedError
 
     @staticmethod

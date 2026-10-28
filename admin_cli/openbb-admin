@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenBB Hub Admin CLI - v2.2.1
+OpenBB Hub Admin CLI - v2.3.0
 
 A single-file CLI tool for managing OpenBB Hub entities and users.
 Dependencies: Python 3.8+ stdlib only (no external packages required)
@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("openbb-admin")
 
-VERSION = "2.2.1"
+VERSION = "2.3.0"
 
 CONFIG_FILE = Path(
     os.environ.get("OPENBB_CONFIG_FILE", str(Path.home() / ".openbb-hub/config.json"))
@@ -48,22 +48,9 @@ class APIError(Exception):
 
 
 ERROR_GUIDANCE = {
-    403: {
-        "Maximum seats reached": (
-            "The entity has reached its seat limit.\n"
-            "Fix: openbb-admin entity update <uuid> --data '{\"seats\": N}'"
-        ),
-    },
     404: {"default": "Resource not found. Check the UUID and try again."},
     409: {"default": "Conflict - resource already exists or duplicate detected."},
     422: {"default": "Validation error - check your input data."},
-}
-
-
-DEFAULT_ENTITLEMENT = {
-    "tier": "pro",
-    "number_copilot_calls_day": 10_000,
-    "total_file_upload_size_gb": 10,
 }
 
 
@@ -196,37 +183,7 @@ class HubAPIClient:
             data["entity_code"] = data.pop("entity_type_uuid")
         return self._request("POST", "/entity/entity", data)
 
-    def entity_entitlements_update(self, entity_uuid: str) -> dict[str, Any]:
-        return self._request(
-            "PATCH",
-            f"/entity/entitlement/{entity_uuid}",
-            DEFAULT_ENTITLEMENT,
-            {"update_all": True},
-        )
 
-    def entity_create_with_entitlements(self, data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Create entity and auto-configure default entitlements.
-
-        Args:
-            data: Entity configuration dict
-
-        Returns:
-            Entity response dict (without permission_map_uuid key)
-
-        Raises:
-            APIError: If creation or entitlements update fails
-        """
-        e_resp = self.entity_create(data)
-        entity_uuid = e_resp.get("entity_uuid")
-
-        # Remove permission_map_uuid (internal implementation detail)
-        e_resp.pop("permission_map_uuid", None)
-
-        # Auto-configure entitlements
-        self.entity_entitlements_update(entity_uuid)
-
-        return e_resp
 
     def entity_list(self, page: int = 1, size: int = 100) -> dict[str, Any]:
         return self._request(
@@ -264,8 +221,7 @@ class HubAPIClient:
             "organization_size": current.get("organization_size"),
             "aum": current.get("aum"),
             "country": current.get("country"),
-            "seats": current.get("seats"),
-            "expiration_date": current.get("expiration_date"),
+            "allow_custom_backends": current["allow_custom_backends"],
         }
 
         # 2. Merge user changes (ignore unknown keys)
@@ -502,17 +458,6 @@ class HubAPIClient:
     def data_backend_list(self, entity_uuid: str) -> Any:
         return self._request("GET", f"/entity/data-backends/{entity_uuid}")
 
-    # ENTITLEMENTS
-    def entitlement_update(
-        self, entity_uuid: str, data: dict[str, Any]
-    ) -> dict[str, Any]:
-        return self._request(
-            "PATCH",
-            f"/entity/entitlement/{entity_uuid}",
-            data,
-            {"update_all": True},
-        )
-
     def provision_full(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Execute complete provisioning workflow: entity + users.
@@ -537,8 +482,8 @@ class HubAPIClient:
             "failed_users": [],
         }
 
-        # Step 1: Create entity with entitlements
-        entity_resp = self.entity_create_with_entitlements(config["entity"])
+        # Create the entity and assign its roles.
+        entity_resp = self.entity_create(config["entity"])
         results["entity"] = entity_resp
         entity_uuid = entity_resp["entity_uuid"]
 
@@ -732,7 +677,7 @@ def entity_create(args: argparse.Namespace) -> None:
     client = get_client()
     try:
         data = get_config_json(args.config)
-        resp = client.entity_create_with_entitlements(data)
+        resp = client.entity_create(data)
         entity_uuid = resp.get("entity_uuid")
         if args.json:
             print(json.dumps(resp, indent=2))
@@ -755,7 +700,6 @@ def entity_list(args: argparse.Namespace) -> None:
                 f"{get_val(i, 'entity_type.code')} | "
                 f"{i['name']} | "
                 f"{get_val(i, 'entity_type.entity_type')} | "
-                f"{i.get('seats', 'N/A')} seats"
             ),
         )
     except APIError as e:
@@ -773,8 +717,6 @@ def entity_sample(args: argparse.Namespace) -> None:
         "organization_size": "string (Required) - e.g., '10-50'",
         "aum": "integer (Required) - Assets Under Management",
         "country": "string (Required) - ISO country code or name",
-        "seats": "integer (Required) - Number of seats licensed",
-        "expiration_date": "datetime (Required) - ISO 8601 format (e.g., '2025-12-31T00:00:00Z')",
     }
     print(json.dumps(sample, indent=2))
 
@@ -789,9 +731,7 @@ def entity_show(args: argparse.Namespace) -> None:
             ("Code", "entity_type.code"),
             ("Type", "entity_type.entity_type"),
             ("Email", "email"),
-            ("Seats", "seats"),
             ("Country", "country"),
-            ("Expiration", "expiration_date"),
         ]
         render_record(entity, fields, args.json)
     except APIError as e:
@@ -1098,41 +1038,8 @@ def data_backend_list_cmd(args: argparse.Namespace) -> None:
         handle_api_error(e)
 
 
-def entitlement_update_cmd(args: argparse.Namespace) -> None:
-    client = get_client()
-    try:
-        if args.json_input:
-            data: dict[str, Any] = json.loads(args.json_input)
-        else:
-            data = get_config_json(args.config)
-
-        resp = client.entitlement_update(args.entity_uuid, data)
-        if args.json:
-            print(json.dumps(resp, indent=2))
-        else:
-            print(f"✓ Entitlements updated for entity {args.entity_uuid}")
-    except APIError as e:
-        handle_api_error(e)
-    except Exception as e:
-        print(f"✗ Error: {e}", file=sys.stderr)
-        raise SystemExit(1) from e
 
 
-def entitlement_sample(args: argparse.Namespace) -> None:
-    sample = {
-        "tier": "pro | terminal",
-        "number_copilot_calls_day": 10000,
-        "total_file_upload_size_gb": 10,
-        "share_widgets": "public | private",
-        "bring_your_own_data": True,
-        "bring_your_own_copilot": True,
-        "admin_access": True,
-        "support": True,
-        "excel_add_in": True,
-        "data_add_ons_redistribution": True,
-        "allow_custom_backends": True,
-    }
-    print(json.dumps(sample, indent=2))
 
 
 def provision_check(args: argparse.Namespace) -> None:
@@ -1154,8 +1061,6 @@ def provision_check(args: argparse.Namespace) -> None:
                 "organization_size",
                 "aum",
                 "country",
-                "seats",
-                "expiration_date",
                 "admin_email",
             ]
             for field in required_entity:
@@ -1211,8 +1116,6 @@ def provision_sample(args: argparse.Namespace) -> None:
             "organization_size": "10-50",
             "aum": 10000000,
             "country": "USA",
-            "seats": 50,
-            "expiration_date": "2025-12-31T00:00:00Z",
             "admin_email": "admin@acme.com",
         },
         "admins": [
@@ -1381,7 +1284,7 @@ def main() -> None:
         "--data",
         "-d",
         dest="json_input",
-        help="JSON string with fields to update (e.g. '{\"seats\": 50}')",
+        help="JSON string with fields to update (e.g. '{\"name\": \"Research\"}')",
     )
     e_update.add_argument(
         "--json", action="store_true", help="Output raw API response as JSON"
@@ -1556,37 +1459,6 @@ def main() -> None:
         "--json", action="store_true", help="Output raw API response as JSON"
     )
     db_list.set_defaults(func=data_backend_list_cmd)
-
-    # ==========================
-    # Entitlement
-    # ==========================
-    ent = subparsers.add_parser("entitlement", help="Manage entity entitlements")
-    ent_sub = ent.add_subparsers(dest="verb", required=True, help="Action")
-
-    ent_update = ent_sub.add_parser(
-        "update", help="Update entitlements for an entity"
-    )
-    ent_update.add_argument("entity_uuid", help="UUID of the target entity")
-    ent_grp = ent_update.add_mutually_exclusive_group(required=True)
-    ent_grp.add_argument(
-        "--config", "-c", help="Path to JSON file with entitlement fields"
-    )
-    ent_grp.add_argument(
-        "--data",
-        "-d",
-        dest="json_input",
-        help="JSON string with entitlement fields "
-        "(e.g. '{\"allow_custom_backends\": true}')",
-    )
-    ent_update.add_argument(
-        "--json", action="store_true", help="Output raw API response as JSON"
-    )
-    ent_update.set_defaults(func=entitlement_update_cmd)
-
-    ent_sample = ent_sub.add_parser(
-        "sample", help="Output sample entitlement fields to stdout"
-    )
-    ent_sample.set_defaults(func=entitlement_sample)
 
     # ==========================
     # Provision

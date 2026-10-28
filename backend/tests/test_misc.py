@@ -136,38 +136,6 @@ class TestDeveloperOnboarding:
         assert response.status_code in {200, 404}
 
 
-class TestZeroToHero:
-    """Tests for /pro/zero-to-hero endpoint"""
-
-    @pytest.mark.asyncio
-    async def test_zero_to_hero_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.get("/pro/zero-to-hero")
-        assert response.status_code in {401, 403}
-
-    @pytest.mark.asyncio
-    async def test_zero_to_hero_authenticated(self, auth_client):
-        """Should return zero-to-hero progress"""
-        response = await auth_client.get("/pro/zero-to-hero")
-        # 200 for success, 404 if no data
-        assert response.status_code in {200, 404}
-
-    @pytest.mark.asyncio
-    async def test_zero_to_hero_update_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.post("/pro/zero-to-hero", json={})
-        assert response.status_code in {401, 403, 422}
-
-    @pytest.mark.asyncio
-    async def test_zero_to_hero_update_authenticated(self, auth_client):
-        """Should update zero-to-hero progress"""
-        response = await auth_client.post(
-            "/pro/zero-to-hero", json={"step": 1, "completed": True}
-        )
-        # 200 for success, 422 for validation error
-        assert response.status_code in {200, 422}
-
-
 class TestHealthCheck:
     """Tests for health check endpoints"""
 

@@ -25,14 +25,10 @@ class Template(Enum):
     CONFIRM_ACCOUNT_EXISTING = "confirm-account-existing"
     CONFIRM_ACCOUNT_NEW = "confirm-account-new"
     CONFIRM_ACCOUNT_NEW_HUB = "confirm-account-new-hub"
-    WORKSPACE_INVITE_FREE_TIER = "workspace-invite-free-tier-without-account"
-    WORKSPACE_INVITE_PRO_TIER = "workspace-invite-pro-tier-without-account"
+    WORKSPACE_INVITE = "workspace-invite-pro-tier-without-account"
     NEW_DASHBOARD_SHARED = "new-dashboard-shared-with-you"
     NEW_ENTITY_CREATED = "new-entity-created"
     ODP_INVITE = "odp-invite"
-    DAY_1_FREE_TIER_ANALYSTS = "day-1-free-tier-analysts"
-    DAY_1_FREE_TIER_DEVS = "day-1-free-tier-devs"
-    DAY_1_FREE_TIER_STUDENTS = "day-1-free-tier-students"
     OPENBB_LITE_INSTRUCTIONS = "openbb-lite-instructions"
 
 
@@ -109,7 +105,7 @@ def send_template(
 
 def send_welcome_email(to: str) -> bool:
     return send_template(
-        Template.DAY_1_FREE_TIER_ANALYSTS,
+        Template.WELCOME,
         to,
         None,
         {},
@@ -225,11 +221,10 @@ def send_create_account(  # noqa: PLR0913, PLR0917
     password: str,
     inviter: str,
     message: None | str = None,
-    is_free_tier: bool = False,
 ):
     "Sends a link for an invited user to create a new account"
     url = create_url(f"pro/create-account/{token}", base=settings.SELFURL, email=to)
-    if inviter == settings.PRO_TRIAL_EMAIL:
+    if inviter == settings.DEFAULT_INVITER_EMAIL:
         return send_template(
             Template.CONFIRM_ACCOUNT_NEW,
             to,
@@ -248,15 +243,8 @@ def send_create_account(  # noqa: PLR0913, PLR0917
         "site_url": settings.PROURL,
         "message": html,
     }
-    if is_free_tier:
-        return send_template(
-            Template.WORKSPACE_INVITE_FREE_TIER,
-            to,
-            None,
-            data,
-        )
     return send_template(
-        Template.WORKSPACE_INVITE_PRO_TIER,
+        Template.WORKSPACE_INVITE,
         to,
         None,
         data,
@@ -314,33 +302,6 @@ def send_new_entity(to: str, entity_name: str) -> bool:
 # --- New templates (not wired into abstraction layer yet) ---
 
 
-def send_day_1_free_tier_analysts(to: str) -> bool:
-    return send_template(
-        Template.DAY_1_FREE_TIER_ANALYSTS,
-        to,
-        None,
-        {},
-    )
-
-
-def send_day_1_free_tier_devs(to: str) -> bool:
-    return send_template(
-        Template.DAY_1_FREE_TIER_DEVS,
-        to,
-        None,
-        {},
-    )
-
-
-def send_day_1_free_tier_students(to: str) -> bool:
-    return send_template(
-        Template.DAY_1_FREE_TIER_STUDENTS,
-        to,
-        None,
-        {},
-    )
-
-
 def send_confirm_account_new_hub(to: str) -> bool:
     return send_template(
         Template.CONFIRM_ACCOUNT_NEW_HUB,
@@ -370,9 +331,8 @@ class MailChimpEmail(EmailAbstract):
         password: str,
         inviter: str,
         message: None | str = None,
-        is_free_tier: bool = False,
     ) -> None:
-        return send_create_account(token, to, password, inviter, message, is_free_tier)
+        return send_create_account(token, to, password, inviter, message)
 
     @staticmethod
     def send_password_reset(token: str, to: str) -> None:
@@ -387,10 +347,6 @@ class MailChimpEmail(EmailAbstract):
         return send_support_received(to)
 
     @staticmethod
-    def four_days_no_use(to: str, first_name: str) -> None:
-        return
-
-    @staticmethod
     def send_pat_warning(to: str, exp: datetime) -> None:
         return send_pat_week_warning(to, exp)
 
@@ -403,10 +359,6 @@ class MailChimpEmail(EmailAbstract):
         token: str, to: str, inviter: str, message: None | str = None
     ) -> None:
         return send_account_takeover(token, to, inviter, message)
-
-    @staticmethod
-    def extend_pro_trial(to: str, user_uuid: UUID) -> None:
-        return
 
     @staticmethod
     def send_dynamic_template(

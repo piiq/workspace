@@ -1,6 +1,5 @@
 """Entity routes"""
 
-from copy import deepcopy
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -16,7 +15,6 @@ from api import auth_helpers, base, crud, models, schemas
 from api.database import aget_read_db, aget_write_db
 from api.email import EmailService
 from api.models import (
-    DashboardShare,
     Entity,
     EntityType,
     PermissionsEntityMap,
@@ -116,15 +114,12 @@ async def add_entity(
             organization_size=entity.organization_size,
             aum=entity.aum,
             country=entity.country,
-            seats=entity.seats,
-            expiration_date=entity.expiration_date,
             stripe_id=entity.stripe_id,
             api_keys=entity.api_keys,
+            allow_custom_backends=entity.allow_custom_backends,
         )
         response = await db.execute(query)
         entity_uuid = response.inserted_primary_key[0]
-        # Add entity entitlement
-        await pro_helpers.insert_entity_entitlement(db, entity_uuid, "pro")
     except IntegrityError as exc:
         detail = (
             exc.orig.args[1]
@@ -136,13 +131,11 @@ async def add_entity(
     # Create an admin user for the entity
     i_query = insert(PermissionsEntityMap).values(
         name="Admin",
-        entitlements=schemas.ProEntitlements(),
         entity_uuid=entity_uuid,
     )
     # Create a base user for the entity
     i2_query = insert(PermissionsEntityMap).values(
         name="User",
-        entitlements=schemas.ProEntitlements(),
         entity_uuid=entity_uuid,
     )
     result = await db.execute(i_query)
@@ -178,10 +171,9 @@ async def put_entity(
             organization_size=entity.organization_size,
             aum=entity.aum,
             country=entity.country,
-            seats=entity.seats,
-            expiration_date=entity.expiration_date,
             stripe_id=entity.stripe_id,
             api_keys=entity.api_keys,
+            allow_custom_backends=entity.allow_custom_backends,
         )
     )
     try:
@@ -218,10 +210,9 @@ async def get_entities(
                 organization_size=item.organization_size,
                 aum=item.aum,
                 country=item.country,
-                seats=item.seats,
-                expiration_date=item.expiration_date,
                 stripe_id=item.stripe_id,
                 api_keys=item.api_keys or schemas.ProKeys(),
+                allow_custom_backends=item.allow_custom_backends,
             )
             cleaned.append(temp)
         return cleaned
@@ -236,10 +227,9 @@ async def get_entities(
             Entity.organization_size,
             Entity.aum,
             Entity.country,
-            Entity.seats,
-            Entity.expiration_date,
             Entity.stripe_id,
             Entity.api_keys,
+            Entity.allow_custom_backends,
         )
         .select_from(Entity)
         .join(EntityType, Entity.entity_type_uuid == EntityType.uuid)
@@ -312,7 +302,6 @@ async def add_entity_map(
     query = insert(PermissionsEntityMap).values(
         entity_uuid=entity_map.entity_uuid,
         name=entity_map.name,
-        entitlements=entity_map.entitlements,
     )
     response = await db.execute(query)
     if response.rowcount == 0:  # type: ignore
@@ -336,7 +325,6 @@ async def put_entity_map(
         .values(
             entity_uuid=entity_map.entity_uuid,
             name=entity_map.name,
-            entitlements=entity_map.entitlements,
         )
     )
     try:
@@ -348,10 +336,6 @@ async def put_entity_map(
     except DataError as exc:
         raise HTTPException(400, detail="Bad data submitted") from exc
     await db.commit()
-    select_query = select(User.uuid).where(User.permissions_uuid == map_uuid)
-    await routers_helpers.update_all_redis(
-        db, select_query, entity_map.entitlements.model_dump()
-    )
     return {"success": True}
 
 
@@ -389,6 +373,7 @@ async def takeover_user(token: UUID, db: AsyncSession = Depends(aget_write_db)):
             PermissionsInvite.permissions_uuid,
             User.email,
             PermissionsInvite.shared_dashboards,
+            PermissionsInvite.shared_apps,
             User.uuid.label("user_uuid"),
         )
         .select_from(models.PermissionsInvite)
@@ -403,14 +388,11 @@ async def takeover_user(token: UUID, db: AsyncSession = Depends(aget_write_db)):
     invite_data = (await db.execute(invite_query)).first()
     if not invite_data:
         return schemas.MessageReturn(success=False, message="Invite not found")
-    billing_active = await crud.total_user_count_full(db, invite_data.permissions_uuid)
-    # hubspot pro_start_date sync removed — not needed for marketing provider
     update_user = (
         update(User)
         .where(User.email == invite_data.email)
         .values(
             permissions_uuid=invite_data.permissions_uuid,
-            billing_active=billing_active,
             pro_start=base.get_now(),
         )
     )
@@ -425,19 +407,14 @@ async def takeover_user(token: UUID, db: AsyncSession = Depends(aget_write_db)):
     )
     # Takeovers dont work on the same entity, so there is no reason to check for it here
     await crud.remove_shares_both_ways(db, email=invite_data.email)
-    # Add shares
-    for key, value in (invite_data.shared_dashboards or {}).items():
-        share_insert = insert(DashboardShare).values(
-            dashboard_item_uuid=key,
-            shared_user_uuid=invite_data.user_uuid,
-            permissions=value,
-        )
-        await db.execute(share_insert)
     response = await db.execute(update_user)
     await db.execute(update_invite)
     await db.commit()
     if response.rowcount == 0:  # type: ignore
         return schemas.MessageReturn(success=False, message="User not found")
+    await crud.accept_resource_shares(
+        db, invite_data.user_uuid, invite_data.shared_dashboards, invite_data.shared_apps
+    )
     select_user = select(User.uuid).where(User.email == invite_data.email)
     (await db.execute(select_user)).first()
     return schemas.MessageReturn(success=True, message=invite_data.email)
@@ -478,26 +455,17 @@ async def put_user(
         PermissionsEntityMap.uuid == user.permissions_uuid
     )
     new_entity_uuid = (await db.execute(new_entity_query)).scalar_one_or_none()
-    nowish = base.get_now()
     query = (
         update(User)
         .where(User.uuid == user_uuid)
         .values(
             permissions_uuid=user.permissions_uuid,
-            pro_trial_granted=True,
-            pro_trial_granted_date=nowish,
         )
     )
-    if user.pro_trial_end:
-        query = query.values(pro_trial_end=user.pro_trial_end)
-
-    # Update the user's permissions_uuid and pro_trial_end (if any)
     response = await db.execute(query)
     await db.commit()
     if response.rowcount == 0:  # type: ignore
         raise HTTPException(404, detail="User not found")
-
-    # hubspot pro_trial_granted sync removed — not needed for marketing provider
 
     # Handle shared dashboards
     if old_entity_uuid != new_entity_uuid:
@@ -508,9 +476,6 @@ async def put_user(
     r = settings.get_redis_session("pro")
     r.delete(str(user_uuid))
 
-    # Update user entitlements for the new entity's
-    await pro_helpers.update_user_entitlement_with_entity_entitlement(db, user_uuid)
-
     # Update onboarding info to not skip onboarding
     update_onboarding_query = (
         update(models.DeveloperOnboarding)
@@ -518,9 +483,6 @@ async def put_user(
         .values(skip_onboarding=False)
     )
     await db.execute(update_onboarding_query)
-
-    # Having the user change permissions_uuid should also toggle the welcome screen
-    await pro_helpers.toggle_welcome_screen(db, user_uuid, True)
 
     # Destroy all other pro sessions for the user
     await auth_helpers.delete_user_pro_sessions(
@@ -537,7 +499,7 @@ async def get_users(
     db: AsyncSession = Depends(aget_read_db),
     _=Depends(auth_helpers.get_current_superuser),
 ):
-    query = select(User.uuid, User.email, User.permissions_uuid, User.pro_trial_end)
+    query = select(User.uuid, User.email, User.permissions_uuid)
     if email:
         query = query.where(User.email.contains(email))
 
@@ -555,128 +517,11 @@ async def get_users(
                     uuid=item.uuid,
                     email=item.email,
                     permissions=permissions,
-                    pro_trial_end=item.pro_trial_end,
                 )
             )
         return cleaned
 
     return await paginate(db, query, transformer=transformer)
-
-
-@router.get("/entitlement/{entity_uuid}", response_model=schemas.EntitlementGet)
-@limiter.limit(LIMIT_DEFAULT, exempt_when=exempt_user_agent)
-async def get_entitlement(
-    request: Request,
-    entity_uuid: UUID,
-    db: AsyncSession = Depends(aget_read_db),
-    _=Depends(auth_helpers.get_current_superuser),
-):
-    result = await pro_helpers.get_entity_entitlement(db, entity_uuid)
-    if not result:
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-    return result
-
-
-@router.patch("/entitlement/{entity_uuid}", response_model=schemas.SuccessReturn)
-async def patch_entitlement(
-    entity_uuid: UUID,
-    entitlement: schemas.EntitlementPatch,
-    update_all: bool = False,
-    db: AsyncSession = Depends(aget_write_db),
-    _=Depends(auth_helpers.get_current_superuser),
-):
-    """
-    Endpoint to update the entitlement for an entity.
-
-    Args:
-        entitlement (schemas.EntitlementPatch): The entitlement to be updated.
-        update_all (bool): If True, apply changes to all users regardless of their current values.
-
-    Returns:
-        SuccessReturn: An instance indicating the operation was successful.
-    """
-    tiers_match = {
-        "pro": models.PRO_TIER_ID,
-        "terminal": models.TERMINAL_TIER_ID,
-    }
-    has_entitlement = await pro_helpers.has_entity_entitlement(db, entity_uuid)
-    if not has_entitlement:
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-
-    entitlement_dict = entitlement.model_dump(exclude_unset=True)
-    if tier := entitlement_dict.pop("tier", None):
-        entitlement_dict["tier_id"] = tiers_match.get(tier)
-
-    # Fetch the current entitlement from the database
-    current_entitlement = (
-        await db.execute(
-            select(models.EntityEntitlement).where(
-                models.EntityEntitlement.entity_uuid == entity_uuid
-            )
-        )
-    ).scalar_one_or_none()
-
-    if not current_entitlement:
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-
-    # Make a copy of the entitlements so we can use to compare with the user's
-    current_entitlement_detached = deepcopy(current_entitlement)
-
-    # Compare the current values with the new values and create a dictionary of changed values
-    changed_values = {
-        key: value
-        for key, value in entitlement_dict.items()
-        if getattr(current_entitlement, key) != value
-    }
-
-    if changed_values:
-        # Update the database with the changed values
-        query = (
-            update(models.EntityEntitlement)
-            .where(models.EntityEntitlement.entity_uuid == entity_uuid)
-            .values(**changed_values)
-        )
-        await db.execute(query)
-
-    # Apply the changes on its users
-    users_in_entity = await pro_helpers.get_entity_users(db, entity_uuid)
-    for user_uuid in users_in_entity:
-        if update_all:
-            # If update_all is True, apply all changes to all users
-            query = (
-                update(models.Entitlement)
-                .where(models.Entitlement.user_uuid == user_uuid)
-                .values(**changed_values)
-            )
-            await db.execute(query)
-        else:
-            # Fetch the user's current entitlement
-            user_entitlement = await db.execute(
-                select(models.Entitlement).where(
-                    models.Entitlement.user_uuid == user_uuid
-                )
-            )
-            user_entitlement = user_entitlement.scalar_one_or_none()
-
-            if user_entitlement:
-                # Only update fields that match the entity's current values
-                user_changes = {
-                    key: value
-                    for key, value in changed_values.items()
-                    if getattr(user_entitlement, key)
-                    == getattr(current_entitlement_detached, key)
-                }
-
-                if user_changes:
-                    query = (
-                        update(models.Entitlement)
-                        .where(models.Entitlement.user_uuid == user_uuid)
-                        .values(**user_changes)
-                    )
-                    await db.execute(query)
-
-    await db.commit()
-    return schemas.SuccessReturn.success_instance()
 
 
 @router.delete("/entity/{entity_uuid}", response_model=schemas.SuccessReturn)

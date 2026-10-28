@@ -51,17 +51,14 @@ ALL_TEMPLATES = {
     "pro_invite": 145816413448,
     "send_invite_emails": 139075204884,
     "terminal_invite": 178582495410,
-    "trial_create_account": 181609748534,
     "openbb.manager_account_takeover": 152501799073,
     "terminal_account_takeover": 181616517459,
     "account_takeover": 145939279542,
     "password_reset": 139100044146,
     "password_reset_confirmation": 139100051314,
     "support_received": 139102044039,
-    "four_days_no_use": 152082226774,
     "pat_warning": 139100020273,
     "share_notice": 168386512021,
-    "extend_pro_trial": 167332179064,
 }
 
 
@@ -274,12 +271,11 @@ def send_create_account(  # noqa: PLR0913, PLR0917
     password: str,
     inviter: str,
     message: None | str = None,
-    is_free_tier: bool = False,
 ):
     "Sends a link for an invited user to create a new account"
     url = create_url(f"pro/create-account/{token}", base=settings.SELFURL, email=to)
     # Custom logic to handle the a register from the pro website
-    if inviter == settings.PRO_TRIAL_EMAIL:
+    if inviter == settings.DEFAULT_INVITER_EMAIL:
         data = {
             "create_url": url,
             "password": password,
@@ -297,9 +293,6 @@ def send_create_account(  # noqa: PLR0913, PLR0917
         "site_url": settings.PROURL,
         "message": html,
     }
-    if is_free_tier:
-        # TERMINAL: Day 0 - Invite (without account) - 178582495410
-        return send_template(178582495410, to, custom_properties=data)
     # PRO: Day 0 - Invite user (without account)
     return send_template(145816413448, to, custom_properties=data)
 
@@ -320,12 +313,6 @@ def send_password_reset_confirmation(to: str):
 @require_hubspot_enabled
 def send_support_received(to: str):
     return send_template(139102044039, to)
-
-
-@require_hubspot_enabled
-def four_days_no_use(to: str, first_name: str):
-    data = {"first_name": first_name}
-    return send_template(152082226774, to, custom_properties=data)
 
 
 @require_hubspot_enabled
@@ -353,20 +340,13 @@ def send_account_takeover(
         )
         return
     # Day 0 - Register from Terminal (Existing Account) v3 - 181616517459
-    if inviter == settings.PRO_TRIAL_EMAIL:
+    if inviter == settings.DEFAULT_INVITER_EMAIL:
         return send_template(181616517459, to, custom_properties={"create_url": url})
     # Deprecated: template 145939279542 removed from HubSpot
     logger.warning(
         f"Deprecated HubSpot takeover path hit: generic invite from {inviter} to {to}"
     )
     return
-
-
-@require_hubspot_enabled
-def extend_pro_trial(to: str, user_uuid: UUID):
-    url = create_url(f"pro/extend-trial-email/{user_uuid}", base=settings.SELFURL)
-    data = {"extend_url": url}
-    return send_template(167332179064, to, custom_properties=data)
 
 
 @require_hubspot_enabled

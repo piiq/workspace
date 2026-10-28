@@ -63,6 +63,8 @@ async def client(db_session, apply_migrations):
         stack.enter_context(
             patch("api.auth_helpers.database.AsyncReadSessionLocal", test_async_read)
         )
+        stack.enter_context(patch("api.worker_tasks.AsyncReadSessionLocal", test_async_read))
+        stack.enter_context(patch("api.worker_tasks.AsyncWriteSessionLocal", test_async_write))
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:

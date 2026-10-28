@@ -226,17 +226,12 @@ async def forgot_password(
             # Return same message as successful case to avoid user enumeration
             return JSONResponse(content={"success": True}, status_code=200)
 
-        is_free_tier = (
-            inviter_result.permissions_uuid == settings.PRO_DEVELOPER_MAPPING
-            and not settings.is_onprem()
-        )
         pw = inviter_result.data.get("password") or base.random_password()
         EmailService.send_create_account(
             token=inviter_result.uuid,
             to=inviter_result.invited_email,
             password=pw,
             inviter=inviter_result.email,
-            is_free_tier=is_free_tier,
         )
         raise HTTPException(
             409,

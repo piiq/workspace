@@ -75,7 +75,6 @@ FASTAPI_KWARGS = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await helpers.init_trial_mappings()
     await start_background_tasks()
     await init_audit_listeners()
     if config.settings.PROMETHEUS:
@@ -350,7 +349,6 @@ def custom_openapi():
         "/pro/log",
         "/pro/create-user/{the_uuid}",
         "/pro/create-account/{the_uuid}",
-        "/pro/extend-trial-email/{user_uuid}",
         "/pro/check-install/{target}",
         "/pro/check-update/{target}/{current_version}",
     ]

@@ -156,7 +156,6 @@ fi
 cat > /opt/code/scripts/cfgs/config.toml <<EOF
 [entity]
 name = "OpenBB Lite"
-seats = 10000
 aum = 1000
 company_type = "CORPORATION"
 organization_size = "SMALL"

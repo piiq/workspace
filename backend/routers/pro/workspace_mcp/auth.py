@@ -47,10 +47,14 @@ async def get_workspace_mcp_token_user_uuid(
 async def validate_workspace_mcp_token(db: AsyncSession, token: str) -> UUID:
     token_hash = hash_workspace_mcp_token(token)
     result = await db.execute(
-        select(models.PersonalAccessToken).where(
+        select(models.PersonalAccessToken)
+        .join(models.User, models.User.uuid == models.PersonalAccessToken.user_uuid)
+        .where(
             models.PersonalAccessToken.token_hash == token_hash,
             models.PersonalAccessToken.token_type == WORKSPACE_MCP_TOKEN_TYPE,
             models.PersonalAccessToken.revoked_at.is_(None),
+            models.User.deleted.is_(False),
+            models.User.permissions_uuid.is_not(None),
         )
     )
     personal_access_token = result.scalar_one_or_none()

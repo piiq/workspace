@@ -113,10 +113,8 @@ ENTITY_RESPONSE=$(api_request POST "/entity/entity" "{
     \"admin_email\": \"admin-$TIMESTAMP@example.com\",
     \"company_type\": \"Investment Firm\",
     \"organization_size\": \"10-50\",
-    \"aum\": 10000000,
-    \"country\": \"USA\",
-    \"seats\": 50,
-    \"expiration_date\": \"2025-12-31T00:00:00Z\"
+    \"aum\": 20000000,
+    \"country\": \"USA\"
 }")
 
 ENTITY_UUID=$(json_val "$ENTITY_RESPONSE" "entity_uuid")
@@ -127,21 +125,6 @@ if [ -z "$ENTITY_UUID" ]; then
     exit 1
 fi
 log_success "Entity created: $ENTITY_UUID"
-
-# =============================================================================
-# 4. UPDATE ENTITY ENTITLEMENTS (what entity_create_with_entitlements does)
-# =============================================================================
-log_step "Step 4: Updating entity entitlements..."
-echo "Endpoint: PATCH /entity/entitlement/{entity_uuid}?update_all=true"
-
-ENTITLEMENT_RESPONSE=$(api_request PATCH "/entity/entitlement/$ENTITY_UUID?update_all=true" "{
-    \"tier\": \"pro\",
-    \"number_copilot_calls_day\": 10000,
-    \"total_file_upload_size_gb\": 10,
-    \"excel_add_in\": 1
-}")
-
-log_success "Entitlements configured"
 
 # =============================================================================
 # 5. GET PERMISSION MAPS (what get_permission_map_by_role does)
@@ -251,7 +234,7 @@ log_success "Retrieved entity details"
 # =============================================================================
 # 9. UPDATE ENTITY (smart partial update)
 # =============================================================================
-log_step "Step 9: Updating entity (seats: 50 -> 100)..."
+log_step "Step 9: Updating entity assets under management..."
 echo "Endpoint: PUT /entity/entity/{uuid}"
 echo "Note: HubAPIClient.entity_update() fetches current state, merges changes, then PUTs"
 
@@ -262,13 +245,11 @@ UPDATE_RESPONSE=$(api_request PUT "/entity/entity/$ENTITY_UUID" "{
     \"email\": \"billing-$TIMESTAMP@example.com\",
     \"company_type\": \"Investment Firm\",
     \"organization_size\": \"10-50\",
-    \"aum\": 10000000,
-    \"country\": \"USA\",
-    \"seats\": 100,
-    \"expiration_date\": \"2025-12-31T00:00:00Z\"
+    \"aum\": 20000000,
+    \"country\": \"USA\"
 }")
 
-log_success "Entity updated (seats: 50 -> 100)"
+log_success "Entity updated (aum: 20000000)"
 
 # =============================================================================
 # 10. FIND USER BY EMAIL
@@ -329,8 +310,7 @@ echo "| Client Method                      | Raw Endpoints                      
 echo "|------------------------------------|-------------------------------------------|"
 echo "| auth_login(email, pw)              | POST /pro/login                           |"
 echo "| entity_type_list()                 | GET /entity/entity-type                   |"
-echo "| entity_create_with_entitlements()  | POST /entity/entity                       |"
-echo "|                                    | + PATCH /entity/entitlement/{uuid}        |"
+echo "| entity_create()  | POST /entity/entity                       |"
 echo "| entity_get(uuid)                   | GET /entity/entity (iterates pages)       |"
 echo "| entity_update(uuid, **kwargs)      | GET + merge + PUT /entity/entity/{uuid}   |"
 echo "| get_permission_map_by_role()       | GET /entity/entity-map + filter           |"
