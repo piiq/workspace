@@ -42,9 +42,11 @@ docker compose -f docker/docker-compose-local-dev.yml up --build --watch
 The frontend and backend Docker recipes use the repository root as their build context:
 
 ```bash
-docker build -f frontend/Dockerfile -t workspace-frontend:dev .
-docker build -f backend/fastapi.Dockerfile -t workspace-backend:dev .
+docker buildx build --load -f docker/Dockerfile --target frontend -t workspace-frontend:dev .
+docker buildx build --load -f docker/Dockerfile --target backend -t workspace-backend:dev .
 ```
+
+See [the container instructions](docker/README.md) for runtime configuration, account provisioning, and the separate deployment.
 
 ## Checks
 

@@ -1,90 +1,104 @@
-version: "3.9"
+x-backend: &backend
+  image: ${BACKEND_IMAGE:-workspace-backend:dev}
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    target: backend
+  init: true
+  env_file: ${BACKEND_ENV_FILE:-.env}
+  volumes:
+    - workspace-data:/data
 
 services:
   mysql:
-    image: mysql:8.0
-    container_name: mysql
-    restart: unless-stopped
-    cap_add:
-      - SYS_NICE
-    tty: true
-    ports:
-      - "3306:3306"
-    networks:
-      local-net:
-        aliases:
-          - mysql
+    image: mysql:8.4
     environment:
-      TZ: America/New_York
-      LANG: C.UTF_8
-      MYSQL_ROOT_PASSWORD: root
-    command:
-      [
-        "mysqld",
-        "--character-set-server=utf8mb4",
-        "--collation-server=utf8mb4_unicode_ci",
-      ]
+      MYSQL_DATABASE: ${DB_NAME:-workspace}
+      MYSQL_ROOT_PASSWORD: ${WRITE_DB_PASSWORD:?Set WRITE_DB_PASSWORD in the Compose environment file}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     volumes:
-      - db:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
   redis:
     image: redis:alpine
-    restart: always
-    container_name: redis
-    ports:
-      - 6379:6379
-    networks:
-      - local-net
-    env_file:
-      - ../backend/envs/.env
-    command: redis-server --save 20 1 --loglevel warning
+    command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - data:/redis
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
-  rq_worker:
+  bootstrap:
+    <<: *backend
+    command: ["bootstrap", "--config-dir", "/config"]
+    volumes:
+      - workspace-data:/data
+      - type: bind
+        source: ${WORKSPACE_CONFIG_DIR:?Set WORKSPACE_CONFIG_DIR to the provisioning configuration directory}
+        target: /config
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  backend:
+    <<: *backend
+    command: ["api"]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+      worker:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8000') + '/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  worker:
+    <<: *backend
+    command: ["worker"]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-workspace-frontend:dev}
     build:
       context: ..
-      dockerfile: backend/rqworker.Dockerfile
-    container_name: rq_worker
-    env_file:
-      - ../backend/envs/.env
-    networks:
-      - local-net
-    depends_on:
-      - redis
-      - mysql
-
-  fastapi:
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: "512m"
-    env_file:
-      - ../backend/envs/.env
-    build:
-      context: ..
-      dockerfile: backend/fastapi.Dockerfile
-    container_name: fastapi
+      dockerfile: docker/Dockerfile
+      target: frontend
     ports:
-      - ${PORT:-8000}:${PORT:-8000}
-    networks:
-      local-net:
-        aliases:
-          - fastapi
-    volumes:
-      - logs:/code/backend/logs
+      - "${WORKSPACE_PORT:-8080}:80"
+    environment:
+      BACKEND_UPSTREAM: ${BACKEND_UPSTREAM:-backend:8000}
+      BACKEND_URL: ${BACKEND_URL:-/api}
+      RUNTIME_PLUGINS_ENABLED: ${RUNTIME_PLUGINS_ENABLED:-false}
+      PLUGINS_MANIFEST_URL: ${PLUGINS_MANIFEST_URL:-}
+      AI_COPILOT_AI_ENHANCEMENTS: ${AI_COPILOT_AI_ENHANCEMENTS:-false}
+      UI_SHOW_CHANGELOG: ${UI_SHOW_CHANGELOG:-false}
     depends_on:
-      - rq_worker
-
-networks:
-  local-net:
-    driver: bridge
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
-  data:
-    driver: local
-  logs:
-    external: true
-  db:
-    driver: local
+  workspace-data:
+  mysql-data:
+  redis-data:
