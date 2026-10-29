@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from decimal import Decimal
 from uuid import uuid4
 
 import pymysql
@@ -228,17 +229,17 @@ def _wait_for_mysql(host: str, port: int, timeout: int = 60):
 
 def _wait_for_postgres(host: str, port: int, timeout: int = 60):
     """Wait for PostgreSQL to accept connections."""
-    import psycopg2
+    import pg8000
 
     for attempt in range(timeout):
         try:
-            conn = psycopg2.connect(
+            conn = pg8000.connect(
                 host=host,
                 port=port,
                 user="root",
                 password="test_password",  # noqa: S106
-                dbname="test_db",
-                connect_timeout=3,
+                database="test_db",
+                timeout=3,
             )
             conn.close()
             return
@@ -321,7 +322,7 @@ class TestMySQLMigrations:
 class TestPostgreSQLMigrations:
     """Test alembic upgrade head on a fresh PostgreSQL database."""
 
-    def test_postgres_upgrade_head(self):
+    async def test_postgres_upgrade_head(self):
         from testcontainers.community.postgres import PostgresContainer
         from testcontainers.community.redis import RedisContainer
 
@@ -331,6 +332,7 @@ class TestPostgreSQLMigrations:
                 username="root",
                 password="test_password",
                 dbname="test_db",
+                driver="pg8000",
             ) as pg,
             RedisContainer("redis:alpine") as redis,
         ):
@@ -366,13 +368,52 @@ class TestPostgreSQLMigrations:
                 "Running upgrade" in result.stderr
             ), f"No migrations ran:\n{result.stderr}"
 
-            url = (
-                f"postgresql+psycopg2://root:test_password@{pg_host}:{pg_port}/test_db"
+            from utilities.config import DatabaseSettings
+
+            db_settings = DatabaseSettings(
+                **{key: value for key, value in env_vars.items() if key in DatabaseSettings.model_fields}
             )
-            engine = sa.create_engine(url)
+            engine = db_settings.get_write_engine()
+            read_engine = db_settings.get_read_engine()
+            read_sessions = db_settings.get_read_session()
+            write_sessions = db_settings.get_write_session()
+            probe = sa.Table(
+                "driver_probe",
+                sa.MetaData(),
+                sa.Column("id", sa.Uuid, primary_key=True),
+                sa.Column("payload", sa.JSON),
+                sa.Column("amount", sa.Numeric(10, 2)),
+            )
+            row_id = uuid4()
             try:
                 _inspect_and_verify(engine, "postgresql")
+                probe.create(engine)
+                with engine.begin() as connection:
+                    connection.execute(probe.insert().values(
+                        id=row_id, payload={"labels": ["sync"]}, amount=Decimal("12.34")
+                    ))
+
+                async with read_sessions.session() as session:
+                    row = (await session.execute(probe.select().where(probe.c.id == row_id))).one()
+                    assert row.payload == {"labels": ["sync"]}
+                    assert row.amount == Decimal("12.34")
+
+                async with write_sessions.session() as session:
+                    await session.execute(probe.update().where(probe.c.id == row_id).values(
+                        payload={"labels": ["async"]}, amount=Decimal("56.78")
+                    ))
+                    await session.commit()
+
+                with read_engine.connect() as connection:
+                    row = connection.execute(probe.select().where(probe.c.id == row_id)).one()
+                    assert row.id == row_id
+                    assert row.payload == {"labels": ["async"]}
+                    assert row.amount == Decimal("56.78")
             finally:
+                await read_sessions.close()
+                await write_sessions.close()
+                probe.drop(engine, checkfirst=True)
+                read_engine.dispose()
                 engine.dispose()
 
 

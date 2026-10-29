@@ -41,7 +41,7 @@ class _WriterAFailure(Exception):
 
 
 async def test_concurrent_async_sqlite_sessions_are_isolated(tmp_path):
-    manager = DatabaseSessionManager(f"sqlite:///{tmp_path / 'isolation.db'}")
+    manager = DatabaseSessionManager(f"sqlite+aiosqlite:///{tmp_path / 'isolation.db'}")
     async with manager.connect() as connection:
         await connection.execute(text("CREATE TABLE rows (label TEXT)"))
 

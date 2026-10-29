@@ -47,14 +47,14 @@ migration chain via subprocess, then introspects every table to verify:
 - All tables were created (40+ expected)
 - Every column can be reflected without type-mapping errors
 - A `SELECT` succeeds on every table
-- Seed data is present (2 tiers and 2 default_tiers)
+- Synchronous pg8000 and asynchronous asyncpg connections can read and write PostgreSQL UUID, JSON, and numeric values
 - Database revision matches the Alembic migration head
 
 ### Run all dialect tests
 
 ```bash
 cd backend
-python -m pytest tests/test_migration_dialects.py -v
+pytest tests/test_migration_dialects.py --require-docker -v
 ```
 
 ### Run a single dialect
@@ -66,6 +66,8 @@ python -m pytest tests/test_migration_dialects.py::TestPostgreSQLMigrations -v
 ```
 
 > **Note:** MySQL and PostgreSQL tests require Docker. SQLite runs without Docker.
+
+`--require-docker` fails before running tests when Docker is unavailable. Use it for runs covering all database dialects, including CI. Without that option, tests requiring Docker are skipped when it is unavailable.
 
 ---
 
