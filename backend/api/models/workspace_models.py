@@ -220,7 +220,7 @@ class ChatMessages(Base, UUIDMixin):
     )
     content: Mapped[dict | None] = mapped_column(GzipJsonType)
     searchable_content: Mapped[str | None] = mapped_column(Text)
-    role: Mapped[base.ChatMessageRole] = mapped_column(Enum(base.ChatMessageRole))
+    role: Mapped[base.ChatMessageRole] = mapped_column(Enum(base.ChatMessageRole, name="message_role"))
 
     created_date: Mapped[datetime | None] = mapped_column(
         DATETIME(fsp=3), default=base.get_now
