@@ -175,7 +175,7 @@ COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 COPY render-frontend-config.sh /usr/local/share/openbb/render-frontend-config.lite.sh
-COPY render-frontend-config.full.sh /usr/local/share/openbb/render-frontend-config.full.sh
+COPY scripts/render-frontend-config.sh /usr/local/share/openbb/render-frontend-config.full.sh
 # Admin-login helper: `docker exec openbb credentials`
 COPY credentials.sh /usr/local/bin/credentials
 

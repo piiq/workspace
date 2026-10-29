@@ -105,6 +105,9 @@ rm -rf _hub
 
 # --- build + push ------------------------------------------------------------
 echo "[publish] Building and pushing $IMAGE_BASE:{$VERSION,latest}..."
+mkdir -p "$SCRIPT_DIR/scripts"
+cp "$SCRIPT_DIR/../scripts/render-frontend-config.sh" "$SCRIPT_DIR/scripts/render-frontend-config.sh"
+
 docker buildx build \
   --platform "$PLATFORMS" \
   -f "$DOCKERFILE" \

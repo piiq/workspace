@@ -1,4 +1,4 @@
-# Frontend and backend Docker recipes use the repository root as build context.
+# Container builds use the repository root as build context.
 
 # Heavy / unrelated dirs
 .git
@@ -28,9 +28,13 @@ lite/_hub
 **/*.c
 **/build/
 
-# Backend env files (we generate fresh secrets at first start).
+# Deployment configuration and account bootstrap files.
 backend/envs/.env
 backend/envs/.env.*
+docker/.env
+backend/user_create.json
+backend/.e2e
+backend/*.db*
 backend/tests
 backend/scripts/cfgs
 backend/.claude
@@ -52,6 +56,9 @@ frontend/tests
 frontend/docs
 frontend/playwright.config.ts
 frontend/vitest.setup.ts
+
+.build/*
+!.build/plugins/
 
 # Editor cruft
 **/.DS_Store

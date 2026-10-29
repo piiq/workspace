@@ -200,6 +200,8 @@ Prefer to do it by hand? Clone the two repos beside the Dockerfile and build:
 git clone -b develop --depth 1 https://github.com/OpenBB-finance/terminalpro.git terminalpro
 git clone -b develop --depth 1 https://github.com/OpenBB-finance/openbb-hub.git _hub
 mv _hub/backend ./backend && rm -rf _hub
+mkdir -p scripts
+cp ../scripts/render-frontend-config.sh scripts/render-frontend-config.sh
 DOCKER_BUILDKIT=1 docker build -f Dockerfile -t openbb/lite:latest .
 ```
 

@@ -1,8 +1,16 @@
 #!/bin/bash
 # Renders /usr/share/nginx/html/config.js from environment variables.
-#
-# Full variant: expose every frontend runtime knob this renderer can support.
 set -euo pipefail
+
+case "${1:-}" in
+  -h|--help)
+    echo "Usage: render-frontend-config.sh"
+    echo "Render frontend environment settings to CONFIG_OUT (default /usr/share/nginx/html/config.js)."
+    exit 0
+    ;;
+  "") ;;
+  *) echo "Unknown argument: $1. Use --help for usage." >&2; exit 2 ;;
+esac
 
 : "${CONFIG_OUT:=/usr/share/nginx/html/config.js}"
 

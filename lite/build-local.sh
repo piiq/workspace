@@ -123,6 +123,9 @@ else
   rm -rf _hub
 fi
 
+mkdir -p "$SCRIPT_DIR/scripts"
+cp "$SCRIPT_DIR/../scripts/render-frontend-config.sh" "$SCRIPT_DIR/scripts/render-frontend-config.sh"
+
 echo "[build-local] Building $IMAGE ..."
 PLATFORM_ARGS=()
 if [[ -n "$PLATFORM" ]]; then

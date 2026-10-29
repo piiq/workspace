@@ -12,6 +12,7 @@ on:
       - 'backend/pytest.ini'
       - 'backend/pyproject.toml'
       - 'backend/poetry.lock'
+      - 'docker/backend/**'
       - '.github/workflows/backend-integration-tests.yml'
 
 jobs:

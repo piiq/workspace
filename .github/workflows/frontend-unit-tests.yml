@@ -21,7 +21,7 @@ on:
       - 'frontend/postcss.config.cjs'
       - 'frontend/vitest.setup.ts'
       - 'frontend/.env*'
-      - 'lite/render-frontend-config.full.sh'
+      - 'scripts/render-frontend-config.sh'
       - '.github/workflows/frontend-unit-tests.yml'
 
 concurrency:
