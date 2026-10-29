@@ -78,15 +78,11 @@ def run_migrations_online():
             print("Migrations already applied, skipping...")  # noqa: T201
             return
 
-    kwargs = {}
-    if ssl_config := settings.get_ssl_config():
-        kwargs["connect_args"] = {"ssl": ssl_config}
-
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
         poolclass=pool.StaticPool if is_sqlite else pool.NullPool,
-        **kwargs,
+        connect_args=settings.get_engine_kwargs()["connect_args"],
     )
 
     with connectable.connect() as connection:

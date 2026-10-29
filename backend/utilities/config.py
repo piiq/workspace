@@ -74,9 +74,15 @@ def create_path(*path: str) -> str:
     return default_path
 
 
-def get_url(self: "DatabaseSettings", access: Literal["READ", "WRITE"] = "READ") -> str:
+def get_url(
+    self: "DatabaseSettings",
+    access: Literal["READ", "WRITE"] = "READ",
+    *,
+    asynchronous: bool = False,
+) -> str:
     if self.DATABASE_TYPE == "sqlite":
-        return f"sqlite:///{self.DB_PATH}"
+        driver = "sqlite+aiosqlite" if asynchronous else "sqlite"
+        return f"{driver}:///{self.DB_PATH}"
 
     user = getattr(self, f"{access}_DB_USER")
     password = getattr(self, f"{access}_DB_PASSWORD")
@@ -85,9 +91,11 @@ def get_url(self: "DatabaseSettings", access: Literal["READ", "WRITE"] = "READ")
     name = self.DB_NAME
 
     if self.DATABASE_TYPE == "postgresql":
-        return f"postgresql+psycopg2://{user}:{password}@{the_host}:{the_port}/{name}"
+        driver = "asyncpg" if asynchronous else "pg8000"
+        return f"postgresql+{driver}://{user}:{password}@{the_host}:{the_port}/{name}"
 
-    return f"mysql+pymysql://{user}:{password}@{the_host}:{the_port}/{name}?charset=utf8mb4"
+    driver = "aiomysql" if asynchronous else "pymysql"
+    return f"mysql+{driver}://{user}:{password}@{the_host}:{the_port}/{name}?charset=utf8mb4"
 
 
 class DatabaseConnectArgs(BaseModel):
@@ -156,11 +164,8 @@ class DatabaseEngineSettings(BaseModel):
 
 class DatabaseSessionManager:
     def __init__(self, host: str, **engine_kwargs: Any):
-        host = host.replace("pymysql", "aiomysql").replace("psycopg2", "asyncpg")
-
         is_sqlite = host.startswith("sqlite")
         if is_sqlite:
-            host = host.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
             # A single connection serialized through pool checkout: concurrent
             # sessions queue for it. StaticPool must not be used here — it hands
             # the same connection to overlapping sessions, so their transactions
@@ -257,7 +262,7 @@ class DatabaseSettings(BaseModel):
             - SSL_CERT: path to client certificate file (mTLS). Must be set with SSL_KEY.
             - SSL_KEY:  path to client private key file (mTLS). Must be set with SSL_CERT.
 
-        Returns None when no SSL env vars are set (driver connects without TLS).
+        Returns None when no SSL env vars are set.
         To tune other TLS knobs (verify_mode, check_hostname, ciphers, etc.),
         configure them on the returned SSLContext at the call site.
         """
@@ -270,8 +275,8 @@ class DatabaseSettings(BaseModel):
             ctx.load_cert_chain(certfile=self.SSL_CERT, keyfile=self.SSL_KEY)
         return ctx
 
-    def get_read_url(self) -> str:
-        return get_url(self)
+    def get_read_url(self, *, asynchronous: bool = False) -> str:
+        return get_url(self, asynchronous=asynchronous)
 
     @staticmethod
     def _sqlite_engine_kwargs() -> dict[str, Any]:
@@ -285,45 +290,54 @@ class DatabaseSettings(BaseModel):
             "max_overflow": 0,
         }
 
-    def get_read_engine(self, settings: DatabaseEngineSettings | None = None) -> Engine:
+    def get_engine_kwargs(
+        self,
+        engine_settings: DatabaseEngineSettings | None = None,
+        *,
+        asynchronous: bool = False,
+    ) -> dict[str, Any]:
+        if self.DATABASE_TYPE == "sqlite" and not asynchronous:
+            return self._sqlite_engine_kwargs()
+        if engine_settings is None:
+            engine_settings = DatabaseEngineSettings.with_custom_ssl(self.get_ssl_config())
+        kwargs = engine_settings.model_dump()
         if self.DATABASE_TYPE == "sqlite":
-            return create_engine(self.get_read_url(), **self._sqlite_engine_kwargs())
-        if settings is None:
-            settings = DatabaseEngineSettings.with_custom_ssl(self.get_ssl_config())
-        return create_engine(self.get_read_url(), **settings.model_dump())
+            kwargs.update(self._sqlite_engine_kwargs())
+        elif self.DATABASE_TYPE == "postgresql" and not asynchronous:
+            kwargs["connect_args"]["ssl_context"] = kwargs["connect_args"].pop("ssl")
+        return kwargs
+
+    def get_read_engine(self, settings: DatabaseEngineSettings | None = None) -> Engine:
+        return create_engine(self.get_read_url(), **self.get_engine_kwargs(settings))
 
     def get_read_session(
         self, settings: DatabaseEngineSettings | None = None
     ) -> DatabaseSessionManager:
-        if settings is None:
-            settings = DatabaseEngineSettings.with_custom_ssl(self.get_ssl_config())
-        return DatabaseSessionManager(self.get_read_url(), **settings.model_dump())
+        return DatabaseSessionManager(
+            self.get_read_url(asynchronous=True),
+            **self.get_engine_kwargs(settings, asynchronous=True),
+        )
 
-    def get_write_url(self) -> str:
-        return get_url(self, access="WRITE")
+    def get_write_url(self, *, asynchronous: bool = False) -> str:
+        return get_url(self, access="WRITE", asynchronous=asynchronous)
 
     def get_write_engine(
         self, settings: DatabaseEngineSettings | None = None
     ) -> Engine:
-        if self.DATABASE_TYPE == "sqlite":
-            return create_engine(self.get_write_url(), **self._sqlite_engine_kwargs())
-        if settings is None:
-            settings = DatabaseEngineSettings.with_custom_ssl(self.get_ssl_config())
-        return create_engine(self.get_write_url(), **settings.model_dump())
+        return create_engine(self.get_write_url(), **self.get_engine_kwargs(settings))
 
     def get_write_session(
         self, settings: DatabaseEngineSettings | None = None
     ) -> DatabaseSessionManager:
-        if settings is None:
-            settings = DatabaseEngineSettings.with_custom_ssl(self.get_ssl_config())
-        return DatabaseSessionManager(self.get_write_url(), **settings.model_dump())
+        return DatabaseSessionManager(
+            self.get_write_url(asynchronous=True),
+            **self.get_engine_kwargs(settings, asynchronous=True),
+        )
 
     def get_validate_user_session(
         self, settings: DatabaseEngineSettings | None = None
     ) -> DatabaseSessionManager:
-        if settings is None:
-            settings = DatabaseEngineSettings.with_custom_ssl(self.get_ssl_config())
-        return DatabaseSessionManager(self.get_write_url(), **settings.model_dump())
+        return self.get_write_session(settings)
 
 
 class RedisSettings(BaseModel):
