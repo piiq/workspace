@@ -42,4 +42,4 @@ jobs:
 
       - name: Run migration dialect tests
         run: |
-          pytest tests/test_migration_dialects.py -v
+          pytest tests/test_migration_dialects.py --require-docker -v
