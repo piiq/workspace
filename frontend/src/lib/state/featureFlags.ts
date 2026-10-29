@@ -7,15 +7,7 @@ import type { Selector } from "./app";
 
 export type FeatureFlags = {
   admin_access: boolean; // show admin panel
-  bring_your_own_copilot: boolean;
-  bring_your_own_data: boolean;
-  excel_add_in: boolean;
-  number_copilot_calls_day: number;
-  share_widgets: "private" | "public";
-  support: boolean;
-  tier: "pro" | "terminal";
-  total_file_upload_size_gb: number;
-  is_trial: boolean;
+  allow_custom_backends: boolean;
   can_submit_marketplace: boolean; // developer may submit marketplace apps
 };
 

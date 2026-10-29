@@ -2,7 +2,6 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from loguru import logger
 from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +10,6 @@ from api.database import aget_read_db, aget_write_db
 from api.email import EmailService
 from api.models import PermissionsEntityMap, User, UserApp, UserAppShare
 from routers import pro_helpers, routers_helpers
-from utilities.config import settings
 
 router = APIRouter(
     prefix="/pro/user-apps",
@@ -136,7 +134,7 @@ async def get_shares(
         auth_helpers.GetCurrentUser(["uuid", "email", "permissions_uuid"], pro=True)
     ),
 ):
-    trial_permissions_uuids = await crud.get_trial_permissions_uuids(db)
+    await validate_app_ownership(db, app_uuid, user.uuid)
     final_result: dict[str, schemas.UserAppShareReturn] = {}
     query = (
         select(
@@ -163,9 +161,8 @@ async def get_shares(
             created_date=shared.created_date,
             is_invite=False,
         )
-    if user.permissions_uuid in trial_permissions_uuids:
-        more_results = await crud.get_invite_shares(db, user.uuid, app_uuid=app_uuid)
-        final_result |= more_results
+    more_results = await crud.get_invite_shares(db, user.uuid, app_uuid=app_uuid)
+    final_result |= more_results
     return final_result
 
 
@@ -189,7 +186,6 @@ async def add_share(
     if not clean_shares:
         return schemas.SuccessReturn.success_instance()
 
-    trial_entity_uuid = await crud.get_trial_entity_uuid(db)
     user_permissions, user_emails, entity_uuid, user_uuids = (
         await crud.get_new_sharing_permissions(
             db, clean_shares, user.permissions_uuid, app_uuid=app_uuid
@@ -211,26 +207,20 @@ async def add_share(
         await crud.share_files(db, user.uuid, user_uuids, user_app_uuid=app_uuid)
 
     # Send invite emails:
-    if trial_entity_uuid == entity_uuid:
-        to_invite = await crud.get_unregistered_users(db, share.shares, user_emails)
-        found_user = found_user or bool(to_invite)
+    to_invite = await crud.get_unregistered_users(db, share.shares, user_emails)
+    found_user = found_user or bool(to_invite)
 
-        for invite in to_invite:
-            # We might want to add a clean email check here
-            extra_info = schemas.RegisterProUser(
-                inviting_uuid=user.uuid,
-                inviting_email=user.email,
-                shared_user_app=app_uuid,
-                shared_permissions=share.shares.get(invite, "view"),
-            )
-            new_user = schemas.UserCreateAdmin(
-                email=invite, permissions_uuid=settings.PRO_TRIAL_MAPPING
-            )
-            # For now we are ignoring any errors here and just trying to invite everyone
-            try:
-                await routers_helpers.register_pro_user(db, new_user, extra_info)
-            except Exception as e:
-                logger.error(e)
+    for invite in to_invite:
+        extra_info = schemas.RegisterProUser(
+            inviting_uuid=user.uuid,
+            inviting_email=user.email,
+            shared_user_app=app_uuid,
+            shared_permissions=share.shares.get(invite, "view"),
+        )
+        new_user = schemas.UserCreateAdmin(
+            email=invite, permissions_uuid=await crud.get_entity_member_permissions(db, entity_uuid)
+        )
+        await routers_helpers.register_pro_user(db, new_user, extra_info)
 
     # Send share emails:
     for email in user_emails:
@@ -335,7 +325,6 @@ async def see_available_users(
         auth_helpers.GetCurrentUser(["uuid", "email", "permissions_uuid"], pro=True)
     ),
 ):
-    trial_permissions_uuids = await crud.get_trial_permissions_uuids(db)
     complete_list: dict[str, schemas.UserAppShareReturn] = {}
     await validate_app_ownership(db, app_uuid, user.uuid)
     user_entity_query = select(PermissionsEntityMap.entity_uuid).where(
@@ -344,27 +333,25 @@ async def see_available_users(
     user_entity = (await db.execute(user_entity_query)).scalar_one_or_none()
     if user_entity is None:
         raise HTTPException(status_code=400, detail="Unable to find the user's entity")
-    base_entity_uuid = await crud.get_trial_entity_uuid(db)
 
     all_users = []
 
-    if user_entity != base_entity_uuid:
-        all_users_query = (
-            select(
-                User.email,
-                User.first_name,
-                User.last_name,
-                PermissionsEntityMap.entity_uuid,
-            )
-            .join(
-                PermissionsEntityMap, User.permissions_uuid == PermissionsEntityMap.uuid
-            )
-            .where(
-                PermissionsEntityMap.entity_uuid == user_entity,
-                User.email != user.email,
-            )
+    all_users_query = (
+        select(
+            User.email,
+            User.first_name,
+            User.last_name,
+            PermissionsEntityMap.entity_uuid,
         )
-        all_users = (await db.execute(all_users_query)).mappings().all()
+        .join(
+            PermissionsEntityMap, User.permissions_uuid == PermissionsEntityMap.uuid
+        )
+        .where(
+            PermissionsEntityMap.entity_uuid == user_entity,
+            User.email != user.email,
+        )
+    )
+    all_users = (await db.execute(all_users_query)).mappings().all()
 
     shared_users_query = (
         select(
@@ -398,9 +385,8 @@ async def see_available_users(
                 permissions=None,
                 created_date=None,
             )
-    if user.permissions_uuid in trial_permissions_uuids:
-        more_results = await crud.get_invite_shares(db, user.uuid, app_uuid=app_uuid)
-        complete_list |= more_results
+    more_results = await crud.get_invite_shares(db, user.uuid, app_uuid=app_uuid)
+    complete_list |= more_results
     return complete_list
 
 

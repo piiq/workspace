@@ -25,11 +25,7 @@ vi.mock("~/lib/state/theme", () => ({
   },
 }));
 
-vi.mock("~/lib/state/tutorial", () => ({
-  useTutorialStore: {
-    persist: { clearStorage: vi.fn() },
-  },
-}));
+
 
 vi.mock("~/lib/state/sharedApp", () => ({
   useSharedAppStore: {
@@ -59,8 +55,7 @@ describe("useAuthStore - Login Tests", () => {
     microsoftIdToken: undefined,
     oktaIdToken: undefined,
     developer_onboarding_info: null,
-    // @ts-expect-error - ignored for now
-    feature_entitlements: { tier: "free" },
+    account_permissions: { admin_access: false, allow_custom_backends: true },
     user: {
       first_name: "Test",
       last_name: "User",
@@ -80,7 +75,7 @@ describe("useAuthStore - Login Tests", () => {
       tosAccepted: false,
       isFirstLogin: false,
       needsOnboarding: false,
-      needsInAppOnboarding: true,
+
       showChangelog: false,
       name: { first: "", last: "" },
       onBoardingData: {

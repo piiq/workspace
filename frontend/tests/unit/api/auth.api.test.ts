@@ -34,14 +34,11 @@ import {
   postSingleWidget,
   postUserChats,
   postWidgetMetadata,
-  putTier,
   registerUser,
   searchChats,
   submitDeveloperOnboardingQuestions,
   updateFullName,
   updatePassword,
-  updateZeroToHero,
-  userHasEntity,
   validateUser,
 } from "~/api/auth.api";
 
@@ -59,8 +56,6 @@ vi.mock("~/api/api", () => ({
     },
   },
 }));
-
-
 
 describe("API Client Functions", () => {
   beforeEach(() => {
@@ -306,19 +301,7 @@ describe("API Client Functions", () => {
     });
   });
 
-  describe("updateZeroToHero", () => {
-    it("should return status on successful update", async () => {
-      const mockResponse = { status: 200 };
-      vi.spyOn(apiClient, "post").mockResolvedValue(mockResponse);
 
-      const challenges = { challengeId: "123", completed: true };
-
-      // @ts-expect-error - the challenges schema is not fully implemented for the sake of testing
-      const response = await updateZeroToHero(challenges);
-      expect(apiClient.post).toHaveBeenCalledWith("/pro/zero-to-hero", challenges);
-      expect(response).toEqual({ status: 200 });
-    });
-  });
 
   describe("acceptTerms", () => {
     it("should return data on successful terms acceptance", async () => {
@@ -666,35 +649,6 @@ describe("API Client Functions", () => {
 
       const data = await deleteWidgetMetadata("widgetId");
       expect(apiClient.delete).toHaveBeenCalledWith("/pro/widget-metadata/widgetId");
-      expect(data).toEqual(mockResponse.data);
-    });
-  });
-
-  describe("putTier", () => {
-    it("should update tier and return response", async () => {
-      const mockResponse = {
-        data: {
-          success: true,
-          entitlement: {},
-          usage: {},
-          is_trial_entity: false,
-        },
-      };
-      vi.spyOn(apiClient, "put").mockResolvedValue(mockResponse);
-
-      const response = await putTier({ tier: "premium" });
-      expect(apiClient.put).toHaveBeenCalledWith("/pro/tier", { tier: "premium" });
-      expect(response).toEqual(mockResponse.data);
-    });
-  });
-
-  describe("userHasEntity", () => {
-    it("should return if user has entity", async () => {
-      const mockResponse = { data: { success: true } };
-      vi.spyOn(apiClient, "get").mockResolvedValue(mockResponse);
-
-      const data = await userHasEntity();
-      expect(apiClient.get).toHaveBeenCalledWith("/pro/user-has-entity");
       expect(data).toEqual(mockResponse.data);
     });
   });

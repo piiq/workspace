@@ -30,11 +30,7 @@ vi.mock("~/lib/state/theme", () => ({
   },
 }));
 
-vi.mock("~/lib/state/tutorial", () => ({
-  useTutorialStore: {
-    persist: { clearStorage: vi.fn() },
-  },
-}));
+
 
 vi.mock("sonner", () => ({
   toast: {
@@ -54,7 +50,7 @@ describe("useAuthStore", () => {
       user: null,
       tosAccepted: false,
       needsOnboarding: false,
-      needsInAppOnboarding: true,
+
       showChangelog: false,
       searchTickerHistory: [],
       promptHistory: [],
@@ -192,14 +188,7 @@ describe("useAuthStore", () => {
     });
   });
 
-  describe("updateInAppOnboarding", () => {
-    it("should update needsInAppOnboarding flag", () => {
-      useAuthStore.setState({ needsInAppOnboarding: true });
 
-      useAuthStore.getState().updateInAppOnboarding(false);
-      expect(useAuthStore.getState().needsInAppOnboarding).toBe(false);
-    });
-  });
 
   describe("updateOnboardingData", () => {
     it("should merge onboarding data with existing data", () => {

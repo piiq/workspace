@@ -42,13 +42,12 @@ def test_send_create_account(mock_hubspot, email_service):
     password = "password123"
     inviter = "inviter@example.com"
     message = "Welcome!"
-    is_free_tier = True
 
     email_service.send_create_account(
-        token, to, password, inviter, message, is_free_tier
+        token, to, password, inviter, message
     )
     mock_hubspot.send_create_account.assert_called_once_with(
-        token, to, password, inviter, message, is_free_tier
+        token, to, password, inviter, message
     )
 
 
@@ -72,14 +71,6 @@ def test_send_support_received(mock_hubspot, email_service):
     email = "test@example.com"
     email_service.send_support_received(email)
     mock_hubspot.send_support_received.assert_called_once_with(email)
-
-
-@patch("api.email.hubspot.hubspot")
-def test_four_days_no_use(mock_hubspot, email_service):
-    email = "test@example.com"
-    first_name = "John"
-    email_service.four_days_no_use(email, first_name)
-    mock_hubspot.four_days_no_use.assert_called_once_with(email, first_name)
 
 
 @patch("api.email.hubspot.hubspot")
@@ -109,14 +100,6 @@ def test_send_account_takeover(mock_hubspot, email_service):
     mock_hubspot.send_account_takeover.assert_called_once_with(
         token, to, inviter, message
     )
-
-
-@patch("api.email.hubspot.hubspot")
-def test_extend_pro_trial(mock_hubspot, email_service):
-    to = "to@example.com"
-    user_uuid = uuid.uuid4()
-    email_service.extend_pro_trial(to, user_uuid)
-    mock_hubspot.extend_pro_trial.assert_called_once_with(to, user_uuid)
 
 
 @patch("api.email.hubspot.hubspot")

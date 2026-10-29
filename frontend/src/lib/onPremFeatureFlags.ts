@@ -19,18 +19,6 @@ export function getShowDemoRequestButton(): boolean {
   return cfg.ui.showDemoRequestButton && cfg.services.hubspotForms;
 }
 
-export function isOnPremDeployment(): boolean {
-  // Before runtime config is bootstrapped (e.g. isolated unit renders) treat the
-  // deployment as on-prem so hosted-only features stay off rather than crashing.
-  const paymentsUrl = getConfig()?.urls?.backend || "";
-  const isOpenBBHosted =
-    paymentsUrl === "https://backend.openbb.co" ||
-    paymentsUrl === "https://backend.openbb.dev" ||
-    paymentsUrl === "https://payments.openbb.dev" ||
-    paymentsUrl === "https://payments.openbb.co";
-  return !isOpenBBHosted;
-}
-
 export function isLiteEnvironment(): boolean {
   return getConfig().ui.isLite;
 }

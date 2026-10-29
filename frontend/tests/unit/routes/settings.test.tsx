@@ -3,12 +3,12 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockConfig } from "../../mocks/runtimeConfig";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowAuthStore } from "~/lib/state/auth";
 import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import Settings from "~/routes/settings";
+import { mockConfig } from "../../mocks/runtimeConfig";
 
 const mockSetSearchParams = vi.fn();
 
@@ -99,7 +99,11 @@ vi.mock("~/components/LayoutAuth/Skeleton/SettingsLayout", () => ({
     children,
     title,
     tabs,
-  }: { children: ReactNode; title?: string; tabs?: any[] }) => (
+  }: {
+    children: ReactNode;
+    title?: string;
+    tabs?: any[];
+  }) => (
     <div data-testid="settings-layout">
       {title && <h1>{title}</h1>}
       {tabs && (
@@ -146,7 +150,11 @@ vi.mock("@radix-ui/react-tabs", () => ({
     disabled,
     value,
     ...props
-  }: { children: ReactNode; disabled?: boolean; value: string }) => (
+  }: {
+    children: ReactNode;
+    disabled?: boolean;
+    value: string;
+  }) => (
     <button role="tab" disabled={disabled} data-value={value} {...props}>
       {children}
     </button>
@@ -158,18 +166,12 @@ vi.mock("@radix-ui/react-tabs", () => ({
   ),
 }));
 
-const setupMocks = (
-  options: {
-    tier?: "pro" | "terminal" | "enterprise";
-    hasAdminAccess?: boolean;
-  } = {},
-) => {
-  const { tier = "pro", hasAdminAccess = false } = options;
+const setupMocks = (options: { hasAdminAccess?: boolean } = {}) => {
+  const { hasAdminAccess = false } = options;
 
   (useShallowFeatureFlagsStore as any).mockImplementation((selector: any) =>
     selector({
       featureFlags: {
-        tier,
         admin_access: hasAdminAccess,
       },
     }),
@@ -226,7 +228,7 @@ describe("Settings", () => {
       expect(screen.getByTestId("general-tab")).toBeInTheDocument();
     });
 
-    it("renders all core tabs for pro tier", () => {
+    it("renders all core tabs for members", () => {
       renderSettings();
 
       expect(screen.getByRole("tab", { name: /general/i })).toBeInTheDocument();
@@ -237,45 +239,43 @@ describe("Settings", () => {
     });
 
     it("renders Invites tab when invite button FF is enabled and user is not admin", () => {
-      setupMocks({ tier: "pro", hasAdminAccess: false });
+      setupMocks({ hasAdminAccess: false });
       renderSettings();
 
       expect(screen.getByRole("tab", { name: /invites/i })).toBeInTheDocument();
     });
 
     it("does not render Invites tab when user has admin access", () => {
-      setupMocks({ tier: "pro", hasAdminAccess: true });
+      setupMocks({ hasAdminAccess: true });
       renderSettings();
 
       expect(screen.queryByRole("tab", { name: /invites/i })).not.toBeInTheDocument();
     });
 
-    it("renders Newsletter tab for free tier users", () => {
-      setupMocks({ tier: "terminal" });
+    it("renders Newsletter tab for members", () => {
+      setupMocks({ hasAdminAccess: false });
       renderSettings();
 
       expect(screen.getByRole("tab", { name: /newsletter/i })).toBeInTheDocument();
     });
 
-    it("does not render Newsletter tab for pro tier users", () => {
-      setupMocks({ tier: "pro" });
+    it("renders Newsletter tab for administrators", () => {
+      setupMocks({ hasAdminAccess: true });
       renderSettings();
 
-      expect(
-        screen.queryByRole("tab", { name: /newsletter/i }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("tab", { name: /newsletter/i })).toBeInTheDocument();
     });
 
-    it("disables Security tab for non-pro tier users", () => {
-      setupMocks({ tier: "terminal" });
+    it("enables Security tab for members", () => {
+      setupMocks({ hasAdminAccess: false });
       renderSettings();
 
       const securityTab = screen.getByRole("tab", { name: /security/i });
-      expect(securityTab).toBeDisabled();
+      expect(securityTab).not.toBeDisabled();
     });
 
-    it("enables Security tab for pro tier users", () => {
-      setupMocks({ tier: "pro" });
+    it("enables Security tab for administrators", () => {
+      setupMocks({ hasAdminAccess: true });
       renderSettings();
 
       const securityTab = screen.getByRole("tab", { name: /security/i });
@@ -317,8 +317,8 @@ describe("Settings", () => {
       expect(advancedTab).toBeInTheDocument();
     });
 
-    it("switches to Security tab when clicked (pro tier)", async () => {
-      setupMocks({ tier: "pro" });
+    it("switches to Security tab when clicked", async () => {
+      setupMocks({ hasAdminAccess: true });
       const user = userEvent.setup();
       renderSettings();
 
@@ -327,17 +327,6 @@ describe("Settings", () => {
 
       // Tab should be clickable and not disabled
       expect(securityTab).not.toBeDisabled();
-    });
-
-    it("does not navigate to Security tab when disabled", async () => {
-      setupMocks({ tier: "terminal" });
-      const user = userEvent.setup();
-      renderSettings();
-
-      const securityTab = screen.getByRole("tab", { name: /security/i });
-      await user.click(securityTab);
-
-      expect(mockSetSearchParams).not.toHaveBeenCalledWith({ tab: "security" });
     });
   });
 
@@ -350,8 +339,8 @@ describe("Settings", () => {
   });
 
   describe("Feature Flag Combinations", () => {
-    it("renders correct tabs for pro tier without admin access", () => {
-      setupMocks({ tier: "pro", hasAdminAccess: false });
+    it("renders member settings", () => {
+      setupMocks({ hasAdminAccess: false });
       renderSettings();
 
       expect(screen.getByRole("tab", { name: /general/i })).toBeInTheDocument();
@@ -362,8 +351,8 @@ describe("Settings", () => {
       expect(screen.getByRole("tab", { name: /security/i })).not.toBeDisabled();
     });
 
-    it("renders correct tabs for terminal tier with admin access", () => {
-      setupMocks({ tier: "terminal", hasAdminAccess: true });
+    it("renders administrator settings", () => {
+      setupMocks({ hasAdminAccess: true });
       renderSettings();
 
       expect(screen.getByRole("tab", { name: /general/i })).toBeInTheDocument();
@@ -372,25 +361,14 @@ describe("Settings", () => {
       expect(screen.queryByRole("tab", { name: /invites/i })).not.toBeInTheDocument();
       expect(screen.getByRole("tab", { name: /newsletter/i })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: /advanced/i })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: /security/i })).toBeDisabled();
-    });
-
-    it("renders correct tabs for enterprise tier", () => {
-      setupMocks({ tier: "enterprise" as any, hasAdminAccess: false });
-      renderSettings();
-
-      expect(screen.getByRole("tab", { name: /general/i })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: /layout/i })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: /widget/i })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: /invites/i })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: /advanced/i })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: /security/i })).not.toBeDisabled();
     });
   });
 
   describe("Invite Button Feature Flag", () => {
     it("does not show Invites tab when showInviteButton is false", () => {
       mockConfig.ui.showInviteButton = false;
-      setupMocks({ tier: "pro", hasAdminAccess: true });
+      setupMocks({ hasAdminAccess: true });
       renderSettings();
 
       expect(screen.queryByRole("tab", { name: /invites/i })).not.toBeInTheDocument();
@@ -398,7 +376,7 @@ describe("Settings", () => {
 
     it("shows Invites tab when showInviteButton is true and not admin", () => {
       mockConfig.ui.showInviteButton = true;
-      setupMocks({ tier: "pro", hasAdminAccess: false });
+      setupMocks({ hasAdminAccess: false });
       renderSettings();
 
       expect(screen.getByRole("tab", { name: /invites/i })).toBeInTheDocument();

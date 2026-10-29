@@ -28,7 +28,6 @@ if BACKEND_DIR not in sys.path:
 
 import pytest
 
-from tests.fixtures.utils import skip
 import jwt
 from uuid import uuid4
 from datetime import datetime, timedelta, UTC
@@ -145,44 +144,46 @@ class TestProLogin:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_login_valid_credentials(self, pro_client, db_session):
-        """Login with valid credentials should return 200 with access_token
-
-        Note: /pro/login requires users to have entity associations. Users without
-        entity associations will get 404 when the system tries to associate them.
-        This test verifies the login attempt doesn't cause a 500 error.
-        For full login testing, use auth_client which has proper entity setup.
-        """
+    @pytest.mark.parametrize("remember", [False, True])
+    async def test_login_valid_credentials(self, pro_client, db_session, remember):
+        """An ordinary member can log in without an account tier or trial."""
         test_password = "TestPassword123!"
         test_user_uuid = str(uuid4())
         test_email = f"login_test_{uuid4().hex[:8]}@openbb.co"
 
-        # Create confirmed test user (without entity association)
+        from utilities.config import settings
+
+        # Membership is required for Workspace access.
         test_user = User(
             uuid=test_user_uuid,
             email=test_email,
             clean_email=test_email.lower(),
             password=test_password,
             confirmed=True,
+            permissions_uuid=settings.DEFAULT_PERMISSIONS_UUID,
         )
         db_session.add(test_user)
         await db_session.commit()
 
         try:
-            response = await pro_client.post("/pro/login", json=WorkspacePayloads.login(test_email, test_password))
+            payload = WorkspacePayloads.login(test_email, test_password)
+            payload["remember"] = remember
+            started = datetime.now(UTC)
+            response = await pro_client.post("/pro/login", json=payload)
 
-            # Without entity setup, returns 404 (entity not found)
-            # With entity setup, returns 200/206
-            # Should never return 500
-            assert response.status_code in {200, 206, 404}
-            assert response.status_code != 500
-
-            if response.status_code in {200, 206}:
-                data = response.json()
-                assert "access_token" in data
-                assert data["email"] == test_email
-                assert data["token_type"] == "bearer"
-                assert "uuid" in data
+            assert response.status_code == 200
+            data = response.json()
+            assert data["access_token"]
+            assert data["email"] == test_email
+            assert data["account_permissions"] == {"admin_access": False, "allow_custom_backends": True}
+            duration = timedelta(days=30 if remember else 7)
+            assert started + duration <= datetime.fromisoformat(data["expiration_date"]) <= datetime.now(UTC) + duration
+            assert "feature_entitlements" not in data
+            assert "is_trial_entity" not in data
+            assert "pro_trial_end" not in data
+            assert "show_welcome_screen" not in data
+            assert "pro_zero_to_hero" not in data["user"]
+            assert data["usage"]["copilot_calls_limit"] == settings.COPILOT_CALLS_PER_DAY
         finally:
             await cleanup_test_user(db_session, user_uuid=test_user_uuid)
 
@@ -416,6 +417,7 @@ class TestPasswordChange:
             clean_email=test_email.lower(),
             password=test_password,
             confirmed=True,
+            permissions_uuid=settings.DEFAULT_PERMISSIONS_UUID,
         )
         db_session.add(test_user)
         await db_session.commit()
@@ -423,8 +425,7 @@ class TestPasswordChange:
         try:
             # Login first
             login_response = await pro_client.post("/pro/login", json=WorkspacePayloads.login(test_email, test_password))
-            if login_response.status_code not in {200, 206}:
-                skip("Could not login for password change test")
+            assert login_response.status_code == 200
 
             token = login_response.json()["access_token"]
             service_jwt = create_service_jwt()
@@ -590,6 +591,7 @@ class TestTwoFactorAuth:
             clean_email=test_email.lower(),
             password=test_password,
             confirmed=True,
+            permissions_uuid=settings.DEFAULT_PERMISSIONS_UUID,
         )
         db_session.add(test_user)
         await db_session.commit()
@@ -597,8 +599,7 @@ class TestTwoFactorAuth:
         try:
             # Login
             login_response = await pro_client.post("/pro/login", json=WorkspacePayloads.login(test_email, test_password))
-            if login_response.status_code not in {200, 206}:
-                skip("Could not login for TOTP test")
+            assert login_response.status_code == 200
 
             token = login_response.json()["access_token"]
             service_jwt = create_service_jwt()
@@ -612,17 +613,17 @@ class TestTwoFactorAuth:
 
             # Generate TOTP secret
             generate_response = await pro_client.post("/totp", json={})
-            if generate_response.status_code == 200:
-                secret = generate_response.json()["secret"]
+            assert generate_response.status_code == 200
+            secret = generate_response.json()["secret"]
 
-                # Generate valid code
-                totp = pyotp.TOTP(secret)
-                valid_code = int(totp.now())
+            # Generate valid code
+            totp = pyotp.TOTP(secret)
+            valid_code = int(totp.now())
 
-                # Activate with valid code
-                activate_response = await pro_client.post("/totp/activate", json={"totp_token": valid_code})
-                assert activate_response.status_code == 200
-                assert activate_response.json().get("success") is True
+            # Activate with valid code
+            activate_response = await pro_client.post("/totp/activate", json={"totp_token": valid_code})
+            assert activate_response.status_code == 200
+            assert activate_response.json().get("success") is True
         finally:
             await cleanup_test_user(db_session, user_uuid=test_user_uuid)
 
@@ -654,6 +655,7 @@ class TestUserDeletion:
             clean_email=test_email.lower(),
             password=test_password,
             confirmed=True,
+            permissions_uuid=settings.DEFAULT_PERMISSIONS_UUID,
         )
         db_session.add(test_user)
         await db_session.commit()
@@ -661,8 +663,7 @@ class TestUserDeletion:
         try:
             # Login
             login_response = await pro_client.post("/pro/login", json=WorkspacePayloads.login(test_email, test_password))
-            if login_response.status_code not in {200, 206}:
-                skip("Could not login for delete test")
+            assert login_response.status_code == 200
 
             token = login_response.json()["access_token"]
             service_jwt = create_service_jwt()
@@ -681,7 +682,7 @@ class TestUserDeletion:
 
             # Verify can't login anymore
             login_again = await pro_client.post("/pro/login", json=WorkspacePayloads.login(test_email, test_password))
-            assert login_again.status_code == 404
+            assert login_again.status_code == 401
         finally:
             # Cleanup any remaining sessions
             await db_session.execute(delete(SessionModel).where(SessionModel.user_uuid == test_user_uuid))

@@ -86,8 +86,7 @@ export default function useSyncItems() {
         const data = dashboardsData;
         setFeatureFlagsAndUsage(
           {
-            ...data.feature_entitlements,
-            is_trial: data.is_trial_entity,
+            ...data.account_permissions,
             can_submit_marketplace: data.can_submit_marketplace ?? false,
           },
           data.usage,

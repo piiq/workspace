@@ -21,7 +21,6 @@ from api.models import (
 from api.rate_limit import LIMIT_DEFAULT, exempt_user_agent, limiter
 from routers import pro_helpers, routers_helpers
 from routers.pro.index import validate_user
-from utilities.config import settings
 
 router = APIRouter(
     prefix="/pro/dash",
@@ -55,20 +54,17 @@ async def get_shared_items(
         auth_helpers.GetCurrentUser(["uuid", "permissions_uuid"], pro=True)
     ),
 ):
-    if user.permissions_uuid != settings.PRO_DEVELOPER_MAPPING or settings.is_onprem():
-        tasks: list[asyncio.Task[crud.UserDashboards]] = [
-            asyncio.create_task(pro_helpers.dashboard_task("shared", user.uuid)),
-            asyncio.create_task(
-                pro_helpers.dashboard_task(
-                    "entity_shared", user.uuid, user.permissions_uuid
-                )
-            ),
-        ]
-        shared, entity_shared = await asyncio.gather(*tasks)
-        entity_shared = {k: v for k, v in entity_shared.items() if k not in shared}
-        return schemas.DashboardShared(shared=shared, entity_shared=entity_shared)
-
-    return schemas.DashboardShared(shared={}, entity_shared={})
+    tasks: list[asyncio.Task[crud.UserDashboards]] = [
+        asyncio.create_task(pro_helpers.dashboard_task("shared", user.uuid)),
+        asyncio.create_task(
+            pro_helpers.dashboard_task(
+                "entity_shared", user.uuid, user.permissions_uuid
+            )
+        ),
+    ]
+    shared, entity_shared = await asyncio.gather(*tasks)
+    entity_shared = {k: v for k, v in entity_shared.items() if k not in shared}
+    return schemas.DashboardShared(shared=shared, entity_shared=entity_shared)
 
 
 @router.get("/sync", response_model=schemas.DashboardComplete)
@@ -133,14 +129,11 @@ async def dash_validate_and_get_items(  # noqa: PLR0914, PLR0915
     user_skills = await pro_helpers.get_user_skill_state(db, user.uuid)
 
     # Get usage
-    usage = await schemas.EntitlementUsageGet.check_cache(db, user)
+    usage = await schemas.UsageGet.check_cache(db, user)
 
-    # Get entitlements
-    entitlements = await pro_helpers.get_entitlement(db, user.uuid)
+    account_permissions = await pro_helpers.get_account_permissions(db, user.uuid)
 
-    # Trial entity
     entity_uuid = await pro_helpers.get_entity_uuid(db, user.uuid)
-    is_trial_entity = entity_uuid == await crud.get_trial_entity_uuid(db)
     # Get Theme Settings
     entity_theme_settings = await pro_helpers.get_entity_theme_settings(db, entity_uuid)
     widget_metadata = await pro_helpers.get_widget_metadata(db=db, user=user)
@@ -152,9 +145,8 @@ async def dash_validate_and_get_items(  # noqa: PLR0914, PLR0915
         entity_shared=dashboards_complete.entity_shared,
         owned=dashboards_complete.owned,
         usage=usage,
-        feature_entitlements=entitlements,
+        account_permissions=account_permissions,
         can_submit_marketplace=bool(user.is_superuser or user.can_submit_marketplace),
-        is_trial_entity=is_trial_entity,
         copilot_chats=chats,
         questions_history=questions_history,
         mcp_servers=mcp_servers.get_servers_json(),
@@ -287,7 +279,7 @@ async def get_shares(
         auth_helpers.GetCurrentUser(["uuid", "email", "permissions_uuid"], pro=True)
     ),
 ):
-    trial_permissions_uuids = await crud.get_trial_permissions_uuids(db)
+    await validate_dashboard_ownership(db, dashboard_uuid, user.uuid)
     final_result: dict[str, schemas.DashboardShareReturn] = {}
     query = (
         select(
@@ -314,9 +306,8 @@ async def get_shares(
             created_date=shared.created_date,
             is_invite=False,
         )
-    if user.permissions_uuid in trial_permissions_uuids:
-        more_results = await crud.get_invite_shares(db, user.uuid, dashboard_uuid)
-        final_result |= more_results
+    more_results = await crud.get_invite_shares(db, user.uuid, dashboard_uuid)
+    final_result |= more_results
     return final_result
 
 
@@ -340,7 +331,6 @@ async def add_share(
     if not clean_shares:
         return schemas.SuccessReturn.success_instance()
 
-    trial_entity_uuid = await crud.get_trial_entity_uuid(db)
     user_permissions, user_emails, entity_uuid, user_uuids = (
         await crud.get_new_sharing_permissions(
             db, clean_shares, user.permissions_uuid, dashboard_uuid
@@ -362,26 +352,20 @@ async def add_share(
         await crud.share_files(db, user.uuid, user_uuids, dashboard_uuid=dashboard_uuid)
 
     # Send invite emails:
-    if trial_entity_uuid == entity_uuid:
-        to_invite = await crud.get_unregistered_users(db, share.shares, user_emails)
-        found_user = found_user or bool(to_invite)
+    to_invite = await crud.get_unregistered_users(db, share.shares, user_emails)
+    found_user = found_user or bool(to_invite)
 
-        for invite in to_invite:
-            # We might want to add a clean email check here
-            extra_info = schemas.RegisterProUser(
-                inviting_uuid=user.uuid,
-                inviting_email=user.email,
-                shared_dashboard=dashboard_uuid,
-                shared_permissions=share.shares.get(invite, "view"),
-            )
-            new_user = schemas.UserCreateAdmin(
-                email=invite, permissions_uuid=settings.PRO_TRIAL_MAPPING
-            )
-            # For now we are ignoring any errors here and just trying to invite everyone
-            try:
-                await routers_helpers.register_pro_user(db, new_user, extra_info)
-            except Exception as e:
-                logger.error(e)
+    for invite in to_invite:
+        extra_info = schemas.RegisterProUser(
+            inviting_uuid=user.uuid,
+            inviting_email=user.email,
+            shared_dashboard=dashboard_uuid,
+            shared_permissions=share.shares.get(invite, "view"),
+        )
+        new_user = schemas.UserCreateAdmin(
+            email=invite, permissions_uuid=await crud.get_entity_member_permissions(db, entity_uuid)
+        )
+        await routers_helpers.register_pro_user(db, new_user, extra_info)
 
     # Send share emails:
     for email in user_emails:
@@ -490,7 +474,6 @@ async def see_available_users(
         auth_helpers.GetCurrentUser(["uuid", "email", "permissions_uuid"], pro=True)
     ),
 ):
-    trial_permissions_uuids = await crud.get_trial_permissions_uuids(db)
     complete_list: dict[str, schemas.DashboardShareReturn] = {}
     await validate_dashboard_ownership(db, dashboard_uuid, user.uuid)
     user_entity_query = select(PermissionsEntityMap.entity_uuid).where(
@@ -499,27 +482,25 @@ async def see_available_users(
     user_entity = (await db.execute(user_entity_query)).scalar_one_or_none()
     if user_entity is None:
         raise HTTPException(status_code=400, detail="Unable to find the user's entity")
-    base_entity_uuid = await crud.get_trial_entity_uuid(db)
 
     all_users = []
 
-    if user_entity != base_entity_uuid:
-        all_users_query = (
-            select(
-                User.email,
-                User.first_name,
-                User.last_name,
-                PermissionsEntityMap.entity_uuid,
-            )
-            .join(
-                PermissionsEntityMap, User.permissions_uuid == PermissionsEntityMap.uuid
-            )
-            .where(
-                PermissionsEntityMap.entity_uuid == user_entity,
-                User.email != user.email,
-            )
+    all_users_query = (
+        select(
+            User.email,
+            User.first_name,
+            User.last_name,
+            PermissionsEntityMap.entity_uuid,
         )
-        all_users = (await db.execute(all_users_query)).mappings().all()
+        .join(
+            PermissionsEntityMap, User.permissions_uuid == PermissionsEntityMap.uuid
+        )
+        .where(
+            PermissionsEntityMap.entity_uuid == user_entity,
+            User.email != user.email,
+        )
+    )
+    all_users = (await db.execute(all_users_query)).mappings().all()
 
     shared_users_query = (
         select(
@@ -553,9 +534,8 @@ async def see_available_users(
                 permissions=None,
                 created_date=None,
             )
-    if user.permissions_uuid in trial_permissions_uuids:
-        more_results = await crud.get_invite_shares(db, user.uuid, dashboard_uuid)
-        complete_list |= more_results
+    more_results = await crud.get_invite_shares(db, user.uuid, dashboard_uuid)
+    complete_list |= more_results
     return complete_list
 
 

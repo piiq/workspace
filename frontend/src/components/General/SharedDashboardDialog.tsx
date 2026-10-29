@@ -49,7 +49,6 @@ export function ShareDashboard({
 }) {
   const queryClient = useQueryClient();
   const user = useShallowAuthStore((state) => state.user);
-  const isTrialOrg = user.entity_name === "OpenBB Trial";
 
   const { setDashboardShared, getTabById } = useShallowAppStore((state) => ({
     setDashboardShared: state.setDashboardShared,
@@ -148,15 +147,13 @@ export function ShareDashboard({
   }, [queryClient, shareDashboardPopupId]);
 
   const showSaveChanges = useMemo(() => {
-    if (isTrialOrg) {
-      return true;
-    }
+    if (state.shareWithEmail) return true;
     // we need to compare the current state with the initial state to see if there are any changes
     return Object.entries(state.usersPermissions).some(([email, permissions]) => {
       const initialPermissions = shareDataInfo?.[email]?.permissions ?? "no-access";
       return permissions !== initialPermissions;
     });
-  }, [state.usersPermissions, shareDataInfo]);
+  }, [state.usersPermissions, state.shareWithEmail, shareDataInfo]);
 
   const onSubmit = useCallback(async () => {
     dispatch({ isSaving: true });
@@ -194,7 +191,7 @@ export function ShareDashboard({
         }
       }
 
-      if (isTrialOrg && state.shareWithEmail) {
+      if (state.shareWithEmail) {
         const emailToShareWith = zodEmail.safeParse(state.shareWithEmail);
         if (emailToShareWith.success) {
           sharedEmails.push(state.shareWithEmail);
@@ -247,7 +244,6 @@ export function ShareDashboard({
     }
   }, [
     state.shareWithEmail,
-    isTrialOrg,
     shareDashboardPopupId,
     tabHasBYODWidgets,
     state.usersPermissions,
@@ -263,7 +259,7 @@ export function ShareDashboard({
     [data, state.shareWithEmail],
   );
 
-  const showList = !isTrialOrg || users.length > 0;
+  const showList = users.length > 0;
 
   return (
     <BaseDialog
@@ -283,7 +279,7 @@ export function ShareDashboard({
         {showList && (
           <div className="space-y-2 bg-general-bg-secondary p-2.5 rounded">
             <p className="body-xs-medium uppercase text-ds-text-caption tracking-wide mb-4">
-              {isTrialOrg ? "Shared with" : "Users from your organization"}
+              {"Shared with"}
             </p>
             {users.length === 0 && (
               <div className="text-left body-xs-regular text-ds-text-caption">
@@ -409,10 +405,10 @@ export function ShareDashboard({
             size="sm"
             disabled={!showSaveChanges}
             loading={state.isSaving}
-            loadingChildren={isTrialOrg ? "Sharing..." : "Saving..."}
+            loadingChildren={"Sharing..."}
             onClick={() => onSubmit()}
           >
-            {isTrialOrg ? "Share" : "Save"}
+            {"Share"}
           </Button>
         </div>
       </div>

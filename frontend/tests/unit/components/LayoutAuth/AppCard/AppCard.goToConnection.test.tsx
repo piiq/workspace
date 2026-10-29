@@ -100,10 +100,6 @@ vi.mock("~/components/General/Avatar", () => ({
   AuthenticatedAvatar: () => <div data-testid="avatar" />,
 }));
 
-vi.mock("~/components/General/FeatureLock", () => ({
-  default: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
 vi.mock("~/components/ds/dialogs/ConfirmDialog", () => ({
   ConfirmDialog: () => null,
 }));

@@ -3,8 +3,6 @@ import { Button } from "~/components/ds/atoms/Button";
 import Icon from "~/components/Icon";
 import { getAllowedDBTypes } from "~/lib/onPremFeatureFlags";
 import { getConfig } from "~/lib/runtimeConfig";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
-import TerminalProOnlyTag from "../../../General/TerminalProOnlyTag";
 import { useDataConnectorContext } from "../../Providers/DataConnectorContext";
 import SnowflakeDialog from "../../SnowflakeDialog";
 import SqlDatabaseDialog from "../../SqlDatabaseDialog";
@@ -38,8 +36,6 @@ export default function DataContent() {
 }
 
 function EmptyState({ setState }: { setState: (state: State) => void }) {
-  const featureFlags = useShallowFeatureFlagsStore((state) => state.featureFlags);
-  const isProTier = featureFlags?.tier === "pro";
   const { mode } = useDataConnectorContext();
   const allowedDBTypes = getAllowedDBTypes();
 
@@ -121,19 +117,11 @@ function EmptyState({ setState }: { setState: (state: State) => void }) {
                     <Icon id={provider.icon} className="w-4 h-4" />
                   </div>
                   <div className="font-bold text-xs">{provider.name}</div>
-                  {available ? (
-                    <TerminalProOnlyTag isVisible={!isProTier} />
-                  ) : (
-                    <div className="obb-tag">Coming Soon</div>
-                  )}
+                  {!available && <div className="obb-tag">Coming Soon</div>}
                 </div>
                 <p>{provider.description}</p>
               </div>
-              <Button
-                size="sm"
-                disabled={!(isProTier && available)}
-                onClick={provider.handleClick}
-              >
+              <Button size="sm" disabled={!available} onClick={provider.handleClick}>
                 Enable
               </Button>
             </div>

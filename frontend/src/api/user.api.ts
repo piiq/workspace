@@ -2,10 +2,6 @@ import { useThemeStore } from "~/lib/state/theme";
 import type { DisplaySettings } from "~/types/auth.type";
 import { apiClient } from "./api";
 
-interface Remaining {
-  remaining: null | number;
-}
-
 export interface Challenges {
   grouping: boolean;
   table_charting: boolean;
@@ -14,29 +10,27 @@ export interface Challenges {
   group_sector_companies: boolean;
 }
 
-export async function getRemainingInvites() {
-  const { data } = await apiClient.get<Remaining>("/pro/invites/remaining");
-  return data;
-}
-
 export async function sendInvite(
   email: string,
   message: string,
 ): Promise<{
-  data: Remaining;
+  data: { success: boolean };
   status: number;
 }> {
   if (!message) {
     message = null;
   }
   try {
-    const { data, status } = await apiClient.post<Remaining>("/pro/invites/create", {
-      email,
-      message,
-    });
+    const { data, status } = await apiClient.post<{ success: boolean }>(
+      "/pro/invites/create",
+      {
+        email,
+        message,
+      },
+    );
     return { data, status };
   } catch (e) {
-    return { data: { remaining: null }, status: e.response.status };
+    return { data: { success: false }, status: e.response.status };
   }
 }
 

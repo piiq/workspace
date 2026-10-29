@@ -149,8 +149,8 @@ export type RuntimeConfig = z.infer<typeof RuntimeConfigSchema>;
 // The *policy* (which fields are locked, to what values) is NOT defined in
 // this repo. It is supplied at build time as a JSON object — see
 // `vite.config.ts`, which reads `VITE_LOCKED_CONFIG_FILE`. The OpenBB Lite
-// image owns that file (`locked.config.json`); the standard build, on-prem,
-// and free-tier builds pass nothing, so nothing is locked.
+// image owns that file (`locked.config.json`). Builds without a policy file
+// leave configuration editable at runtime.
 //
 // This module only defines the shape and the validation. `RuntimeConfigSchema`
 // itself is the allowlist: `buildLockedConfig` throws on unknown groups/fields

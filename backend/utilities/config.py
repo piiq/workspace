@@ -796,11 +796,12 @@ class PrometheusSettings(BaseModel):
 
 class ProSettings(BaseModel):
     INVITE_EXPIRATION: timedelta = timedelta(weeks=52)
-    PRO_DEVELOPER_MAPPING: UUID = UUID("22222222-2222-2222-2222-222222222222")
-    PRO_TRIAL_MAPPING: UUID = UUID("11111111-1111-1111-1111-111111111111")
-    PRO_TRIAL_USER: UUID = UUID("11111111-1111-1111-1111-111111111111")
-    PRO_TRIAL_EMAIL: EmailStr = "colin.delahunty+registertrial@openbb.finance"
-    ON_PREM_ADMIN_MAPPING: UUID | None = None
+    DEFAULT_PERMISSIONS_UUID: UUID | None = None
+    DEFAULT_INVITER_UUID: UUID | None = None
+    DEFAULT_INVITER_EMAIL: EmailStr | None = None
+    DEFAULT_ADMIN_PERMISSIONS_UUID: UUID | None = None
+    COPILOT_CALLS_PER_DAY: int = Field(default=10_000, ge=1)
+    FILE_UPLOAD_LIMIT_GB: float = Field(default=10, gt=0)
     PROURL: str
 
     def __init__(self, **data: Any):
@@ -812,10 +813,10 @@ class ProSettings(BaseModel):
 
         with suppress(Exception):
             json_data = json.loads(create_user.read_text())
-            self.PRO_DEVELOPER_MAPPING = UUID(json_data["permissions_uuid"])
-            self.PRO_TRIAL_USER = UUID(json_data["inviting_uuid"])
-            self.PRO_TRIAL_EMAIL = json_data["inviting_email"]
-            self.ON_PREM_ADMIN_MAPPING = UUID(json_data["on_prem_admin_uuid"])
+            self.DEFAULT_PERMISSIONS_UUID = UUID(json_data["permissions_uuid"])
+            self.DEFAULT_INVITER_UUID = UUID(json_data["inviting_uuid"])
+            self.DEFAULT_INVITER_EMAIL = json_data["inviting_email"]
+            self.DEFAULT_ADMIN_PERMISSIONS_UUID = UUID(json_data["admin_permissions_uuid"])
 
 
 class GeneralSettings(BaseModel):

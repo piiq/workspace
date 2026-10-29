@@ -1,5 +1,3 @@
-import type { Entitlements } from "./user.type";
-
 export interface Entity {
   uuid: string;
   name: string;
@@ -17,7 +15,6 @@ export interface EntityMapItem {
   name: string;
   entity_uuid: string;
   entity: Entity;
-  entitlements: Entitlements;
 }
 
 export interface EntitySettings {

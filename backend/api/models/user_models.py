@@ -29,8 +29,6 @@ from api.models.model_helpers import (
     JSONType,
     PasswordType,
     ProDisplaySettingsType,
-    ProEntitlementsType,
-    ProZeroToHeroType,
     UUIDMixin,
 )
 from utilities.config import settings
@@ -38,8 +36,7 @@ from utilities.config import settings
 
 class User(Base, UUIDMixin, DateMixin):
     """
-    A unique user on our platform. All users are automatically give a Chargebee free account.
-    Users must have unique emails and can delete their accounts
+    A Workspace account with a unique email address.
     """
 
     __tablename__ = "user"
@@ -61,9 +58,7 @@ class User(Base, UUIDMixin, DateMixin):
     logins = relationship("Login", back_populates="user")
 
     # Pro JSON columns
-    pro_entitlements = Column(ProEntitlementsType)
     pro_display_settings = Column(ProDisplaySettingsType)
-    pro_zero_to_hero = Column(ProZeroToHeroType)
 
     # This decides what info they will need, and the columns everyone needs
     primary_usage: Mapped[None | str] = mapped_column(Text)
@@ -90,22 +85,10 @@ class User(Base, UUIDMixin, DateMixin):
         ForeignKey("permissions_entity_map.uuid"), index=True
     )
     permissions: Mapped[Optional["PermissionsEntityMap"]] = relationship()
-    billing_active: Mapped[None | bool] = mapped_column(Boolean, default=False)
     accepted_pro_tos: Mapped[None | bool] = mapped_column(Boolean, default=False)
-    # This field indicates if they have been granted a pro trial ever, not just if they have an active trial
-    pro_trial_granted: Mapped[None | bool] = mapped_column(Boolean, default=False)
-    pro_trial_granted_date: Mapped[None | datetime] = mapped_column(AwareDateTime())
-    pro_trial_end: Mapped[None | datetime] = mapped_column(AwareDateTime())
-    pro_trial_extension: Mapped[None | bool] = mapped_column(Boolean, default=False)
-    pro_trial_renewals: Mapped[None | int] = mapped_column(Integer, default=0)
     pro_start: Mapped[None | datetime] = mapped_column(AwareDateTime())
     latest_version: Mapped[None | str] = mapped_column(Text)
 
-    # After 4 days of inactivity on the pro we send an email, we need to make sure we only send this email once
-    pro_inactivity_email_sent: Mapped[None | bool] = mapped_column(
-        Boolean, default=False
-    )
-    welcome_screen: Mapped[None | bool] = mapped_column(Boolean, default=False)
     hear_about_us: Mapped[None | str] = mapped_column(Text, default=None)
 
     stripe_id: Mapped[None | str] = mapped_column(String(50), index=True)
@@ -212,7 +195,6 @@ class UserProInvite(Base, UUIDMixin, DateMixin):
     email: Mapped[str] = mapped_column(EmailType)
     permissions_uuid: Mapped[None | UUID] = mapped_column(
         ForeignKey("permissions_entity_map.uuid", ondelete="SET NULL"),
-        default=settings.PRO_TRIAL_MAPPING,
     )
     data = Column(JSONType)
     shared_dashboards: Mapped[None | dict] = mapped_column(JSONType)

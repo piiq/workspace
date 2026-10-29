@@ -234,16 +234,6 @@ class TestAdminAccessControl:
         assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_regular_user_blocked_from_entitlement_update(self, auth_client):
-        """Regular user should be blocked from /admin/entitlement/{uuid}"""
-        test_uuid = str(uuid4())
-        response = await auth_client.patch(
-            f"/admin/entitlement/{test_uuid}",
-            json={"plan": "pro"},
-        )
-        assert response.status_code == 403
-
-    @pytest.mark.asyncio
     async def test_regular_user_blocked_from_theme_settings(self, auth_client):
         """Regular user should be blocked from /admin/theme-settings"""
         response = await auth_client.patch(
@@ -264,8 +254,7 @@ class TestAdminAccessControl:
         response = await admin_client.get("/admin/entity-info")
         assert response.status_code == 200
         data = response.json()
-        assert "seats" in data
-        assert "used_seats" in data
+        assert "user_count" in data
 
     @pytest.mark.asyncio
     async def test_admin_can_access_admin_entity_map(self, admin_client):
@@ -365,18 +354,6 @@ class TestAdminInputValidation:
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_extend_trial_invalid_uuid(self, admin_client):
-        """Extending trial with invalid UUID should fail"""
-        response = await admin_client.get("/admin/extend-trial/not-a-uuid")
-        assert response.status_code == 422
-
-    @pytest.mark.asyncio
-    async def test_get_entitlement_invalid_uuid(self, admin_client):
-        """Getting entitlement with invalid UUID should fail"""
-        response = await admin_client.get("/admin/entitlement/not-a-uuid")
-        assert response.status_code == 422
-
-    @pytest.mark.asyncio
     async def test_reset_password_invalid_uuid(self, admin_client):
         """Resetting password with invalid UUID should fail"""
         response = await admin_client.post("/admin/reset-password/not-a-uuid")
@@ -425,11 +402,9 @@ class TestAdminOutputValidation:
         assert response.status_code == 200
         data = response.json()
         # Required fields
-        assert "seats" in data
-        assert "used_seats" in data
+        assert "user_count" in data
         # Types
-        assert isinstance(data["seats"], int)
-        assert isinstance(data["used_seats"], int)
+        assert isinstance(data["user_count"], int)
 
     @pytest.mark.asyncio
     async def test_users_list_response_schema(self, admin_client):
@@ -483,7 +458,7 @@ class TestAdminUserManagement:
         fake_uuid = str(uuid4())
         response = await admin_client.patch(
             f"/admin/users/{fake_uuid}",
-            json={"billing_active": True},  # Valid field from UserAdminUpdate schema
+            json={},  # Valid field from UserAdminUpdate schema
         )
         # The endpoint returns success even if no rows were updated
         # This is expected behavior for idempotent update operations
@@ -501,13 +476,6 @@ class TestAdminUserManagement:
         """Removing nonexistent user should return 404"""
         fake_uuid = str(uuid4())
         response = await admin_client.delete(f"/admin/users/{fake_uuid}/remove")
-        assert response.status_code in {404, 400}
-
-    @pytest.mark.asyncio
-    async def test_get_entitlement_nonexistent_user(self, admin_client):
-        """Getting entitlement for nonexistent user should return 404"""
-        fake_uuid = str(uuid4())
-        response = await admin_client.get(f"/admin/entitlement/{fake_uuid}")
         assert response.status_code in {404, 400}
 
     @pytest.mark.asyncio
@@ -938,44 +906,6 @@ class TestAdminCreateUser:
 # =============================================================================
 
 
-class TestAdminExtendTrial:
-    """Tests for /admin/extend-trial/{user_uuid} endpoint - REAL OPERATIONS"""
-
-    @pytest.mark.asyncio
-    async def test_extend_trial_unauthenticated(self, client):
-        """Should fail without auth"""
-        test_uuid = str(uuid4())
-        response = await client.get(f"/admin/extend-trial/{test_uuid}")
-        assert response.status_code in {401, 403}
-
-    @pytest.mark.asyncio
-    async def test_extend_trial_non_admin(self, auth_client):
-        """Should fail for non-admin users"""
-        test_uuid = str(uuid4())
-        response = await auth_client.get(f"/admin/extend-trial/{test_uuid}")
-        assert response.status_code == 403
-
-    @pytest.mark.asyncio
-    async def test_extend_trial_invalid_uuid(self, admin_client):
-        """Should return 422 for invalid UUID"""
-        response = await admin_client.get("/admin/extend-trial/not-a-uuid")
-        assert response.status_code == 422
-
-    @pytest.mark.asyncio
-    async def test_extend_trial_for_existing_user(self, admin_client):
-        """Extend trial for existing user should work"""
-        # Get existing user
-        users_response = await admin_client.get("/admin/user")
-        if users_response.status_code == 200:
-            users = users_response.json()
-            if users and len(users) > 0:
-                user_uuid = users[0].get("uuid")
-                if user_uuid:
-                    response = await admin_client.get(f"/admin/extend-trial/{user_uuid}")
-                    # Should succeed or indicate not a trial user
-                    assert response.status_code in {200, 400}
-
-
 # =============================================================================
 # ADMIN ROLE PERMISSIONS GET TESTS - REAL OPERATIONS
 # =============================================================================
@@ -1044,89 +974,6 @@ class TestAdminRolePermissionsGet:
 # =============================================================================
 
 
-class TestAdminEntitlement:
-    """Tests for /admin/entitlement/{user_uuid} endpoints - REAL OPERATIONS"""
-
-    @pytest.mark.asyncio
-    async def test_get_entitlement_unauthenticated(self, client):
-        """Should fail without auth"""
-        test_uuid = str(uuid4())
-        response = await client.get(f"/admin/entitlement/{test_uuid}")
-        assert response.status_code in {401, 403}
-
-    @pytest.mark.asyncio
-    async def test_get_entitlement_non_admin(self, auth_client):
-        """Should fail for non-admin users"""
-        test_uuid = str(uuid4())
-        response = await auth_client.get(f"/admin/entitlement/{test_uuid}")
-        assert response.status_code == 403
-
-    @pytest.mark.asyncio
-    async def test_patch_entitlement_unauthenticated(self, client):
-        """Should fail without auth"""
-        test_uuid = str(uuid4())
-        response = await client.patch(
-            f"/admin/entitlement/{test_uuid}",
-            json={"tier": "pro"},
-        )
-        assert response.status_code in {401, 403}
-
-    @pytest.mark.asyncio
-    async def test_patch_entitlement_non_admin(self, auth_client):
-        """Should fail for non-admin users"""
-        test_uuid = str(uuid4())
-        response = await auth_client.patch(
-            f"/admin/entitlement/{test_uuid}",
-            json={"tier": "pro"},
-        )
-        assert response.status_code == 403
-
-    @pytest.mark.asyncio
-    async def test_patch_entitlement_invalid_uuid(self, admin_client):
-        """Should return 422 for invalid UUID"""
-        response = await admin_client.patch(
-            "/admin/entitlement/not-a-uuid",
-            json={"tier": "pro"},
-        )
-        assert response.status_code == 422
-
-    @pytest.mark.asyncio
-    async def test_get_entitlement_for_existing_user(self, admin_client):
-        """Get entitlement for existing user"""
-        users_response = await admin_client.get("/admin/user")
-        if users_response.status_code == 200:
-            users = users_response.json()
-            if users and len(users) > 0:
-                user_uuid = users[0].get("uuid")
-                if user_uuid:
-                    response = await admin_client.get(f"/admin/entitlement/{user_uuid}")
-                    assert response.status_code in {200, 404}
-                    if response.status_code == 200:
-                        data = response.json()
-                        assert isinstance(data, dict)
-
-    @pytest.mark.asyncio
-    async def test_update_entitlement_and_verify_change(self, admin_client):
-        """Update entitlement and verify the change was applied"""
-        users_response = await admin_client.get("/admin/user")
-        if users_response.status_code == 200:
-            users = users_response.json()
-            if users and len(users) > 0:
-                user_uuid = users[0].get("uuid")
-                if user_uuid:
-                    # Get current entitlement
-                    before_response = await admin_client.get(f"/admin/entitlement/{user_uuid}")
-
-                    if before_response.status_code == 200:
-                        # Try to update (may fail depending on permissions)
-                        update_response = await admin_client.patch(
-                            f"/admin/entitlement/{user_uuid}",
-                            json={},  # Empty patch should be handled
-                        )
-                        # Should not error
-                        assert update_response.status_code in {200, 400, 422}
-
-
 # =============================================================================
 # ADMIN USER MODIFICATION TESTS - REAL OPERATIONS
 # =============================================================================
@@ -1141,7 +988,7 @@ class TestAdminUserModification:
         test_uuid = str(uuid4())
         response = await client.patch(
             f"/admin/users/{test_uuid}",
-            json={"billing_active": True},
+            json={},
         )
         assert response.status_code in {401, 403}
 
@@ -1151,7 +998,7 @@ class TestAdminUserModification:
         test_uuid = str(uuid4())
         response = await auth_client.patch(
             f"/admin/users/{test_uuid}",
-            json={"billing_active": True},
+            json={},
         )
         assert response.status_code == 403
 
@@ -1160,12 +1007,12 @@ class TestAdminUserModification:
         """Should return 422 for invalid UUID"""
         response = await admin_client.patch(
             "/admin/users/not-a-uuid",
-            json={"billing_active": True},
+            json={},
         )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_patch_user_modify_billing_status(self, admin_client):
+    async def test_patch_user_rejects_billing_status(self, admin_client):
         """Modify user billing status and verify change"""
         # Get existing users
         users_response = await admin_client.get("/admin/users")
@@ -1177,7 +1024,7 @@ class TestAdminUserModification:
                     # Attempt to update billing_active
                     response = await admin_client.patch(
                         f"/admin/users/{user_uuid}",
-                        json={"billing_active": True},
+                        json={},
                     )
                     # Should succeed or fail due to seat limits
                     assert response.status_code in {200, 400, 403}

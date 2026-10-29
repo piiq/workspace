@@ -392,11 +392,6 @@ export const handlers = [
 
   // ============ Other Endpoints ============
 
-  // Zero to hero (onboarding)
-  http.post(`${BASE_URL}/pro/zero-to-hero`, () => {
-    return HttpResponse.json({ status: 200 });
-  }),
-
   // Developer onboarding
   http.get(`${BASE_URL}/pro/pro-developer-onboarding-info`, () => {
     return HttpResponse.json({});

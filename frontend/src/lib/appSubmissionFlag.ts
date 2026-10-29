@@ -1,6 +1,5 @@
 import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { inSnowflakeNativeApp } from "./constants";
-import { isOnPremDeployment } from "./onPremFeatureFlags";
 
 /**
  * Gates the developer marketplace submission flow (List app -> fill listing ->
@@ -13,5 +12,5 @@ export function useCanSubmitApp(): boolean {
   const canSubmit = useShallowFeatureFlagsStore(
     (state) => state.featureFlags?.can_submit_marketplace ?? false,
   );
-  return canSubmit && !inSnowflakeNativeApp && !isOnPremDeployment();
+  return canSubmit && !inSnowflakeNativeApp;
 }

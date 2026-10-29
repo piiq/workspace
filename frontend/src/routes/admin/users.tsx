@@ -12,7 +12,6 @@ import {
   useUsers,
 } from "~/components/AdminRoles/adminUseQueries";
 import { AdminInviteUsersDialog } from "~/components/AdminUsers/AdminInviteUsersDialog";
-import AdminUserBillingStatus from "~/components/AdminUsers/AdminUserBillingStatus";
 import AdminUserDetailsDialog from "~/components/AdminUsers/AdminUserDetailsDialog";
 import AdminUserStatus from "~/components/AdminUsers/AdminUserStatus";
 import ExportUsersDialog from "~/components/AdminUsers/ExportUsersDialog";
@@ -56,8 +55,6 @@ function userSortValue(
       return (entityNameMap.get(user.permissions_uuid) ?? "").toLowerCase();
     case "status":
       return (user.status ?? "").toLowerCase();
-    case "billing_active":
-      return user.billing_active ? 1 : 0;
     case "last_active": {
       const value = user.last_active ?? user.last_login;
       return value ? Date.parse(value) : null;
@@ -119,8 +116,6 @@ export default function AdminUsers() {
   });
   const users = usersQuery.data ?? undefined;
   const navigate = useNavigate();
-  const entityInfo = entityInfoQuery.data ?? undefined;
-  const remainingSeats = entityInfo?.seats - entityInfo?.used_seats;
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
@@ -203,15 +198,6 @@ export default function AdminUsers() {
         cell: (user) => <AdminUserStatus value={user.status} />,
       },
       {
-        id: "billing_active",
-        header: "Billing Status",
-        width: "11%",
-        minWidth: 130,
-        sortable: true,
-        truncate: false,
-        cell: (user) => <AdminUserBillingStatus value={user.billing_active} />,
-      },
-      {
         id: "last_active",
         header: "Last Active",
         width: "12%",
@@ -282,18 +268,6 @@ export default function AdminUsers() {
     [dispatch],
   );
 
-  const expirationDate = useMemo(() => {
-    if (entityInfo?.expiration_date) {
-      const date = new Date(entityInfo.expiration_date);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-    return "N/A";
-  }, [entityInfo?.expiration_date]);
-
   return (
     <SettingsLayout title="User Management" tabs={[]} defaultTab="users">
       <TabsPrimitive.Content
@@ -307,26 +281,6 @@ export default function AdminUsers() {
               {entityInfoQuery.isLoading ? "" : (users?.length ?? 0)}
             </span>
           </p>
-          {!isLite && (
-            <p className="text-xs text-ds-text-heading">
-              <span className="text-ds-text-subtitle font-medium">
-                Seats Remaining:
-              </span>{" "}
-              <span className="text-ds-text-caption">
-                {entityInfoQuery.isLoading ? "" : remainingSeats}
-              </span>
-            </p>
-          )}
-          {!isLite && (
-            <p className="text-xs text-ds-text-heading">
-              <span className="text-ds-text-subtitle font-medium">
-                Expiration Date:
-              </span>{" "}
-              <span className="text-ds-text-caption">
-                {entityInfoQuery.isLoading ? "" : expirationDate}
-              </span>
-            </p>
-          )}
         </div>
         <div className="obb-divider my-6" />
         <div className="flex items-center gap-[10px]">

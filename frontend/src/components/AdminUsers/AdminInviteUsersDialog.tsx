@@ -18,10 +18,7 @@ export function AdminInviteUsersDialog({ open, onClose }: BaseDialogProps) {
     refetchInterval: 1000 * 60 * 15, // 15 minutes
   });
   const entitiesData = entitiesQuery.data || [];
-  const trialUUID = entitiesData.find((e) => e.name === "Trial")?.uuid;
-  const permissionsUUID = trialUUID
-    ? trialUUID
-    : entitiesData.find((e) => e.name === "User")?.uuid;
+  const permissionsUUID = entitiesData.find((e) => e.name === "User")?.uuid;
 
   return (
     <BaseDialog
@@ -51,7 +48,7 @@ export function AdminInviteUsersDialog({ open, onClose }: BaseDialogProps) {
         </div>
       ) : (
         <p className="text-alert-error flex pb-2">
-          This entity does not have a User entitlement, please add one.
+          This organization has no User role. Create one before inviting users.
         </p>
       )}
     </BaseDialog>

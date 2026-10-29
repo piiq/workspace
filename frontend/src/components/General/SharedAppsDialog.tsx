@@ -57,7 +57,6 @@ export function ShareAppDialog({
     user: state.user,
     ownerFullName: [state.name.first, state.name.last].filter(Boolean).join(" "),
   }));
-  const isTrialOrg = user.entity_name === "OpenBB Trial";
 
   const shareUserAppsPopupId = useShallowThemeStore(
     (state) => state.shareUserAppsPopupId,
@@ -74,7 +73,7 @@ export function ShareAppDialog({
     searchQuery: "",
     dropdownOpen: false,
     usersPermissions: {} as { [email: string]: "no-access" | "view" | "edit" },
-    trialEmail: "",
+    shareWithEmail: "",
     isSubmitting: false,
   });
 
@@ -126,14 +125,14 @@ export function ShareAppDialog({
   }, [queryClient, shareUserAppsPopupId]);
 
   const hasChanges = useMemo(() => {
-    if (isTrialOrg && state.trialEmail) {
+    if (state.shareWithEmail) {
       return true;
     }
     return Object.entries(state.usersPermissions).some(([email, permissions]) => {
       const initialPermissions = shareDataInfo?.[email]?.permissions ?? "no-access";
       return permissions !== initialPermissions;
     });
-  }, [state.usersPermissions, state.trialEmail, shareDataInfo, isTrialOrg]);
+  }, [state.usersPermissions, state.shareWithEmail, shareDataInfo]);
 
   const onSubmit = useCallback(async () => {
     dispatch({ isSubmitting: true });
@@ -169,10 +168,10 @@ export function ShareAppDialog({
         }
       }
 
-      if (isTrialOrg && state.trialEmail) {
-        const emailToShareWith = zodEmail.safeParse(state.trialEmail);
+      if (state.shareWithEmail) {
+        const emailToShareWith = zodEmail.safeParse(state.shareWithEmail);
         if (emailToShareWith.success) {
-          sharedEmails.push(state.trialEmail);
+          sharedEmails.push(state.shareWithEmail);
         }
 
         if (sharedEmails.length === 0) {
@@ -205,7 +204,7 @@ export function ShareAppDialog({
           description:
             "Please note that shared users will not be able to view Data connectors widgets.",
         });
-        dispatch({ trialEmail: "" });
+        dispatch({ shareWithEmail: "" });
       } else {
         toast.success("User App shared permissions updated");
       }
@@ -218,9 +217,8 @@ export function ShareAppDialog({
       dispatch({ isSubmitting: false });
     }
   }, [
-    state.trialEmail,
+    state.shareWithEmail,
     state.usersPermissions,
-    isTrialOrg,
     shareUserAppsPopupId,
     tabHasBYODWidgets,
     clearQueryCache,
@@ -297,136 +295,131 @@ export function ShareAppDialog({
           Share this app with other users in your organization.
         </p>
 
-        {isTrialOrg ? (
-          <Input
-            label="Email"
-            placeholder="Enter email to share with"
-            name="trialEmail"
-            value={state.trialEmail}
-            onChange={(trialEmail: string) => dispatch({ trialEmail })}
-          />
-        ) : (
-          <PopoverRoot
-            open={state.dropdownOpen}
-            onOpenChange={(dropdownOpen) => dispatch({ dropdownOpen })}
-          >
-            <PopoverTrigger asChild={true}>
-              <button
-                type="button"
-                className="w-full h-9 px-3 text-left rounded border
+        <Input
+          label="Email"
+          placeholder="Enter email to share with"
+          name="shareWithEmail"
+          value={state.shareWithEmail}
+          onChange={(shareWithEmail: string) => dispatch({ shareWithEmail })}
+        />
+        <PopoverRoot
+          open={state.dropdownOpen}
+          onOpenChange={(dropdownOpen) => dispatch({ dropdownOpen })}
+        >
+          <PopoverTrigger asChild={true}>
+            <button
+              type="button"
+              className="w-full h-9 px-3 text-left rounded border
                   border-general-border-primary
                   bg-input-field-bg
                   hover:bg-input-field-bg-hover
                   flex items-center justify-between"
-              >
-                {sharedUsers.length > 0 ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <div className="flex -space-x-2">
-                        {sharedUsers.slice(0, 3).map((user, idx) => (
-                          <div
-                            key={user.email}
-                            className="flex items-center justify-center size-6 rounded-full text-white text-2xs font-medium border-2 border-general-bg-primary"
-                            style={{
-                              backgroundColor: COLORS[(idx + 1) % COLORS.length],
-                            }}
-                          >
-                            {getUserInitials(user.name)}
-                          </div>
-                        ))}
-                        {sharedUsers.length > 3 && (
-                          <div className="flex items-center justify-center size-6 rounded-full text-2xs font-medium border-2 border-general-bg-primary bg-general-bg-secondary text-ds-text-body">
-                            +{sharedUsers.length - 3}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-ds-text-heading">
-                        {sharedUsers.length}{" "}
-                        {sharedUsers.length === 1 ? "user" : "users"} selected
-                      </span>
-                    </div>
-                    <Icon id="chevron-down" className="size-4 text-ds-text-caption" />
-                  </>
-                ) : (
-                  <>
-                    <span className="text-ds-text-caption">
-                      Click here to add people
-                    </span>
-                    <Icon id="chevron-down" className="size-4 text-ds-text-caption" />
-                  </>
-                )}
-              </button>
-            </PopoverTrigger>
-            <DSPopoverContent
-              align="start"
-              sideOffset={4}
-              className="w-[468px] max-w-[calc(100vw-2rem)] only-sm:z-[62] p-3 bg-dropdown-bg rounded-md shadow-lg border border-dropdown-border"
             >
-              <div className="flex flex-col gap-3">
-                <Input
-                  prefix={<Icon id="search" />}
-                  placeholder="Search users"
-                  value={state.searchQuery}
-                  onChange={(searchQuery: string) => dispatch({ searchQuery })}
-                  size="md"
-                />
-
-                <div className="flex justify-between items-center [&_label]:whitespace-nowrap">
-                  <p className="text-2xs text-ds-text-caption uppercase tracking-wide">
-                    Users from your organization
-                  </p>
-                  <Checkbox
-                    label="Select All"
-                    checked={allSelected}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </div>
-
-                <hr className="border-surface-divider" />
-
-                <div
-                  className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-scrollbar-handle scrollbar-track-transparent" // add pr-1 to prevent scrollbar cutting off the elements
-                  onWheel={(e) => e.stopPropagation()}
-                >
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user, idx) => {
-                      const initials = getUserInitials(user.name);
-                      const isShared = state.usersPermissions[user.email] === "view";
-                      return (
+              {sharedUsers.length > 0 ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {sharedUsers.slice(0, 3).map((user, idx) => (
                         <div
-                          key={`dropdown-user-${user.email}`}
-                          className="flex items-center gap-2.5 justify-between py-1.5 px-1 rounded
-                              hover:bg-general-bg-secondary-hover cursor-pointer"
-                          onClick={() => handleToggleUser(user.email)}
+                          key={user.email}
+                          className="flex items-center justify-center size-6 rounded-full text-white text-2xs font-medium border-2 border-general-bg-primary"
+                          style={{
+                            backgroundColor: COLORS[(idx + 1) % COLORS.length],
+                          }}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className="flex items-center justify-center w-8 h-8 rounded-full text-white font-medium"
-                              style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                            >
-                              {initials}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-ds-text-heading">{user.name}</span>
-                              <span className="text-ds-text-caption text-xs">
-                                {user.email}
-                              </span>
-                            </div>
-                          </div>
-                          <Checkbox checked={isShared} />
+                          {getUserInitials(user.name)}
                         </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-ds-text-caption text-center py-4">
-                      No users found
-                    </p>
-                  )}
-                </div>
+                      ))}
+                      {sharedUsers.length > 3 && (
+                        <div className="flex items-center justify-center size-6 rounded-full text-2xs font-medium border-2 border-general-bg-primary bg-general-bg-secondary text-ds-text-body">
+                          +{sharedUsers.length - 3}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-ds-text-heading">
+                      {sharedUsers.length} {sharedUsers.length === 1 ? "user" : "users"}{" "}
+                      selected
+                    </span>
+                  </div>
+                  <Icon id="chevron-down" className="size-4 text-ds-text-caption" />
+                </>
+              ) : (
+                <>
+                  <span className="text-ds-text-caption">Click here to add people</span>
+                  <Icon id="chevron-down" className="size-4 text-ds-text-caption" />
+                </>
+              )}
+            </button>
+          </PopoverTrigger>
+          <DSPopoverContent
+            align="start"
+            sideOffset={4}
+            className="w-[468px] max-w-[calc(100vw-2rem)] only-sm:z-[62] p-3 bg-dropdown-bg rounded-md shadow-lg border border-dropdown-border"
+          >
+            <div className="flex flex-col gap-3">
+              <Input
+                prefix={<Icon id="search" />}
+                placeholder="Search users"
+                value={state.searchQuery}
+                onChange={(searchQuery: string) => dispatch({ searchQuery })}
+                size="md"
+              />
+
+              <div className="flex justify-between items-center [&_label]:whitespace-nowrap">
+                <p className="text-2xs text-ds-text-caption uppercase tracking-wide">
+                  Users from your organization
+                </p>
+                <Checkbox
+                  label="Select All"
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                />
               </div>
-            </DSPopoverContent>
-          </PopoverRoot>
-        )}
+
+              <hr className="border-surface-divider" />
+
+              <div
+                className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-scrollbar-handle scrollbar-track-transparent" // add pr-1 to prevent scrollbar cutting off the elements
+                onWheel={(e) => e.stopPropagation()}
+              >
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user, idx) => {
+                    const initials = getUserInitials(user.name);
+                    const isShared = state.usersPermissions[user.email] === "view";
+                    return (
+                      <div
+                        key={`dropdown-user-${user.email}`}
+                        className="flex items-center gap-2.5 justify-between py-1.5 px-1 rounded
+                              hover:bg-general-bg-secondary-hover cursor-pointer"
+                        onClick={() => handleToggleUser(user.email)}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="flex items-center justify-center w-8 h-8 rounded-full text-white font-medium"
+                            style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                          >
+                            {initials}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-ds-text-heading">{user.name}</span>
+                            <span className="text-ds-text-caption text-xs">
+                              {user.email}
+                            </span>
+                          </div>
+                        </div>
+                        <Checkbox checked={isShared} />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-ds-text-caption text-center py-4">
+                    No users found
+                  </p>
+                )}
+              </div>
+            </div>
+          </DSPopoverContent>
+        </PopoverRoot>
 
         <div className="flex flex-col gap-2">
           <p className="font-medium text-ds-text-heading">People with access</p>

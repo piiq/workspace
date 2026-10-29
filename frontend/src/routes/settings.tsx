@@ -68,8 +68,7 @@ const uiShowInviteButtonFF = getConfig().ui.showInviteButton;
 
 export default function Settings() {
   const featureFlags = useShallowFeatureFlagsStore((state) => state.featureFlags);
-  const isProTier = featureFlags?.tier === "pro";
-  const isFreeTier = featureFlags?.tier === "terminal";
+
   const hasAdminAccess = featureFlags?.admin_access;
 
   const TABS = useMemo(
@@ -80,13 +79,11 @@ export default function Settings() {
       ...(uiShowInviteButtonFF && !hasAdminAccess
         ? [{ label: "Invites", id: "invites" }]
         : []),
-      ...(isFreeTier ? [{ label: "Newsletter", id: "newsletter" }] : []),
+      ...(!inSnowflakeNativeApp ? [{ label: "Newsletter", id: "newsletter" }] : []),
       { label: "Advanced", id: "advanced" },
-      ...(inSnowflakeNativeApp
-        ? []
-        : [{ label: "Security", id: "security", disabled: !isProTier }]),
+      ...(inSnowflakeNativeApp ? [] : [{ label: "Security", id: "security" }]),
     ],
-    [uiShowInviteButtonFF, hasAdminAccess, isFreeTier, isProTier],
+    [uiShowInviteButtonFF, hasAdminAccess],
   );
 
   useSaveSettings();
@@ -113,7 +110,8 @@ export default function Settings() {
           <InvitesTab />
         </TabsPrimitive.Content>
       )}
-      {isFreeTier && !inSnowflakeNativeApp && (
+
+      {!inSnowflakeNativeApp && (
         <TabsPrimitive.Content
           value="newsletter"
           className="px-6 text-xs only-sm:h-screen"
@@ -125,14 +123,12 @@ export default function Settings() {
         <AdvancedTab />
       </TabsPrimitive.Content>
       <SnowflakeHide>
-        {isProTier && (
-          <TabsPrimitive.Content
-            value="security"
-            className="px-6 text-xs only-sm:h-screen"
-          >
-            <SecurityTab />
-          </TabsPrimitive.Content>
-        )}
+        <TabsPrimitive.Content
+          value="security"
+          className="px-6 text-xs only-sm:h-screen"
+        >
+          <SecurityTab />
+        </TabsPrimitive.Content>
       </SnowflakeHide>
     </SettingsLayout>
   );

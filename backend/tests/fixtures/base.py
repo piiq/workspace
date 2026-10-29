@@ -109,6 +109,7 @@ _SECOND_USER: UserConfig = {
 _USER_UUID_TABLE_DELETE_QUERIES = [
     text("DELETE FROM `personal_access_token` WHERE user_uuid = :uuid"),
     text("DELETE FROM `mcp_servers` WHERE user_uuid = :uuid"),
+    text("DELETE FROM `user_usage` WHERE user_uuid = :uuid"),
     text("DELETE FROM `copilot_chat` WHERE user_uuid = :uuid"),
     text("DELETE FROM `custom_copilot` WHERE user_uuid = :uuid"),
     text("DELETE FROM `prompts` WHERE user_uuid = :uuid"),
@@ -125,6 +126,7 @@ _USER_UUID_TABLE_DELETE_QUERIES = [
 _USER_UUID_HEX_TABLE_DELETE_QUERIES = [
     text("DELETE FROM `personal_access_token` WHERE user_uuid = UNHEX(:uuid)"),
     text("DELETE FROM `mcp_servers` WHERE user_uuid = UNHEX(:uuid)"),
+    text("DELETE FROM `user_usage` WHERE user_uuid = UNHEX(:uuid)"),
     text("DELETE FROM `copilot_chat` WHERE user_uuid = UNHEX(:uuid)"),
     text("DELETE FROM `custom_copilot` WHERE user_uuid = UNHEX(:uuid)"),
     text("DELETE FROM `prompts` WHERE user_uuid = UNHEX(:uuid)"),
@@ -142,18 +144,15 @@ _USER_UUID_HEX_TABLE_DELETE_QUERIES = [
 _DELETE_USER_BY_UUID = text("DELETE FROM `user` WHERE uuid = :uuid")
 _DELETE_SESSION_BY_UUID = text("DELETE FROM `session` WHERE uuid = :uuid")
 _DELETE_SESSION_BY_UUID_HEX = text("DELETE FROM `session` WHERE uuid = UNHEX(:uuid)")
-_DELETE_PERMISSIONS_BY_UUID = text(
-    "DELETE FROM `permissions_entity_map` WHERE uuid = :uuid"
-)
+_DELETE_PERMISSIONS_BY_UUID = text("DELETE FROM `permissions_entity_map` WHERE uuid = :uuid")
 _DELETE_ENTITY_BY_UUID = text("DELETE FROM `entity` WHERE uuid = :uuid")
 _DELETE_ENTITY_TYPE_BY_UUID = text("DELETE FROM `entity_type` WHERE uuid = :uuid")
 
-_PRO_DEVELOPER_UUID = "22222222-2222-2222-2222-222222222222"
-_PRO_TRIAL_UUID = "11111111-1111-1111-1111-111111111111"
-_PRO_TRIAL_USER_UUID = "11111111-1111-1111-1111-111111111111"
-_PRO_DEVELOPER_ENTITY_UUID = "33333333-3333-3333-3333-333333333333"
-_PRO_TRIAL_ENTITY_UUID = "44444444-4444-4444-4444-444444444444"
-_PRO_ENTITY_TYPE_UUID = "55555555-5555-5555-5555-555555555555"
+_DEFAULT_MEMBER_ROLE_UUID = "22222222-2222-2222-2222-222222222222"
+_DEFAULT_ADMIN_ROLE_UUID = "66666666-6666-6666-6666-666666666666"
+_DEFAULT_ADMIN_USER_UUID = "11111111-1111-1111-1111-111111111111"
+_DEFAULT_ENTITY_UUID = "33333333-3333-3333-3333-333333333333"
+_DEFAULT_ENTITY_TYPE_UUID = "55555555-5555-5555-5555-555555555555"
 
 
 def _configure_test_settings(
@@ -427,18 +426,14 @@ def _get_or_create_entity_type(session):
     """Ensure the PRO entity type exists for /pro endpoints."""
     from api.models.entity_models import EntityType
 
-    entity_type = (
-        session.query(EntityType)
-        .filter(EntityType.uuid == _PRO_ENTITY_TYPE_UUID)
-        .first()
-    )
+    entity_type = session.query(EntityType).filter(EntityType.uuid == _DEFAULT_ENTITY_TYPE_UUID).first()
     if entity_type:
         return entity_type
 
     entity_type = EntityType(
-        uuid=_PRO_ENTITY_TYPE_UUID,
-        entity_type="developer",
-        code="DEV",
+        uuid=_DEFAULT_ENTITY_TYPE_UUID,
+        entity_type="Workspace",
+        code="SYS",
         active=True,
         permission_hierarchy=0,
     )
@@ -467,7 +462,6 @@ def _get_or_create_entity(
         name=name,
         entity_type_uuid=entity_type_uuid,
         email=email,
-        seats=100,
     )
     session.add(entity)
     session.commit()
@@ -503,7 +497,7 @@ def _get_or_create_user(session, *, uuid: str, email: str, perm_uuid: str) -> No
     if existing_user:
         return
 
-    trial_user = User(
+    user = User(
         uuid=uuid,
         email=email,
         clean_email=email,
@@ -511,57 +505,37 @@ def _get_or_create_user(session, *, uuid: str, email: str, perm_uuid: str) -> No
         confirmed=True,
         permissions_uuid=perm_uuid,
     )
-    session.add(trial_user)
+    session.add(user)
     session.commit()
 
 
-def _seed_pro_entities() -> None:
-    """Seed required entities for /pro endpoints after migrations."""
+def _seed_workspace_entities() -> None:
+    """Provision the default organization and its member/admin mappings."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
-    sync_url = (
-        f"mysql+pymysql://{settings.WRITE_DB_USER}:{settings.WRITE_DB_PASSWORD}"
-        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-    )
-    engine = create_engine(sync_url)
-
+    engine = create_engine(_get_test_db_url_sync())
     with Session(engine) as session:
         entity_type = _get_or_create_entity_type(session)
-        developer_entity = _get_or_create_entity(
+        entity = _get_or_create_entity(
             session,
-            uuid=_PRO_DEVELOPER_ENTITY_UUID,
-            name="Developer Entity",
-            email="developer@openbb.co",
+            uuid=_DEFAULT_ENTITY_UUID,
+            name="Workspace",
+            email="workspace@openbb.co",
             entity_type_uuid=entity_type.uuid,
         )
-        trial_entity = _get_or_create_entity(
-            session,
-            uuid=_PRO_TRIAL_ENTITY_UUID,
-            name="Trial Entity",
-            email="trial@openbb.co",
-            entity_type_uuid=entity_type.uuid,
-        )
-        _get_or_create_permission(
-            session,
-            uuid=_PRO_DEVELOPER_UUID,
-            entity_uuid=developer_entity.uuid,
-            name="developer",
-        )
-        _get_or_create_permission(
-            session,
-            uuid=_PRO_TRIAL_UUID,
-            entity_uuid=trial_entity.uuid,
-            name="trial",
-        )
+        _get_or_create_permission(session, uuid=_DEFAULT_MEMBER_ROLE_UUID, entity_uuid=entity.uuid, name="User")
+        _get_or_create_permission(session, uuid=_DEFAULT_ADMIN_ROLE_UUID, entity_uuid=entity.uuid, name="Admin")
         _get_or_create_user(
-            session,
-            uuid=_PRO_TRIAL_USER_UUID,
-            email="pro_trial_user@openbb.co",
-            perm_uuid=_PRO_TRIAL_UUID,
+            session, uuid=_DEFAULT_ADMIN_USER_UUID, email="workspace-admin@openbb.co", perm_uuid=_DEFAULT_ADMIN_ROLE_UUID
         )
-
     engine.dispose()
+    from uuid import UUID
+
+    settings.DEFAULT_PERMISSIONS_UUID = UUID(_DEFAULT_MEMBER_ROLE_UUID)
+    settings.DEFAULT_ADMIN_PERMISSIONS_UUID = UUID(_DEFAULT_ADMIN_ROLE_UUID)
+    settings.DEFAULT_INVITER_UUID = UUID(_DEFAULT_ADMIN_USER_UUID)
+    settings.DEFAULT_INVITER_EMAIL = "workspace-admin@openbb.co"
 
 
 def _get_test_db_url_async() -> str:
@@ -589,7 +563,7 @@ __all__ = [
     "_create_session_record",
     "_build_service_jwt",
     "_make_auth_client",
-    "_seed_pro_entities",
+    "_seed_workspace_entities",
     "_get_test_db_url_async",
     "_get_test_db_url_sync",
     "_AUTH_USER",

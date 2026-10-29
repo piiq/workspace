@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { extendTrialUser, updateUser } from "~/api/admin.api";
+import { updateUser } from "~/api/admin.api";
 import { useEntityMap } from "~/components/AdminRoles/adminUseQueries";
 import AdminDialogFooter from "~/components/AdminUsers/common/AdminDialogFooter";
 import { useStateReducer } from "~/hooks/useStateReducer";
@@ -11,7 +11,6 @@ import { getConfig } from "~/lib/runtimeConfig";
 import { useShallowAuthStore } from "~/lib/state/auth";
 import type { User } from "~/types/user.type";
 import { Button } from "../ds/atoms/Button";
-import { Checkbox } from "../ds/atoms/Checkbox";
 import { Select } from "../ds/atoms/Select";
 import { Tag } from "../ds/atoms/Tag";
 import { BaseDialog } from "../ds/dialogs/BaseDialog";
@@ -37,8 +36,6 @@ interface Props {
 
 interface UserInfo {
   permissions_uuid: User["permissions_uuid"];
-  billing_active: User["billing_active"];
-  pro_entitlements: User["pro_entitlements"];
 }
 
 interface BaseState extends UserInfo {
@@ -64,8 +61,6 @@ const initialState = {
 export function getBaseState(user: User | UserInfo, initial?: Partial<BaseState>) {
   return {
     permissions_uuid: user.permissions_uuid,
-    billing_active: user.billing_active,
-    pro_entitlements: user.pro_entitlements,
     ...(initial || {}),
   } as BaseState;
 }
@@ -78,13 +73,13 @@ export default function AdminUserDetailsDialog({ onClose, user, roles = [] }: Pr
   const userInfo = useMemo(() => {
     const activeUser = user.status === "active";
     const sameUser = user.email === loggedInUser.email;
-    const isTrial = user.permissions_uuid === "11111111-1111-1111-1111-111111111111";
+
     const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
     const lastLogin = user.last_login
       ? dayjs(user.last_login).locale("en").format("MMM D, YYYY h:mm A")
       : "-";
 
-    return { activeUser, sameUser, isTrial, fullName, lastLogin };
+    return { activeUser, sameUser, fullName, lastLogin };
   }, [user, loggedInUser?.email]);
 
   useEffect(() => {
@@ -119,26 +114,9 @@ export default function AdminUserDetailsDialog({ onClose, user, roles = [] }: Pr
     [entityMap],
   );
 
-  const userExtension = useMutation({
-    mutationFn: async () => extendTrialUser(user.uuid),
-    onSuccess: (_data) => {
-      toast.success("User extended successfully!");
-      onClose();
-    },
-    onError: (err) => {
-      toast.error("Something went wrong");
-      console.error(err);
-    },
-  });
-
   const handleSubmit = useCallback(async () => {
     await userMutation.mutateAsync(getBaseState(state));
   }, [userMutation.mutateAsync, state]);
-
-  const handleExtend = useCallback(async () => {
-    if (userExtension.isPending) return;
-    await userExtension.mutateAsync();
-  }, [userExtension.isPending, userExtension.mutateAsync]);
 
   return (
     <>
@@ -300,19 +278,6 @@ export default function AdminUserDetailsDialog({ onClose, user, roles = [] }: Pr
           </SettingsMenu>
 
           <div className="hidden">
-            <Checkbox
-              label="Seat Assigned"
-              defaultChecked={state.billing_active}
-              onCheckedChange={(billing_active) =>
-                typeof billing_active === "boolean" && dispatch({ billing_active })
-              }
-              disabled={!userInfo.activeUser || userInfo.sameUser}
-            />
-            {userInfo.isTrial && !user.renewed && (
-              <Button variant="secondary" size="xs" onClick={handleExtend}>
-                Extend Account
-              </Button>
-            )}
             {state.temporaryPassword && (
               <div className="flex items-center gap-1">
                 <span className="body-xs-medium">Temporary password:</span>

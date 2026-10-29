@@ -469,7 +469,6 @@ async def test_hub_privileges_and_billing_do_not_transfer(databases, imported):
 
     assert user.is_superuser is False, "Hub superuser must not become a Lite superuser"
     assert user.stripe_id is None
-    assert user.billing_active is False
 
 
 async def test_user_joins_the_local_entity(databases, imported):

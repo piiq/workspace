@@ -31,7 +31,7 @@ from api import models
 # Scope version. Bump when INCLUDED changes shape; the importer refuses an
 # archive whose manifest records a different value.
 # --------------------------------------------------------------------------- #
-SCOPE_VERSION = 3
+SCOPE_VERSION = 4
 
 # Columns never written to the archive, regardless of table.
 #
@@ -260,10 +260,7 @@ EXCLUDED: list[ExcludedTable] = [
     ExcludedTable(
         "stored_file_share", "creater_uuid", "File shares to other accounts; see above."
     ),
-    ExcludedTable(
-        "entitlement", "user_uuid", "Hub billing tier. Meaningless in Lite."
-    ),
-    ExcludedTable("entitlement_usage", "user_uuid", "Hub quota counters."),
+    ExcludedTable("user_usage", "user_uuid", "Resource counters are calculated at the destination."),
     ExcludedTable(
         "user_app_subscription", "user_uuid", "Marketplace subscriptions; no "
         "marketplace in Lite."
@@ -304,7 +301,6 @@ IMPORT_OVERRIDE_REASONS: dict[str, dict[str, str]] = {
         "is_superuser": "Hub superuser status does not transfer to a new instance.",
         "deleted": "A soft-deleted Hub account imports as a live Lite account.",
         "stripe_id": "No billing in Lite.",
-        "billing_active": "No billing in Lite.",
     },
     "api_source": {
         "vendor_app_uuid": (
@@ -338,7 +334,6 @@ def import_overrides(spec: TableSpec) -> dict[str, Any]:
             "is_superuser": False,
             "deleted": False,
             "stripe_id": None,
-            "billing_active": False,
         }
     if spec.table == "api_source":
         return {"vendor_app_uuid": None, "entity_uuid": None}

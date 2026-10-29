@@ -9,14 +9,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from loguru import logger
-from sqlalchemy import Row, case, delete, insert, literal, select, update
+from sqlalchemy import Row, delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api import auth_helpers, crud, helpers, models, schemas
 from api.base import clean_email, get_now, random_password
 from api.database import aget_read_db, aget_write_db
-from api.email import EmailService
 from api.models import (
     Entity,
     PermissionsEntityMap,
@@ -29,7 +28,7 @@ from api.rate_limit import LIMIT_DEFAULT, exempt_user_agent, limiter
 from api.schemas import ResetPasswordReturn, SuccessReturn
 from routers import pro_helpers, routers_helpers
 from scripts import export_user_data
-from utilities.config import BaseModel, settings
+from utilities.config import BaseModel
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -93,17 +92,7 @@ async def get_entity_info(
 ):
     admin_result = await get_admin_entity(db, admin.permissions_uuid)
     total_count = await crud.get_total_user_count(db, admin_result)
-    query = select(Entity.seats, Entity.expiration_date).where(
-        Entity.uuid == admin_result
-    )
-    result = (await db.execute(query)).first()
-    if result is None:
-        raise HTTPException(404, detail="Entity does not exist")
-    return schemas.EntityInfoReturn(
-        seats=result.seats or 0,
-        expiration_date=result.expiration_date,
-        used_seats=total_count or 0,
-    )
+    return schemas.EntityInfoReturn(user_count=total_count or 0)
 
 
 @router.get("/entity-map", response_model=list[schemas.EntityMapReturn])
@@ -168,7 +157,7 @@ async def revoke_register_user(
     admin: Annotated[Row, Depends(auth_helpers.get_current_admin)],
 ):
     admin_query = (
-        select(Entity.uuid, Entity.seats)
+        select(Entity.uuid)
         .select_from(PermissionsEntityMap)
         .join(Entity, Entity.uuid == PermissionsEntityMap.entity_uuid)
         .where(PermissionsEntityMap.uuid == admin.permissions_uuid)
@@ -249,12 +238,13 @@ async def remove_user(
         )
         response = await db.execute(query)
 
+    if response.rowcount == 0:
+        raise HTTPException(404, detail="Matching user not found")
+    await auth_helpers.delete_user_pro_sessions(db, user_uuid)
     await crud.remove_shares_both_ways(db, user_uuid)
     await crud.update_user_dashboards_new_entity(db, user_uuid)
 
     await db.commit()
-    if response.rowcount == 0:
-        raise HTTPException(404, detail="Matching user not found")
     return SuccessReturn.success_instance()
 
 
@@ -281,7 +271,7 @@ async def update_user(
     admin: Annotated[Row, Depends(auth_helpers.get_current_admin)],
 ):
     admin_query = (
-        select(Entity.uuid, Entity.seats)
+        select(Entity.uuid)
         .select_from(PermissionsEntityMap)
         .join(Entity, Entity.uuid == PermissionsEntityMap.entity_uuid)
         .where(PermissionsEntityMap.uuid == admin.permissions_uuid)
@@ -291,12 +281,6 @@ async def update_user(
         raise HTTPException(
             404, detail="Could not find the entity associated with the given admin"
         )
-    if update_info.billing_active:
-        total_count = await crud.get_total_user_count(db, admin_result.uuid)
-        if total_count >= (admin_result.seats or 0):
-            raise HTTPException(
-                403, detail="The maximum amount of seats has already been reached"
-            )
     maps_query = select(PermissionsEntityMap.uuid).where(
         PermissionsEntityMap.entity_uuid == admin_result.uuid
     )
@@ -317,6 +301,8 @@ async def update_user(
         value = getattr(update_info, field)
         if value is not None:
             data[field] = value
+    if not data:
+        raise HTTPException(400, detail="No account fields provided")
     query = (
         update(User)
         .where(User.uuid == user_uuid, User.permissions_uuid.in_(maps_clean))
@@ -328,9 +314,6 @@ async def update_user(
     # it feels unnecessary
     if response.rowcount == 0:
         raise HTTPException(404, detail="Matching user not found")
-    if update_info.billing_active is False:
-        await auth_helpers.delete_user_pro_sessions(db, user_uuid)
-
     return SuccessReturn.success_instance()
 
 
@@ -489,110 +472,6 @@ async def patch_providers(
     return SuccessReturn.success_instance()
 
 
-@router.get("/extend-trial/{user_uuid}", response_model=SuccessReturn)
-@limiter.limit(LIMIT_DEFAULT, exempt_when=exempt_user_agent)
-async def extend_trial(
-    request: Request,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    admin: Annotated[User, Depends(auth_helpers.get_current_admin)],
-    user_uuid: UUID,
-):
-    if not admin.permissions_uuid:
-        raise HTTPException(
-            404, detail="User is currently not assigned any permissions"
-        )
-    admin_result = await get_admin_entity(db, admin.permissions_uuid)
-    maps_query = select(PermissionsEntityMap.uuid).where(
-        PermissionsEntityMap.entity_uuid == admin_result
-    )
-    maps_result = (await db.execute(maps_query)).all()
-    maps_clean = [item.uuid for item in maps_result]
-    query = select(User.email, User.uuid).where(
-        User.uuid == user_uuid, User.permissions_uuid.in_(maps_clean)
-    )
-    user = (await db.execute(query)).first()
-    if user is None:
-        raise HTTPException(404, detail="User not found")
-    EmailService.extend_pro_trial(user[0], user[1])
-    return SuccessReturn.success_instance()
-
-
-@router.get("/entitlement/{user_uuid}", response_model=schemas.EntitlementGet)
-@limiter.limit(LIMIT_DEFAULT, exempt_when=exempt_user_agent)
-async def get_entitlement(
-    request: Request,
-    db: Annotated[AsyncSession, Depends(aget_read_db)],
-    user_uuid: UUID,
-    _: Annotated[User, Depends(auth_helpers.get_current_admin)],
-):
-    """Endpoint to retrieve the entitlement for a user."""
-
-    query = (
-        select(
-            case(
-                (models.Entitlement.tier_id == models.PRO_TIER_ID, literal("pro")),
-                (
-                    models.Entitlement.tier_id == models.TERMINAL_TIER_ID,
-                    literal("terminal"),
-                ),
-                else_=None,
-            ).label("tier"),
-            models.Entitlement.number_copilot_calls_day,
-            models.Entitlement.total_file_upload_size_gb,
-            models.Entitlement.share_widgets,
-            models.Entitlement.bring_your_own_data,
-            models.Entitlement.bring_your_own_copilot,
-            models.Entitlement.admin_access,
-            models.Entitlement.support,
-            models.Entitlement.excel_add_in,
-            models.Entitlement.data_add_ons_redistribution,
-            models.Entitlement.allow_custom_backends,
-        )
-        .select_from(models.Entitlement)
-        .where(models.Entitlement.user_uuid == user_uuid)
-        .limit(1)
-    )
-    result = (await db.execute(query)).first()
-    if result is None:
-        raise HTTPException(404, detail="Entitlement not found")
-
-    return result
-
-
-@router.patch("/entitlement/{user_uuid}", response_model=SuccessReturn)
-@limiter.limit(LIMIT_DEFAULT, exempt_when=exempt_user_agent)
-async def patch_entitlement(
-    request: Request,
-    entitlement: schemas.EntitlementPatch,
-    db: Annotated[AsyncSession, Depends(aget_write_db)],
-    user_uuid: UUID,
-    _: Annotated[User, Depends(auth_helpers.get_current_admin)],
-):
-    """Endpoint to update the entitlement for a user."""
-    tiers_match = {
-        "pro": models.PRO_TIER_ID,
-        "terminal": models.TERMINAL_TIER_ID,
-    }
-    if not await pro_helpers.has_entitlement(db, user_uuid):
-        raise HTTPException(status_code=404, detail="Entitlement not found")
-
-    entitlement_dict = entitlement.model_dump(exclude_unset=True)
-    if tier := entitlement_dict.pop("tier", None):
-        # User can't be on a different tier than the associated entity
-        await pro_helpers.check_against_entity_tier(db, user_uuid, tier)
-
-        entitlement_dict["tier_id"] = tiers_match.get(tier)
-
-    query = (
-        update(models.Entitlement)
-        .where(models.Entitlement.user_uuid == user_uuid)
-        .values(**entitlement_dict)
-    )
-    await db.execute(query)
-    await db.commit()
-    return SuccessReturn.success_instance()
-
-
 @router.post("/reset-password/{user_uuid}", response_model=ResetPasswordReturn)
 @limiter.limit(LIMIT_DEFAULT, exempt_when=exempt_user_agent)
 async def post_reset_password(
@@ -746,21 +625,17 @@ async def create_user(
     request: Request,
     user: schemas.UserCreateAdmin,
     db: Annotated[AsyncSession, Depends(aget_write_db)],
-    _: Annotated[Row, Depends(auth_helpers.get_current_admin)],
+    admin: Annotated[Row, Depends(auth_helpers.get_current_admin)],
 ):
-    """Allows an admin to register a new user, if the user isn't already registered or invited"""
-    # Check if the entity has available seats
-    permissions_query = select(PermissionsEntityMap.entity_uuid).where(
-        PermissionsEntityMap.uuid == user.permissions_uuid
-    )
-    entity_uuid = (await db.execute(permissions_query)).first()[0]
-    seats_query = select(Entity.seats).where(Entity.uuid == entity_uuid)
-    seats = (await db.execute(seats_query)).first()[0]
-    total_count = await crud.get_total_user_count(db, entity_uuid)
-    if total_count >= (seats or 0):
-        raise HTTPException(
-            403, detail="The maximum amount of seats has already been reached"
-        )
+    """Create an account in the administrator's organization."""
+    entity_uuid = await get_admin_entity(db, admin.permissions_uuid)
+    permissions_entity = await db.scalar(select(PermissionsEntityMap.entity_uuid).where(
+        PermissionsEntityMap.uuid == user.permissions_uuid,
+    ))
+    if permissions_entity is None:
+        raise HTTPException(404, detail="Could not find the provided permissions map")
+    if permissions_entity != entity_uuid and not admin.is_superuser:
+        raise HTTPException(403, detail="Cannot assign permissions from a different organization")
 
     # Check if the user is already invited
     query_invite = select(UserProInvite.uuid).where(UserProInvite.email == user.email)
@@ -772,11 +647,6 @@ async def create_user(
     if await crud.check_new_user(db, user.email):
         raise HTTPException(409, detail="A user with this email already exists")
 
-    pro_trial_granted = user.permissions_uuid != settings.PRO_DEVELOPER_MAPPING
-    nowish = get_now()
-
-    # hubspot contact creation removed — not needed for marketing provider
-
     # Create user
     random_pw = random_password()
     insert_query = insert(User).values(
@@ -786,12 +656,9 @@ async def create_user(
         password=random_pw,
         first_name=user.first_name,
         last_name=user.last_name,
-        billing_active=True,
         pro_start=get_now(),
         confirmed=1,
         temporary_password=True,
-        pro_trial_granted=pro_trial_granted,
-        pro_trial_granted_date=nowish if pro_trial_granted else None,
     )
     response = await db.execute(insert_query)
 

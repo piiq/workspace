@@ -24,7 +24,7 @@ Playwright starts or reuses the frontend at `http://127.0.0.1:1420` and API at `
 
 The frontend server command prepares `fixtures/plugins.json`, which installs, typechecks, and builds the example using its own dependencies. Source configuration enables external agents and disables the hosted OpenBB Copilot and AI file enhancements. Reused frontend servers need the same prepared selection and configuration.
 
-The account setup uses `admin_cli/openbb-admin` to create `playwright@example.com` with password `WorkspaceTest123!`, then signs in through the UI. CLI credentials stay in ignored `frontend/playwright/.cache/admin.json`; browser authentication stays in `frontend/playwright/.auth/user.json`. These credentials are for the local test environment.
+The account setup uses `admin_cli/openbb-admin` to create the member `playwright@example.com` with password `WorkspaceTest123!`, then signs in through the UI. The account-access scenarios check the Help page, member security settings, and the organization policy for personal backends. The policy scenario uses the source administrator account. CLI credentials stay in ignored `frontend/playwright/.cache/admin.json`; browser authentication stays in `frontend/playwright/.auth/user.json`. These credentials are for the local test environment.
 
 ```bash
 bun run playwright test tests/e2e/auth.spec.ts

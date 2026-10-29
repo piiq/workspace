@@ -13,7 +13,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from loguru import logger
-from sqlalchemy import false, insert, or_, select
+from sqlalchemy import false, func, insert, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask
 
@@ -48,7 +48,8 @@ async def post_files(
     it will be automatically deleted from the S3 bucket.
     """
 
-    tasks = []
+    total_bytes = await db.scalar(select(func.sum(StoredFile.size)).where(StoredFile.creater_uuid == user.uuid)) or 0
+    pending_files: list[tuple[UploadFile, schemas.StoredFileSchema]] = []
     for item in files:
         if not item.filename:
             continue
@@ -58,6 +59,9 @@ async def post_files(
 
         fs = await item.read()
         filesize = len(fs)
+        total_bytes += filesize
+        if total_bytes > settings.FILE_UPLOAD_LIMIT_GB * 1024**3:
+            raise HTTPException(413, detail="File uploads exceed the configured storage limit")
 
         model = schemas.StoredFileSchema(
             creater_uuid=user.uuid,
@@ -69,10 +73,9 @@ async def post_files(
         )
 
         item.file.seek(0)
-        tasks.append(
-            asyncio.create_task(FileStorage.upload_pending_file(item.file, model))
-        )
+        pending_files.append((item, model))
 
+    tasks = [asyncio.create_task(FileStorage.upload_pending_file(item.file, model)) for item, model in pending_files]
     gathered: list[schemas.StoredFileSchema] = await asyncio.gather(*tasks)
 
     processed_files: list[schemas.StoredFileSchema] = []

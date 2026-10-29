@@ -345,10 +345,6 @@ class CodeReturn(BaseModel):
     used: bool
 
 
-class RemainingCodes(BaseModel):
-    remaining: None | int
-
-
 class Token(BaseModel, extra="ignore"):  # type: ignore[call-arg]
     username: None | str = None
     email: str
@@ -432,28 +428,6 @@ class Feedback(BaseProperties):
 
 class UUIDReturn(BaseModel, extra="ignore"):  # type: ignore[call-arg]
     uuid: UUID
-
-
-class ProEntitlements(BaseModel, extra="allow"):  # type: ignore[call-arg]
-    benzinga: Literal["Read", "Write", "None"] = "Read"
-    polygon: Literal["Read", "Write", "None"] = "Read"
-    intrinio: Literal["Read", "Write", "None"] = "Read"
-    fmp: Literal["Read", "Write", "None"] = "Read"
-    datarade: Literal["Read", "Write", "None"] = "Read"
-    veraset: Literal["Read", "Write", "None"] = "Read"
-    alphavantage: Literal["Read", "Write", "None"] = "Read"
-
-    @classmethod
-    def trial_values(cls) -> "ProEntitlements":
-        return cls(
-            benzinga="Read",
-            polygon="Read",
-            intrinio="Read",
-            fmp="Read",
-            datarade="Read",
-            veraset="Read",
-            alphavantage="Read",
-        )
 
 
 class ProKeys(BaseModel, extra="allow"):  # type: ignore[call-arg]
@@ -620,35 +594,6 @@ class ProDisplaySettings(BaseModel, extra="allow"):  # type: ignore[call-arg]
             return DefaultTicker.default()
 
 
-class NudgeTriggerRecord(BaseModel, extra="allow"):
-    nudgeId: None | str = None
-    timestamp: None | datetime = None
-
-
-class ProZeroToHero(BaseModel, extra="allow"):  # type: ignore[call-arg]
-    grouping: None | datetime = None
-    table_charting: None | datetime = None
-    data_connectors: None | datetime = None
-    charting: None | datetime = None
-    group_sector_companies: None | datetime = None
-    analyst_walkthrough: None | datetime = None
-    developer_walkthrough: None | datetime = None
-    nudge_trigger_history: None | list[NudgeTriggerRecord] = None
-
-    @classmethod
-    def default(cls) -> "ProZeroToHero":
-        return cls(
-            grouping=None,
-            table_charting=None,
-            data_connectors=None,
-            charting=None,
-            group_sector_companies=None,
-            analyst_walkthrough=None,
-            developer_walkthrough=None,
-            nudge_trigger_history=None,
-        )
-
-
 class WidgetMetadata(BaseModel):
     model_config = get_camel_config()
     description: None | str = None
@@ -807,10 +752,9 @@ class EntityBase(BaseModel, extra="forbid"):  # type: ignore[call-arg]
     organization_size: str
     aum: int
     country: str
-    seats: int
-    expiration_date: datetime
     stripe_id: None | str = None
     api_keys: ProKeys = ProKeys()
+    allow_custom_backends: bool = True
 
 
 class EntityPost(EntityBase):
@@ -827,10 +771,9 @@ class EntityReturn(BaseModel):
     organization_size: None | str
     aum: None | int
     country: None | str
-    seats: None | int
-    expiration_date: Annotated[None | str, BeforeValidator(datetime_to_string)]
     stripe_id: None | str
     api_keys: ProKeys = ProKeys()
+    allow_custom_backends: bool
 
 
 class EntityRelationshipCreate(BaseModel, extra="forbid"):  # type: ignore[call-arg]
@@ -851,16 +794,13 @@ class EntityRelationshipReturn(EntityRelationshipCreate, extra="forbid"):  # typ
 
 
 class UserAdminUpdate(BaseModel, extra="forbid"):  # type: ignore[call-arg]
-    pro_entitlements: None | ProEntitlements = None
     permissions_uuid: None | UUID = None
-    billing_active: None | bool = None
 
 
 class EntityMapCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", from_attributes=True)
     entity_uuid: UUID
     name: str
-    entitlements: ProEntitlements
 
 
 class EntityMapReturn(EntityMapCreate):
@@ -868,13 +808,10 @@ class EntityMapReturn(EntityMapCreate):
     uuid: UUID
     entity: EntityReturn
     name: str
-    entitlements: ProEntitlements
 
 
 class EntityInfoReturn(BaseModel):
-    seats: int
-    used_seats: int
-    expiration_date: None | datetime
+    user_count: int
 
 
 class EntityUserReturn(BaseModel):
@@ -882,7 +819,6 @@ class EntityUserReturn(BaseModel):
     uuid: UUID
     email: str
     permissions: EntityMapReturn | None = None
-    pro_trial_end: None | datetime = None
 
 
 class AddEntityReturn(BaseModel, extra="ignore"):  # type: ignore[call-arg]
@@ -917,53 +853,28 @@ class DashboardComplete(DashboardOwned, DashboardShared):
     pass
 
 
-class EntitlementBase(BaseModel):
+class AccountPermissions(BaseModel):
+    admin_access: bool
+    allow_custom_backends: bool = True
+
+
+class UsageBase(BaseModel):
     model_config = main_config
-
-    tier: Literal["pro", "terminal"] | None = None
-    number_copilot_calls_day: int = None
-    total_file_upload_size_gb: int = None
-    share_widgets: Literal["public", "private"] | None = None
-    bring_your_own_data: bool = None
-    bring_your_own_copilot: bool = None
-    admin_access: bool = None
-    support: bool = None
-    excel_add_in: bool = None
-    data_add_ons_redistribution: bool = None
-    allow_custom_backends: bool | None = True
+    number_copilot_calls_day_count: int
+    total_file_upload_size_gb_count: float
 
 
-class EntitlementGet(EntitlementBase):
-    pass
+class UsagePut(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    add_copilot_count: int = Field(default=0, ge=0)
 
 
-class EntitlementUsageBase(BaseModel):
-    def entitlement_match_dump(self):
-        entitlement_match = {}
-
-        for field_name, field in self.__class__.model_fields.items():
-            entitlement_match[field.json_schema_extra["entitlement_match"]] = getattr(self, field_name)
-        return entitlement_match
-
-    model_config = main_config
-    number_copilot_calls_day_count: int = Field(..., json_schema_extra={"entitlement_match": "number_copilot_calls_day"})
-    total_file_upload_size_gb_count: float = Field(
-        ..., json_schema_extra={"entitlement_match": "total_file_upload_size_gb"}
-    )
-
-
-class EntitlementUsagePut(BaseModel):
-    add_copilot_count: int | None = Field(0, ge=0)
-    subtract_copilot_count: int | None = Field(0, ge=0)
-    reset_copilot_count: bool | None = False
-
-
-class EntitlementUsageGet(EntitlementUsageBase, extra="ignore"):  # type: ignore[call-arg]
+class UsageGet(UsageBase, extra="ignore"):  # type: ignore[call-arg]
     copilot_calls_limit: int | None = None
     file_upload_size_limit: float | None = None
 
     @classmethod
-    async def check_cache(cls, db, user) -> "EntitlementUsageGet":
+    async def check_cache(cls, db, user) -> "UsageGet":
         from routers.pro.helpers import check_usage_cache  # noqa: PLC0415
 
         return await check_usage_cache(db, user)
@@ -975,7 +886,7 @@ class UsageLimitError(BaseModel):
     current_usage: int
 
     @classmethod
-    def limit_error(cls, usage: EntitlementUsageGet) -> JSONResponse:
+    def limit_error(cls, usage: UsageGet) -> JSONResponse:
         return JSONResponse(
             status_code=422,
             content={
@@ -1002,10 +913,9 @@ def default_chats() -> list["Chat"]:
 
 class DashboardCompleteWithContext(DashboardComplete):
     model_config = main_config
-    is_trial_entity: bool
     can_submit_marketplace: bool = False
-    feature_entitlements: EntitlementGet | None = None
-    usage: EntitlementUsageGet | None = None
+    account_permissions: AccountPermissions
+    usage: UsageGet | None = None
     copilot_chats: list["ChatInfo | Chat"] | None = Field(default_factory=default_chats)
     questions_history: list[str] | None = None
     mcp_servers: list[dict] | None = Field(default_factory=list)
@@ -1035,12 +945,10 @@ class UserEntityInfo(BaseModel):
 class ProUserReturn(BaseModel):
     model_config = main_config
     expiration_date: datetime
-    entitlements: None | ProEntitlements
     accepted_pro_tos: bool
     first_name: None | str = None
     last_name: None | str = None
     pro_display_settings: ProDisplaySettings = ProDisplaySettings()
-    pro_zero_to_hero: ProZeroToHero = ProZeroToHero.default()
     single_widgets: list[ReturnSingleWidget]
     file_widgets: list[ReturnFileWidget]
     api_sources: list[ReturnApiSource]
@@ -1093,17 +1001,13 @@ class UserAdminReturn(BaseModel, extra="ignore"):  # type: ignore[call-arg]
     first_name: None | str = None
     last_name: None | str = None
     email: str
-    billing_active: None | bool = False
     role: str
     last_login: None | datetime = None
     last_active: None | datetime = None
     status: Literal["active", "pending", "revoked", "expired"] = "pending"
-    pro_entitlements: None | ProEntitlements = None
     permissions_uuid: UUID | None = None
     # Which table the information comes from, essential for properly implementing a delete function
     source: UserSourceType
-    # pro_trial_renewals is > 0 or pro_trial_extensions is True
-    renewed: bool = False
 
 
 class InviteEmail(BaseModel):
@@ -1133,11 +1037,8 @@ class HubspotProperties(BaseModel):
     newsletter_only: bool = False
     is_verified: None | bool = None
     pro_start_date: None | float = None
-    pro_trial_granted: None | bool = None
-    pro_trial_granted_date: None | str = None
     is_paid_user: None | bool = None
     is_admin: None | bool = None
-    trial_extended_0124: None | bool = None
     firstname: None | str = None
     lastname: None | str = None
     org_name: None | str = None
@@ -1168,9 +1069,6 @@ class UserMarketing(BaseModel, extra="ignore"):  # type: ignore[call-arg]
     is_paid_user: None | bool = None
     is_admin: None | bool = None
     pro_start_date: None | float = None
-    pro_trial_granted: None | bool = None
-    pro_trial_granted_date: None | str = None
-    trial_extended: None | bool = None
     # Onboarding survey
     programming_experience: None | str = None
     data_types: None | str = None
@@ -1188,11 +1086,8 @@ class UserMarketing(BaseModel, extra="ignore"):  # type: ignore[call-arg]
             firstname=self.first_name,
             lastname=self.last_name,
             pro_start_date=self.pro_start_date,
-            pro_trial_granted=self.pro_trial_granted,
-            pro_trial_granted_date=self.pro_trial_granted_date,
             is_paid_user=self.is_paid_user,
             is_admin=self.is_admin,
-            trial_extended_0124=self.trial_extended,
             org_name=self.organization_name,
             org_segment=self.organization_segment,
             programming_experience=self.programming_experience,
@@ -1219,31 +1114,28 @@ class UserCreate(UserMarketing):
     referred_by: None | str = None
 
 
-class UserCreateAdmin(BaseModel):
+class UserInvite(BaseModel):
     model_config = main_config
     email: Annotated[EmailStr, AfterValidator(check_email)]
-    permissions_uuid: UUID = settings.PRO_TRIAL_MAPPING
-    first_name: None | str = None
-    last_name: None | str = None
-    message: None | str = Field(max_length=500, default=None)
-    role: None | UUID = None
+    first_name: str | None = None
+    last_name: str | None = None
+    message: str | None = Field(max_length=500, default=None)
 
 
-class UserCreateProAdmin(BaseModel):
-    model_config = main_config
-    email: Annotated[EmailStr, AfterValidator(check_email)]
-    permissions_uuid: UUID = settings.PRO_TRIAL_MAPPING
-    first_name: None | str = None
-    last_name: None | str = None
-    message: None | str = Field(max_length=500, default=None)
-    newsletter: None | bool = False
-    hear_about_us: None | str = None
+class UserCreateAdmin(UserInvite):
+    permissions_uuid: UUID
+    role: UUID | None = None
+
+
+class UserCreateProAdmin(UserInvite):
+    permissions_uuid: UUID | None = None
+    newsletter: bool = False
+    hear_about_us: str | None = None
 
 
 class UserUpdateAdmin(BaseModel):
     model_config = main_config
     permissions_uuid: None | str = None
-    pro_trial_end: None | datetime = None
 
 
 class TotpToken(BaseModel, extra="forbid"):  # type: ignore[call-arg]
@@ -1540,21 +1432,14 @@ class UserProSchema(BaseModel):
     password: str
     latest_version: str | None = None
     permissions_uuid: None | UUID = None
-    pro_entitlements: ProEntitlements | None = None
-    pro_trial_end: None | datetime = None
-    pro_trial_renewals: None | int = None
-    pro_trial_extension: None | bool = None
     temporary_password: None | bool = None
     totp_secret: None | str = None
     totp_active: bool | None = None
     two_factor_auth: bool | None = None
-    billing_active: None | bool = None
     entity_uuid: UUID | None = None
     require_authenticator: bool | None = None
     name: str | None = None
-    expiration_date: None | datetime = None
     role: str | None = None
-    welcome_screen: bool | None = None
     is_superuser: bool | None = None
     can_submit_marketplace: bool | None = None
 
@@ -1673,33 +1558,9 @@ class UserAppsComplete(BaseModel):
     owned: dict[UUID, UserAppReturn]
 
 
-class EntitlementPost(BaseModel):
-    model_config = main_config
-    tier: Literal["pro", "terminal"]
-
-
-class EntitlementPut(EntitlementPost): ...  # type: ignore
-
-
-class EntitlementPatch(EntitlementBase): ...  # type: ignore
-
-
 class ValidateAndSync(BaseModel):
     model_config = main_config
-    feature_entitlements: EntitlementGet
-
-
-class TierPut(BaseModel):
-    model_config = main_config
-
-    tier: Literal["terminal"]
-
-
-class TierPutResponse(BaseModel):
-    model_config = main_config
-    entitlement: EntitlementGet
-    usage: EntitlementUsageGet
-    is_trial_entity: bool
+    account_permissions: AccountPermissions
 
 
 class SharedDashboardViewed(BaseModel):
@@ -1933,17 +1794,13 @@ class ProToken(BaseModel, extra="ignore"):  # type: ignore[call-arg]
     email: EmailStr
     access_token: str
     username: str | None
-    entitlements: ProEntitlements
     expiration_date: datetime
     temporary_password: bool
     force_2fa: bool
     entity_name: None | str
     entity_theme_settings: EntityThemeSettings
     role: None | str
-    is_trial_entity: bool
-    pro_trial_end: None | datetime
     show_changelog: bool
-    show_welcome_screen: bool | None = False
 
 
 class ProTokenWithContext(ProToken):
@@ -1954,11 +1811,10 @@ class ProTokenWithContext(ProToken):
     user_apps: UserAppsComplete
     user_skills: list[SkillReturn] | None = None
     user: ProUserReturn | None = None
-    feature_entitlements: EntitlementGet | None = None
+    account_permissions: AccountPermissions
     can_submit_marketplace: bool = False
-    moved_to_developer: bool = False
     developer_onboarding_info: ProInfoDeveloper | None = None
-    usage: EntitlementUsageGet | None = None
+    usage: UsageGet | None = None
     custom_copilots: list[CustomCopilot] | None = None
     mcp_servers: list[MCPServer] | None = None
     is_first_login: bool | None = False

@@ -22,7 +22,7 @@ import {
   type ExternalCopilotHolder,
   type HumanMessage,
 } from "~/lib/state/copilot";
-import type { FeatureFlags, Usage } from "~/lib/state/featureFlags";
+import type { Usage } from "~/lib/state/featureFlags";
 import type { McpServer } from "~/lib/state/mcpTools";
 import type { EntityThemeSettings } from "~/lib/state/tableChartThemes";
 import {
@@ -33,7 +33,6 @@ import {
 import { createURL, createURLString, processWidgetId, uuidv4 } from "~/lib/utils";
 import queryClient from "~/queryClient";
 import type {
-  Challenges,
   Detail,
   DeveloperOnboardingQuestions,
   MetaDataWidgetType,
@@ -44,7 +43,6 @@ import type {
   Skill,
   SkillCreate,
   SuccessReturn,
-  Walkthroughs,
   WidgetMetadataResponse,
 } from "~/types/auth.type";
 import { handleWidgetMetadata } from "~/utils/dataConnectorsHelpers";
@@ -86,13 +84,6 @@ export type PostUploadFileResponse = {
   url: string;
   failed: boolean;
 }[];
-
-export type PutTierResponse = {
-  success: boolean;
-  entitlement: FeatureFlags;
-  is_trial_entity: boolean;
-  usage: Usage;
-};
 
 export type CustomCopilot = {
   uuid: string;
@@ -327,21 +318,6 @@ export async function getCopilotChat(chatUuid: string): Promise<Chat | null> {
 export async function getUser(): Promise<ProUserResponse> {
   const { data } = await apiClient.get<ProUserResponse>("/pro/user");
   return data;
-}
-
-export async function updateZeroToHero(
-  challenges: Challenges | Walkthroughs,
-): Promise<{ status: number }> {
-  try {
-    const { status } = await apiClient
-      .post("/pro/zero-to-hero", challenges)
-      .catch((e: AxiosError) => {
-        return { status: e?.response?.status || 500 };
-      });
-    return { status };
-  } catch (e) {
-    return { status: e?.response?.status || 500 };
-  }
 }
 
 export async function acceptTerms() {
@@ -840,31 +816,6 @@ export async function deleteWidgetMetadata(
   const { data } = await apiClient.delete<WidgetMetadataItem[]>(
     `/pro/widget-metadata/${widgetId}`,
   );
-  return data;
-}
-
-export async function putTier(payload: { tier: string }): Promise<PutTierResponse> {
-  try {
-    const { data } = await apiClient.put<PutTierResponse>("/pro/tier", payload);
-    return {
-      success: true,
-      entitlement: data.entitlement,
-      usage: data.usage,
-      is_trial_entity: data.is_trial_entity,
-    };
-  } catch (error) {
-    console.error("Error updating tier:", error);
-    return {
-      success: false,
-      entitlement: {} as FeatureFlags,
-      usage: {} as Usage,
-      is_trial_entity: false,
-    };
-  }
-}
-
-export async function userHasEntity(): Promise<{ success: boolean }> {
-  const { data } = await apiClient.get("/pro/user-has-entity");
   return data;
 }
 

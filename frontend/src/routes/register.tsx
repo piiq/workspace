@@ -104,7 +104,6 @@ const defaultState = {
   enterQR: false,
   showReset: false,
   loggedIn: false,
-  movedToDeveloper: false,
   oauthLoading: false,
 };
 
@@ -131,9 +130,7 @@ export default function RegisterPage() {
       } else {
         const nextPage = authStore.lastVisitedPage;
         const searchParams = new URLSearchParams();
-        if (state.movedToDeveloper) {
-          searchParams.append("moved_to_developer", "true");
-        }
+
         const queryString = searchParams.toString();
         navigate(`${nextPage}${queryString ? `?${queryString}` : ""}`);
       }
@@ -142,7 +139,6 @@ export default function RegisterPage() {
     state.loggedIn,
     state.showQR,
     state.showReset,
-    state.movedToDeveloper,
     authStore.needsOnboarding,
     navigate,
     authStore.lastVisitedPage,
@@ -456,7 +452,6 @@ export interface OAuthRegisterProps {
     showQR: string;
     showReset: boolean;
     loggedIn: boolean;
-    movedToDeveloper: boolean;
   }>;
   captureError: (error: Error, status: number, email?: string) => void;
 }

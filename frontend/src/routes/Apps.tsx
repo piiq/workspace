@@ -52,22 +52,17 @@ import { type UnifiedTemplate, useAllTemplates } from "~/hooks/useAllTemplates";
 import { useSharedTemplates } from "~/hooks/useSharedTemplates";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import { inSnowflakeNativeApp } from "~/lib/constants";
-import { isLiteEnvironment, isOnPremDeployment } from "~/lib/onPremFeatureFlags";
 import { getConfig } from "~/lib/runtimeConfig";
 import {
   useShallowBackendConnectorStore,
   type WidgetMetadataItem,
 } from "~/lib/state/backendConnector";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { useShallowThemeStore } from "~/lib/state/theme";
 import { useShallowUserAppsStore } from "~/lib/state/userApps";
 import { cn } from "~/lib/utils";
 
 const BETA_TAG = <Tag color="dark-blue">Beta</Tag>;
-const SHOW_MARKETPLACE =
-  getConfig().ui.showMarketplace &&
-  !inSnowflakeNativeApp &&
-  (isLiteEnvironment() || !isOnPremDeployment());
+const SHOW_MARKETPLACE = getConfig().ui.showMarketplace && !inSnowflakeNativeApp;
 
 const TABS = [
   { label: "My Apps", id: "my-apps" },
@@ -191,10 +186,6 @@ function MyAppsTab() {
     setOpenDataPlatformModalOpen: state.setOpenDataPlatformModalOpen,
   }));
 
-  const isProTier = useShallowFeatureFlagsStore(
-    (state) => state.featureFlags?.tier === "pro",
-  );
-
   const openDataPlatformInstallerEnabledFF = getConfig().ui.odpDownloadInstaller;
 
   const { leftSidebarLogo, name: wlName } = getConfig().whiteLabel;
@@ -203,7 +194,7 @@ function MyAppsTab() {
     (wlName && wlName !== "OpenBB Workspace");
 
   const openDataPlatformInstallerEnabled =
-    openDataPlatformInstallerEnabledFF && !isWhitelabel && !isProTier;
+    openDataPlatformInstallerEnabledFF && !isWhitelabel;
 
   const { isFetching: isLoadingApiSources, refetch: refetchApiSources } = useQuery({
     queryKey: ["apiSources"],

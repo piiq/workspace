@@ -2,15 +2,12 @@ import cloneDeep from "lodash/cloneDeep";
 import { useMemo, useState } from "react";
 import CodeSnippet from "~/components/CodeSnippet";
 import type { Widget } from "~/lib/state/app";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
-import { cn } from "~/lib/utils";
 import { showNotification } from "~/lib/utils/toast";
 import excelFunctions from "../lib/api/excelFunctions.json";
 import { Button } from "./ds/atoms/Button";
 import { Checkbox } from "./ds/atoms/Checkbox";
 import { BaseDialog } from "./ds/dialogs/BaseDialog";
 import { DialogDescription, DialogTitle } from "./ds/dialogs/Dialog";
-import TerminalProOnlyTag from "./General/TerminalProOnlyTag";
 import Icon from "./Icon";
 import Tooltip from "./Tooltip";
 import { useWidgetContext } from "./Widget.context";
@@ -319,9 +316,7 @@ export default function FunctionsDialog({
   setOpen: (open: boolean) => void;
 }) {
   const [useExplicitParams, setUseExplicitParams] = useState(false);
-  const isProTier = useShallowFeatureFlagsStore(
-    (state) => state.featureFlags?.tier === "pro",
-  );
+
   const { widget, widgetFromJSON } = useWidgetContext();
   const excelDataFunction = widget.external
     ? ["OBB.WIDGET"]
@@ -340,7 +335,6 @@ export default function FunctionsDialog({
         <div key={index} className="flex flex-col gap-4 mb-2">
           <div className="flex gap-2">
             <CodeSnippet
-              disabled={!isProTier}
               text={useExplicitParams ? explicitParamsDisplay : display}
               className="grow w-32"
               hideCopy={true}
@@ -378,7 +372,6 @@ export default function FunctionsDialog({
             <Button
               variant="primary"
               size="sm"
-              disabled={!isProTier}
               onClick={() => {
                 navigator.clipboard.writeText(
                   useExplicitParams ? explicitParamsCopy : copy,
@@ -410,7 +403,6 @@ export default function FunctionsDialog({
             <Checkbox
               checked={useExplicitParams}
               onCheckedChange={(checked) => setUseExplicitParams(checked === true)}
-              disabled={!isProTier}
               label="with explicit parameters"
               labelClassName="whitespace-nowrap"
             />
@@ -418,7 +410,7 @@ export default function FunctionsDialog({
         </div>
       );
     });
-  }, [excelDataFunction, widget, isProTier, useExplicitParams]);
+  }, [excelDataFunction, widget, useExplicitParams]);
 
   const memorizedPlatformDataFunction = useMemo(() => {
     return platformDataFunction?.map((func, index) => {
@@ -479,11 +471,7 @@ export default function FunctionsDialog({
         {excelDataFunction !== undefined && (
           <div className="flex flex-col gap-1">
             <div className="flex gap-1 items-center flex-wrap">
-              <DialogDescription
-                className={cn("text-ds-text-body", {
-                  "text-general-label-disabled": !isProTier,
-                })}
-              >
+              <DialogDescription className="text-ds-text-body">
                 Access <strong className="text-ds-text-heading">{widget.name}</strong>
                 {" data from "}
                 {widget.connectionType === "single" ? (
@@ -493,7 +481,6 @@ export default function FunctionsDialog({
                 )}
                 {" in Excel."}
               </DialogDescription>
-              {!isProTier && <TerminalProOnlyTag />}
             </div>
             <div className="flex flex-col mt-2">{memorizedExcelDataFunction}</div>
           </div>

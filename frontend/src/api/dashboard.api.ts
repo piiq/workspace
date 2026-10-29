@@ -40,9 +40,6 @@ export async function getSharedDashboards<T extends DashShared>(): Promise<T> {
 
 export async function getSharedDashboardsAndUpdate() {
   const { featureFlags } = useFeatureFlagsStore.getState();
-  const isFreeTier = featureFlags?.tier === "terminal";
-
-  if (isFreeTier) return;
 
   const remoteData = await getSharedDashboards();
   useSharedAppStore.getState().updateOnlySharedItems({

@@ -60,8 +60,6 @@ PROVISION_CONFIG=$(cat <<EOF
     "organization_size": "10-50",
     "aum": 10000000,
     "country": "USA",
-    "seats": 50,
-    "expiration_date": "2025-12-31T00:00:00Z",
     "admin_email": "admin-test-$TIMESTAMP@example.com"
   },
   "admins": [
@@ -171,15 +169,15 @@ fi
 log_success "Additional regular user created: $USER_EMAIL (temp password: $USER_TEMP_PASSWORD)"
 
 # 4. UPDATE ENTITY
-log_step "Step 4: Updating entity (increasing seats to 100)..."
-$ADMIN_CLI entity update "$ENTITY_UUID" --d '{"seats": 100}'
-log_success "Entity updated (seats: 50 → 100)"
+log_step "Step 4: Updating entity (setting assets under management)..."
+$ADMIN_CLI entity update "$ENTITY_UUID" --d '{"aum": 20000000}'
+log_success "Entity updated (aum: 20000000)"
 
 # Verify update
 ENTITY_DETAILS=$($ADMIN_CLI entity show "$ENTITY_UUID" --json)
-SEATS=$(echo "$ENTITY_DETAILS" | grep -o '"seats": *[^,}]*' | awk -F': ' '{print $2}')
-if [ "$SEATS" != "100" ]; then
-    log_error "Entity update verification failed (expected seats: 100, got: $SEATS)"
+ENTITY_AUM=$(echo "$ENTITY_DETAILS" | grep -o '"aum": *[^,}]*' | awk -F': ' '{print $2}')
+if [ "$ENTITY_AUM" != "20000000" ]; then
+    log_error "Entity update verification failed (expected aum: 20000000, got: $ENTITY_AUM)"
 else
     log_success "Entity update verified"
 fi
@@ -204,17 +202,6 @@ echo "API Response:"
 echo "$DB_LIST_RESPONSE"
 echo ""
 log_success "Data backends listed"
-
-# 7. UPDATE ENTITLEMENT (disable custom backends)
-log_step "Step 7: Disabling custom backends for entity..."
-echo "Running: $ADMIN_CLI entitlement update $ENTITY_UUID --data '{\"allow_custom_backends\": false}' --json"
-ENT_RESPONSE=$($ADMIN_CLI entitlement update "$ENTITY_UUID" \
-    --data '{"allow_custom_backends": false}' \
-    --json 2>&1)
-echo "API Response:"
-echo "$ENT_RESPONSE"
-echo ""
-log_success "Custom backends disabled for entity"
 
 # 8. DELETE DATA BACKEND
 log_step "Step 8: Deleting the data backend..."
@@ -342,9 +329,7 @@ echo "✓ Bulk Provisioning: Entity + 2 initial users created"
 echo "  Method: provision apply (matches README Bulk Provisioning)"
 echo "  Entity UUID: $ENTITY_UUID"
 echo "  Name: Test Entity $TIMESTAMP"
-echo "  AUM: 10000000 (matches README)"
-echo "  Seats: 50 → 100 (updated, matches README Section 3)"
-echo "  Expiration: 2025-12-31T00:00:00Z"
+echo "  AUM: 10000000 → 20000000"
 echo ""
 echo "✓ Initial users (via provisioning):"
 echo "  - Admin: $INITIAL_ADMIN_EMAIL"
@@ -362,9 +347,6 @@ echo "✓ Data backend operations tested:"
 echo "  - Add backend: test-backend (matches README Section 9)"
 echo "  - List backends"
 echo "  - Delete backend: test-backend"
-echo ""
-echo "✓ Entitlement operations tested:"
-echo "  - Disable custom backends (allow_custom_backends: false)"
 echo ""
 echo "✓ User operations tested:"
 echo "  - Password reset: 4/4 users (matches README Section 8)"

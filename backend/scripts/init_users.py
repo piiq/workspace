@@ -3,23 +3,20 @@ import os
 import tomllib
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
-from pydantic import BaseModel, SecretStr, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api import base, schemas
 from api.base import clean_email
-from api.helpers import init_trial_mappings
-from api.models import Entity, EntityEntitlement, EntityType, PermissionsEntityMap, User
+from api.models import Entity, EntityType, PermissionsEntityMap, User
 from routers.entity import add_entity, aget_write_db
-from routers.pro.helpers import ON_PREM_ENTITLEMENTS
 from routers.pro.index import process_create_user, register_pro_user
 
 type MaybCoro[T] = Coroutine[Any, Any, T] | T
@@ -46,7 +43,6 @@ class AdminUser(UserConfig):
 
 class EntityConfig(BaseModel):
     name: str
-    seats: int
     aum: int
     company_type: str
     organization_size: str
@@ -55,8 +51,8 @@ class EntityConfig(BaseModel):
 
 class Config(BaseModel):
     entity: EntityConfig
-    admins: list[AdminUser] | None = []
-    users: list[UserConfig] | None = []
+    admins: list[AdminUser] = Field(min_length=1)
+    users: list[UserConfig] = Field(default_factory=list)
 
     @field_validator("users", "admins", mode="before", check_fields=False)
     @classmethod
@@ -75,25 +71,16 @@ async def call_func[**P, T](
     return await func(*args, **kwargs)
 
 
-DummyAdmin = AdminUser(
-    email="no_admin@entity.com",
-    first_name="No",
-    last_name="Admin",
-    password=SecretStr("INVALID_PASSWORD"),
-    uuid=UUID("11111111-1111-1111-1111-111111111111"),
-)
-
-
 class SetupConfig:
     db: AsyncSession
     config: Config
-    admin_user: type[User] | None
+    admin_user: User | None
     code: str
 
     def __init__(self, config: Config, db: AsyncSession):
         self.db = db
         self.config = config
-        self.admin_user: type[User] | None = None
+        self.admin_user: User | None = None
         self.code = config.entity.name[:3].upper()
 
     async def add_entity(self, entity: schemas.EntityPost):
@@ -102,12 +89,12 @@ class SetupConfig:
     async def create_user(self, the_uuid: UUID, email: str) -> User:
         return await process_create_user(the_uuid, email, self.db)
 
-    async def init_admins(self, permissions_uuid: UUID) -> User:
+    async def init_admins(self, permissions_uuid: UUID) -> None:
         admin_users: list[User] = []
         for admin in self.config.admins:
             admin_users.append(await self.create_admin(admin, permissions_uuid))
 
-        self.admin_user = admin_users[0] if admin_users else DummyAdmin
+        self.admin_user = admin_users[0]
 
     async def create_admin(self, admin_user: AdminUser, permissions_uuid: UUID) -> User:
         logger.info(f"Checking for admin: {admin_user.email}")
@@ -125,7 +112,6 @@ class SetupConfig:
                 permissions_uuid=permissions_uuid,
                 is_superuser=1,
                 password=admin_user.password.get_secret_value(),
-                billing_active=1,
             )
             result = await self.db.execute(query)
             await self.db.commit()
@@ -138,7 +124,7 @@ class SetupConfig:
                 password_ok = base.verify_password(
                     admin_user.password.get_secret_value(), user.password
                 )
-        if not user.is_superuser or not password_ok:
+        if not user.is_superuser or not password_ok or user.permissions_uuid != permissions_uuid:
             logger.info(
                 f"Updating admin: {admin_user.email} (is_superuser={user.is_superuser})"
             )
@@ -147,6 +133,7 @@ class SetupConfig:
                 .where(User.uuid == user.uuid)
                 .values(
                     is_superuser=1,
+                    permissions_uuid=permissions_uuid,
                     confirmed=1,
                     password=admin_user.password.get_secret_value(),
                 )
@@ -165,11 +152,11 @@ class SetupConfig:
         query = select(EntityType.uuid).where(EntityType.code == self.code)
         result = await self.db.execute(query)
 
-        main_admin = self.config.admins[0] if self.config.admins else DummyAdmin
+        main_admin = self.config.admins[0]
 
         if (entity_type_uuid := result.scalars().first()) is None:
             query = insert(EntityType).values(
-                entity_type="On-Premise",
+                entity_type="Workspace",
                 code=self.code,
                 active=True,
                 permission_hierarchy=2,
@@ -184,24 +171,17 @@ class SetupConfig:
                 email=main_admin.email,
                 admin_email=main_admin.email,
                 entity_code=str(entity_type_uuid),
-                expiration_date=datetime.now() + timedelta(days=365 * 50),
                 **self.config.entity.model_dump(),
             ),
         )
 
-    async def run(self):
+    async def run(self, *, registration_default: bool = True):
         query = select(Entity.uuid).where(Entity.name == self.config.entity.name)
         result = await self.db.execute(query)
 
         if (entity_uuid := result.scalars().first()) is None:
             entity_data = await self.create_entity()
             entity_uuid = entity_data["entity_uuid"]
-            await self.db.execute(
-                update(EntityEntitlement)
-                .where(EntityEntitlement.entity_uuid == entity_uuid)
-                .values(**ON_PREM_ENTITLEMENTS)
-            )
-            await self.db.commit()
 
         query = select(PermissionsEntityMap).where(
             PermissionsEntityMap.entity_uuid == entity_uuid
@@ -216,15 +196,21 @@ class SetupConfig:
         await self.init_admins(permissions_map["Admin"])
 
         user_create = {
-            "on_prem_admin_uuid": permissions_map["Admin"],
+            "admin_permissions_uuid": permissions_map["Admin"],
             "permissions_uuid": permissions_map["User"],
             "inviting_uuid": self.admin_user.uuid,
             "inviting_email": self.admin_user.email,
         }
-        with USER_CREATE_JSON_PATH.open("w", encoding="utf-8", newline="\n") as f:
-            f.write(json.dumps(jsonable_encoder(user_create), indent=4))
+        if registration_default:
+            with USER_CREATE_JSON_PATH.open("w", encoding="utf-8", newline="\n") as f:
+                f.write(json.dumps(jsonable_encoder(user_create), indent=4))
 
         for user in self.config.users:
+            existing_user = await self.db.scalar(select(User).where(User.email == user.email))
+            if existing_user:
+                if existing_user.permissions_uuid != permissions_map["User"]:
+                    raise RuntimeError(f"Account {user.email} belongs to a different organization or role")
+                continue
             user_create = schemas.UserCreateProAdmin(
                 email=user.email,
                 permissions_uuid=permissions_map["User"],
@@ -236,19 +222,14 @@ class SetupConfig:
                 inviting_email=self.admin_user.email,
             )
 
-            with suppress(Exception):
-                invite_uuid = await register_pro_user(
-                    self.db, user_create, extra_info, from_oauth=True
-                )
-                if not invite_uuid or not await self.create_user(
-                    invite_uuid, user.email
-                ):
-                    continue
+            invite_uuid = await register_pro_user(self.db, user_create, extra_info, from_oauth=True)
+            if not invite_uuid or not await self.create_user(invite_uuid, user.email):
+                raise RuntimeError(f"Could not provision account {user.email}")
 
         await self.db.commit()
 
 
-async def setup_configs(config_path: Path = CONFIG_PATH):
+async def setup_configs(config_path: Path = CONFIG_PATH, default_entity: str | None = None):
     configs = []
     files = list(config_path.glob("*.toml"))
     if not files:
@@ -257,12 +238,16 @@ async def setup_configs(config_path: Path = CONFIG_PATH):
         with file.open("rb") as f:
             configs.append(Config(**tomllib.load(f)))
 
-    with suppress(Exception):
-        await init_trial_mappings()
+    if default_entity is None:
+        if len(configs) > 1:
+            raise ValueError("Multiple organization configurations require --default-entity NAME")
+        default_entity = configs[0].entity.name
+    if default_entity not in {config.entity.name for config in configs}:
+        raise ValueError(f"No configuration found for default entity {default_entity}")
 
     async for db in aget_write_db():
         for config in configs:
-            await SetupConfig(config, db).run()
+            await SetupConfig(config, db).run(registration_default=config.entity.name == default_entity)
 
 
 if __name__ == "__main__":
@@ -277,5 +262,9 @@ if __name__ == "__main__":
         "-c", "--config-dir", type=Path, default=CONFIG_PATH,
         help="Directory containing entity/account TOML files.",
     )
+    parser.add_argument(
+        "-d", "--default-entity",
+        help="Organization name used for registration defaults; required with multiple configs.",
+    )
     args: argparse.Namespace = parser.parse_args()
-    asyncio.run(setup_configs(args.config_dir))
+    asyncio.run(setup_configs(args.config_dir, args.default_entity))

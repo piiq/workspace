@@ -14,6 +14,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     select,
+    true,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,7 +26,6 @@ from api.models.model_helpers import (
     Base,
     DateMixin,
     GzipJsonType,
-    ProEntitlementsType,
     ProKeysType,
     UUIDMixin,
 )
@@ -82,11 +82,10 @@ class Entity(Base, UUIDMixin, DateMixin):
     aum: Mapped[None | int] = mapped_column(BigInteger, default=0)
     country: Mapped[None | str] = mapped_column(String(60))
     require_authenticator: Mapped[bool] = mapped_column(Boolean, default=False)
+    allow_custom_backends: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     api_keys: Mapped[ProKeysType] = mapped_column(
         ProKeysType, default=schemas.ProKeys()
     )
-    seats: Mapped[None | int] = mapped_column(Integer, default=1)
-    expiration_date: Mapped[None | datetime] = mapped_column(AwareDateTime())
     stripe_id: Mapped[None | str] = mapped_column(Text)
 
     async def get_all_children(self, db: AsyncSession) -> list["Entity"]:
@@ -130,7 +129,10 @@ class EntityRelationship(Base, UUIDMixin, DateMixin):
 
 
 class PermissionsEntityMap(Base, UUIDMixin, DateMixin):
-    """Combines an entity with various permissions"""
+    """Admin or User membership for an organization, referenced by User.permissions_uuid.
+
+    Resource access is assigned separately through Role.
+    """
 
     __tablename__ = "permissions_entity_map"
 
@@ -139,9 +141,6 @@ class PermissionsEntityMap(Base, UUIDMixin, DateMixin):
     )
     entity: Mapped["Entity"] = relationship(foreign_keys=[entity_uuid], lazy="selectin")
     name: Mapped[str] = mapped_column(String(100))
-    entitlements: Mapped[None | schemas.ProEntitlements] = mapped_column(
-        ProEntitlementsType
-    )
 
 
 class AuditEntityRolesPermissions(Base, UUIDMixin, DateMixin):

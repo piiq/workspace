@@ -12,7 +12,6 @@ import type { AgGridEvents } from "~/components/General/Table/hooks/types";
 import type { WidgetColumnDefT, WidgetContextType } from "~/components/types";
 import { hasAgEnterprise } from "~/lib/plugins/agGrid";
 import type { Widget } from "~/lib/state/app";
-import { useFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { formatNumber } from "~/lib/utils/utils";
 import {
   CellOnClickRenderer,
@@ -1007,8 +1006,6 @@ export const getContextMenuItems = (
     onChartCreation = () => {},
   } = props ?? {};
 
-  const isProTier = useFeatureFlagsStore.getState()?.featureFlags?.tier === "pro";
-
   const menuItems = [
     "autoSizeAll",
     "expandAll",
@@ -1018,7 +1015,7 @@ export const getContextMenuItems = (
     "copyWithHeaders",
     ...(enableChart ? getChartContextMenuItems(params, onChartCreation) : []),
     "separator",
-    ...(isProTier ? ["export"] : []),
+    "export",
     ...(widgetId && isCopilotAvailable()
       ? ["separator", getAddToCopilotMenuItem(params, widgetId)]
       : []),

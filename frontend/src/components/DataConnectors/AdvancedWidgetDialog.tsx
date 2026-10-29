@@ -14,6 +14,7 @@ import {
   type Source,
   useShallowBackendConnectorStore,
 } from "~/lib/state/backendConnector";
+import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { dispatchSaveState } from "~/lib/utils";
 import { handleConnectionAdded } from "~/lib/utils/dataConnectors";
 import { NotificationId, showNotificationWithRememberMe } from "~/lib/utils/toast";
@@ -63,6 +64,9 @@ const getInitialState = () => ({ ...initialState });
 type DialogState = typeof initialState;
 
 export default function AdvancedWidgetDialog() {
+  const allowCustomBackends = useShallowFeatureFlagsStore(
+    (state) => state.featureFlags?.allow_custom_backends !== false,
+  );
   const { isAdmin } = useShallowAuthStore((state) => ({
     isAdmin: state.user?.role === "Admin",
   }));
@@ -279,6 +283,14 @@ export default function AdvancedWidgetDialog() {
       { shouldValidate: false },
     );
   }, [form.getValues, form.setValue]);
+
+  if (!allowCustomBackends) {
+    return (
+      <p role="status">
+        Your organization requires backends configured by an administrator.
+      </p>
+    );
+  }
 
   return (
     <>

@@ -2,7 +2,6 @@ import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let mockInSnowflake = false;
-let mockOnPrem = false;
 
 vi.mock("~/lib/constants", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
@@ -12,11 +11,6 @@ vi.mock("~/lib/constants", async (importOriginal) => {
       return mockInSnowflake;
     },
   };
-});
-
-vi.mock("~/lib/onPremFeatureFlags", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/lib/onPremFeatureFlags")>();
-  return { ...actual, isOnPremDeployment: () => mockOnPrem };
 });
 
 import { useCanSubmitApp } from "~/lib/appSubmissionFlag";
@@ -33,7 +27,6 @@ function setCanSubmit(can_submit_marketplace: boolean | undefined) {
 describe("useCanSubmitApp", () => {
   beforeEach(() => {
     mockInSnowflake = false;
-    mockOnPrem = false;
     useFeatureFlagsStore.setState({ featureFlags: null });
   });
 
@@ -54,13 +47,6 @@ describe("useCanSubmitApp", () => {
 
   it("is false when can_submit_marketplace is false", () => {
     setCanSubmit(false);
-    const { result } = renderHook(() => useCanSubmitApp());
-    expect(result.current).toBe(false);
-  });
-
-  it("is false on-prem even when whitelisted", () => {
-    setCanSubmit(true);
-    mockOnPrem = true;
     const { result } = renderHook(() => useCanSubmitApp());
     expect(result.current).toBe(false);
   });

@@ -6,14 +6,11 @@ export interface User {
   last_name: string;
   email: string;
   role: string;
-  billing_active: boolean;
-  pro_entitlements: Entitlements;
   status: string;
   last_login: null | string;
   last_active: null | string;
   permissions_uuid: string;
   source: UserSources;
-  renewed: boolean;
 }
 
 export interface CreateUserDTO {
@@ -23,8 +20,3 @@ export interface CreateUserDTO {
   permissions_uuid?: string;
   role?: string;
 }
-
-export const UserProEntitlements = ["None", "Read", "Write"] as const;
-export type UserProEntitlement = (typeof UserProEntitlements)[number];
-
-export type Entitlements = Record<string, UserProEntitlement>;

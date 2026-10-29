@@ -97,7 +97,6 @@ vi.mock("~/lib/onPremFeatureFlags", () => ({
   getAllowedDBTypes: () => [],
   getEnabledIdentityProviders: () => [],
   getShowDemoRequestButton: () => false,
-  isOnPremDeployment: () => false,
 }));
 
 vi.mock("posthog-js", () => ({

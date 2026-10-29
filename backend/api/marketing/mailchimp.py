@@ -37,9 +37,6 @@ MERGE_FIELD_MAP = {
     "is_paid_user": "ISPAID",
     "is_admin": "ISADMIN",
     "pro_start_date": "PROSTART",
-    "pro_trial_granted": "PROTRIAL",
-    "pro_trial_granted_date": "PROTRIALDT",
-    "trial_extended": "TRIALEXT",
     "programming_experience": "PROGEXP",
     "data_types": "DATATYPES",
     "other_data_types": "OTHRDTYPE",
@@ -108,8 +105,6 @@ def _merge_fields_to_marketing(
         "is_verified",
         "is_paid_user",
         "is_admin",
-        "pro_trial_granted",
-        "trial_extended",
     }
 
     for tag, value in merge_fields.items():

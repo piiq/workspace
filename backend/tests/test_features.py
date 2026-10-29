@@ -15,57 +15,6 @@ if BACKEND_DIR not in sys.path:
 import pytest
 
 
-class TestTier:
-    """Tests for /pro/tier endpoint"""
-
-    @pytest.mark.asyncio
-    async def test_update_tier_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.put("/pro/tier", json={})
-        assert response.status_code in {401, 403, 422}
-        # Validate error response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        assert "detail" in data or "message" in data or "error" in data
-
-    @pytest.mark.asyncio
-    async def test_update_tier_authenticated(self, auth_client):
-        """Should update subscription tier"""
-        response = await auth_client.put("/pro/tier", json={"tier": "pro"})
-        # 200 for success, 400 for invalid, 422 for validation
-        assert response.status_code in {200, 400, 422}
-        # Validate response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        content_type = response.headers.get("content-type", "")
-        assert "application/json" in content_type
-
-
-class TestUserHasEntity:
-    """Tests for /pro/user-has-entity endpoint"""
-
-    @pytest.mark.asyncio
-    async def test_check_entity_unauthenticated(self, client):
-        """Should fail without auth"""
-        response = await client.get("/pro/user-has-entity")
-        assert response.status_code in {401, 403}
-        # Validate error response structure
-        data = response.json()
-        assert isinstance(data, dict)
-        assert "detail" in data or "message" in data or "error" in data
-
-    @pytest.mark.asyncio
-    async def test_check_entity_authenticated(self, auth_client):
-        """Should return entity membership status"""
-        response = await auth_client.get("/pro/user-has-entity")
-        assert response.status_code == 200
-        # Validate response structure
-        data = response.json()
-        assert isinstance(data, (bool, dict))
-        content_type = response.headers.get("content-type", "")
-        assert "application/json" in content_type
-
-
 class TestUsage:
     """Tests for /pro/usage endpoint"""
 
@@ -117,42 +66,6 @@ class TestResourcePermissions:
 # =============================================================================
 
 
-class TestTierInputValidation:
-    """Tests for tier endpoint input validation"""
-
-    @pytest.mark.asyncio
-    async def test_update_tier_invalid_value(self, auth_client):
-        """Invalid tier value should be handled"""
-        response = await auth_client.put("/pro/tier", json={"tier": "invalid_tier"})
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_tier_empty_value(self, auth_client):
-        """Empty tier value should be handled"""
-        response = await auth_client.put("/pro/tier", json={"tier": ""})
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_tier_sql_injection(self, auth_client):
-        """SQL injection in tier should be handled safely"""
-        response = await auth_client.put(
-            "/pro/tier", json={"tier": "'; DROP TABLE users; --"}
-        )
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_tier_null_value(self, auth_client):
-        """Null tier value should be handled"""
-        response = await auth_client.put("/pro/tier", json={"tier": None})
-        assert response.status_code in {200, 400, 422}
-
-    @pytest.mark.asyncio
-    async def test_update_tier_numeric_value(self, auth_client):
-        """Numeric tier value should be handled"""
-        response = await auth_client.put("/pro/tier", json={"tier": 12345})
-        assert response.status_code in {200, 400, 422}
-
-
 # =============================================================================
 # FEATURES OUTPUT VALIDATION TESTS
 # =============================================================================
@@ -176,15 +89,6 @@ class TestFeaturesOutputValidation:
         if response.status_code == 200:
             data = response.json()
             assert isinstance(data, (list, dict))
-
-    @pytest.mark.asyncio
-    async def test_entity_status_response_schema(self, auth_client):
-        """Entity status response should have expected schema"""
-        response = await auth_client.get("/pro/user-has-entity")
-        if response.status_code == 200:
-            data = response.json()
-            # Should be a boolean or dict with status
-            assert isinstance(data, (bool, dict))
 
     @pytest.mark.asyncio
     async def test_features_no_sensitive_data(self, auth_client):
@@ -232,17 +136,6 @@ class TestFeaturesCrossUserSecurity:
         """Each user should only see their own permissions"""
         response1 = await auth_client.get("/pro/resource-permissions")
         response2 = await second_user_client.get("/pro/resource-permissions")
-
-        assert response1.status_code == 200
-        assert response2.status_code == 200
-
-    @pytest.mark.asyncio
-    async def test_entity_status_isolated_per_user(
-        self, auth_client, second_user_client
-    ):
-        """Each user should only see their own entity status"""
-        response1 = await auth_client.get("/pro/user-has-entity")
-        response2 = await second_user_client.get("/pro/user-has-entity")
 
         assert response1.status_code == 200
         assert response2.status_code == 200

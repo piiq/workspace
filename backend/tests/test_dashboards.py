@@ -154,11 +154,10 @@ class TestDashboardShares:
 
     @pytest.mark.asyncio
     async def test_get_shares_nonexistent(self, auth_client):
-        """Should return 200 (empty list) or 404 for nonexistent dashboard"""
+        """Sharing information requires ownership of an existing dashboard"""
         test_uuid = str(uuid4())
         response = await auth_client.get(f"/pro/dash/{test_uuid}/shares")
-        # API may return 200 with empty list or 404 - both are valid
-        assert response.status_code in {200, 404, 400}
+        assert response.status_code == 403
 
     @pytest.mark.asyncio
     async def test_share_dashboard_unauthenticated(self, client):

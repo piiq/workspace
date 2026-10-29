@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "~/api/api";
-import {
-  getRemainingInvites,
-  sendInvite,
-  updateUserDisplaySettings,
-} from "~/api/user.api";
+import { sendInvite, updateUserDisplaySettings } from "~/api/user.api";
 
 // Mock apiClient
 vi.mock("~/api/api", () => ({
@@ -28,25 +24,15 @@ describe("User API functions", () => {
     vi.clearAllMocks();
   });
 
-  describe("getRemainingInvites", () => {
-    it("should fetch remaining invites correctly", async () => {
-      vi.spyOn(apiClient, "get").mockResolvedValue({ data: { remaining: 5 } });
-
-      const data = await getRemainingInvites();
-      expect(data).toEqual({ remaining: 5 });
-      expect(apiClient.get).toHaveBeenCalledWith("/pro/invites/remaining");
-    });
-  });
-
   describe("sendInvite", () => {
     it("should send an invite successfully", async () => {
       vi.spyOn(apiClient, "post").mockResolvedValue({
-        data: { remaining: 4 },
+        data: { success: true },
         status: 200,
       });
 
       const response = await sendInvite("test@example.com", "Welcome!");
-      expect(response).toEqual({ data: { remaining: 4 }, status: 200 });
+      expect(response).toEqual({ data: { success: true }, status: 200 });
       expect(apiClient.post).toHaveBeenCalledWith("/pro/invites/create", {
         email: "test@example.com",
         message: "Welcome!",
@@ -58,7 +44,7 @@ describe("User API functions", () => {
       vi.spyOn(apiClient, "post").mockRejectedValue(error);
 
       const response = await sendInvite("test@example.com", "Welcome!");
-      expect(response).toEqual({ data: { remaining: null }, status: 500 });
+      expect(response).toEqual({ data: { success: false }, status: 500 });
     });
   });
 

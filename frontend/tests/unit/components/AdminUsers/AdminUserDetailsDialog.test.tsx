@@ -1,9 +1,13 @@
 // import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
-import { type Mock, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import AdminUserDetailsDialog from "~/components/AdminUsers/AdminUserDetailsDialog";
 import { useAuthStore } from "~/lib/state/auth";
 
@@ -93,8 +97,6 @@ describe("AdminUserDetailsDialog", () => {
     last_name: "User",
     status: "active",
     permissions_uuid: "22222222-2222-2222-2222-222222222222",
-    billing_active: true,
-    pro_entitlements: {},
     last_login: "2023-10-01T12:00:00Z",
     renewed: false,
   };
@@ -150,35 +152,10 @@ describe("AdminUserDetailsDialog", () => {
     await waitFor(() => {
       expect(mockAsync).toHaveBeenCalledWith({
         permissions_uuid: mockUser.permissions_uuid,
-        billing_active: mockUser.billing_active,
-        pro_entitlements: mockUser.pro_entitlements,
       });
       // expect(toast.success).toHaveBeenCalledWith("User updated successfully!", {
       //   description: `User ${mockUser.email} has been updated`,
       // });
-    });
-  });
-
-  //
-  it("extends trial user successfully", async () => {
-    const mockExtend = vi.fn().mockResolvedValue({});
-    (useMutation as Mock).mockReturnValue({ mutateAsync: mockExtend });
-
-    const trialUser = {
-      ...mockUser,
-      permissions_uuid: "11111111-1111-1111-1111-111111111111",
-    };
-
-    renderWithQueryClient(
-      // @ts-expect-error - User type is not complete for the sake of testing
-      <AdminUserDetailsDialog user={trialUser} onClose={vi.fn()} />,
-    );
-
-    fireEvent.click(screen.getByText("Extend Account"));
-
-    await waitFor(() => {
-      expect(mockExtend).toHaveBeenCalled();
-      // expect(toast.success).toHaveBeenCalledWith("User extended successfully!");
     });
   });
 

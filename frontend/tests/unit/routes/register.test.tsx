@@ -74,9 +74,7 @@ vi.mock("~/lib/state/app", () => ({
 vi.mock("~/lib/state/theme", () => ({
   useShallowThemeStore: vi.fn(() => ({ updateThemeState: vi.fn() })),
 }));
-vi.mock("~/lib/state/tutorial", () => ({
-  useShallowTutorialStore: vi.fn(() => ({ setCompletedDates: vi.fn() })),
-}));
+
 vi.mock("~/lib/state/featureFlags", () => ({
   useShallowFeatureFlagsStore: vi.fn(() => ({ setFeatureFlagsAndUsage: vi.fn() })),
 }));

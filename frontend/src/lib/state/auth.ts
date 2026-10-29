@@ -14,7 +14,6 @@ import { useCopilotStore } from "./copilot";
 import { useDataConnectorStore } from "./dataConnector";
 import { useSharedAppStore } from "./sharedApp";
 import { useThemeStore } from "./theme";
-import { useTutorialStore } from "./tutorial";
 import { useWorkspaceBridgeStore } from "./workspaceBridge";
 
 interface User {
@@ -71,9 +70,7 @@ export interface AuthState {
   user: User | null;
   updateUser: (user: Partial<User>) => void;
   needsOnboarding: boolean;
-  needsInAppOnboarding: boolean;
   updateOnboarding: (value: boolean) => void;
-  updateInAppOnboarding: (value: boolean) => void;
   onBoardingData: OnboardingData;
   updateOnboardingData: (value: any) => void;
   name: Name;
@@ -243,7 +240,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           useBackendConnectorStore.persist.clearStorage();
           useDataConnectorStore.persist.clearStorage();
           useThemeStore.persist.clearStorage();
-          useTutorialStore.persist.clearStorage();
           useSharedAppStore.persist.clearStorage();
           useCopilotStore.persist.clearStorage();
           useAuthStore.persist.clearStorage();
@@ -256,8 +252,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           set((state) => ({ user: { ...(state.user ?? ({} as User)), ...user } })),
         needsOnboarding: false,
         updateOnboarding: (value) => set({ needsOnboarding: value }),
-        needsInAppOnboarding: true,
-        updateInAppOnboarding: (value) => set({ needsInAppOnboarding: value }),
       }),
       {
         name: "auth-storage",

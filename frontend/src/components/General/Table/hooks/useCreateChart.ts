@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { useWidgetContext } from "~/components/Widget.context";
 import { useCreateRef } from "~/hooks/useRefHooks";
 import { useAppStore, useShallowAppStore, type Widget } from "~/lib/state/app";
-import { useShallowTutorialStore } from "~/lib/state/tutorial";
+
 import { getWidgetDefinition, uuidv4 } from "~/lib/utils";
 import { getChartData } from "../Chart/utils";
 import { useAgGridContext } from "./useTableContext";
@@ -116,10 +116,6 @@ export function useCreateChart() {
   const innerTabRef = useCreateRef(innerTab ?? "");
 
   const posthog = usePostHog();
-  const { currentTutorial, goToStep } = useShallowTutorialStore((state) => ({
-    currentTutorial: state.currentTutorial,
-    goToStep: state.goToStep,
-  }));
 
   const getWidgetFromJSON = useCallback((widget: Widget) => {
     const fakeWidget = {
@@ -237,10 +233,6 @@ export function useCreateChart() {
           widget_id: widget?.widgetId,
           from_widget: widget?.name ?? widgetFromJSON?.name ?? "",
         });
-      }
-
-      if (currentTutorial === "table_charting") {
-        goToStep(4);
       }
 
       setTimeout(() => {

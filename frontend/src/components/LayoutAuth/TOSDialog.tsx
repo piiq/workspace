@@ -4,7 +4,6 @@ import { useIntersectionObserver } from "usehooks-ts";
 import { acceptTerms } from "~/api/auth.api";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useAuthStore } from "~/lib/state/auth";
-import { useShallowFeatureFlagsStore } from "~/lib/state/featureFlags";
 import { cn } from "~/lib/utils";
 import { BaseDialog } from "../ds/dialogs/BaseDialog";
 import { DialogTitle } from "../ds/dialogs/Dialog";
@@ -12,10 +11,7 @@ import { DialogTitle } from "../ds/dialogs/Dialog";
 const uiShowTOSFF = getConfig().ui.showTos;
 
 export default function TOSDialog() {
-  const { tosAccepted, updateTosAccepted, user } = useAuthStore();
-  const { featureFlags } = useShallowFeatureFlagsStore((state) => ({
-    featureFlags: state.featureFlags,
-  }));
+  const { tosAccepted, updateTosAccepted } = useAuthStore();
 
   const { ref: lastElementRef, isIntersecting: isScrolled } = useIntersectionObserver({
     threshold: 1,
@@ -37,16 +33,14 @@ export default function TOSDialog() {
 
   return (
     <BaseDialog
-      open={uiShowTOSFF && !tosAccepted && featureFlags?.tier === "pro"}
+      open={uiShowTOSFF && !tosAccepted}
       className="[&>.DialogXButton]:hidden h-[60vh]"
     >
       <DialogTitle>Terms and Conditions</DialogTitle>
 
-      {user?.entity_name !== "OpenBB Trial" && (
-        <p className="text-red-600">
-          We've updated our Terms and Conditions - Please review and agree below.
-        </p>
-      )}
+      <p className="text-red-600">
+        Please review and agree to the Terms and Conditions below.
+      </p>
 
       <TOSDialogContent lastElementRef={lastElementRef} />
 

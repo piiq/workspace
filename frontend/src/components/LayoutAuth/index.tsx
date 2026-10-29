@@ -22,10 +22,7 @@ import { useShallowAuthStore } from "~/lib/state/auth";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
 import { useShallowCopilotStore } from "~/lib/state/copilot";
 import { useShallowThemeStore } from "~/lib/state/theme";
-import {
-  cleanupWalkthroughPosthogProperties,
-  useShallowWalkthroughStore,
-} from "~/lib/state/walkthrough";
+
 import { isTabPath } from "~/lib/utils/utils";
 import { FileProvider } from "../DataConnectors/FileProvider";
 import { DataConnectorProvider } from "../DataConnectors/Providers/DataConnectorProvider";
@@ -159,17 +156,6 @@ function useLastVisitedPage() {
 
 function useLoad() {
   useLastVisitedPage();
-
-  const isWalkthroughActive = useShallowWalkthroughStore(
-    (state) => state.currentWalkthrough !== null,
-  );
-  useEffect(() => {
-    if (!isWalkthroughActive) cleanupWalkthroughPosthogProperties();
-    const element = document.getElementById("app-layout");
-    if (element) {
-      element.classList.toggle("walkthrough-active", isWalkthroughActive);
-    }
-  }, [isWalkthroughActive]);
 
   useLogUser();
   useSyncItems();

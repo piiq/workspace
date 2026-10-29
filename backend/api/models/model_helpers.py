@@ -333,10 +333,10 @@ class BasePydanticType(TypeDecorator):
         return self.model(**data_dict)
 
 
-class ProEntitlementsType(BasePydanticType):
-    model = schemas.ProEntitlements
+class ProEntitlementsType(JSONType):
+    """SQL JSON type used by the baseline migration."""
+
     cache_ok = True
-    name = "ProEntitlements"
 
 
 class ProDisplaySettingsType(BasePydanticType):
@@ -345,10 +345,10 @@ class ProDisplaySettingsType(BasePydanticType):
     name = "ProDisplaySettings"
 
 
-class ProZeroToHeroType(BasePydanticType):
-    model = schemas.ProZeroToHero
+class ProZeroToHeroType(JSONType):
+    """SQL JSON type used by the baseline migration."""
+
     cache_ok = True
-    name = "ProZeroToHero"
 
 
 class ProKeysType(BasePydanticType):

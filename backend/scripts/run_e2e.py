@@ -88,7 +88,7 @@ def main() -> None:
         email = "admin@openbb.co"
         password = "asdQWE123!"  # noqa: S105
         (data / "account.toml").write_text(
-            '[entity]\nname = "Browser Tests"\nseats = 100\naum = 1000\n'
+            '[entity]\nname = "Browser Tests"\naum = 1000\n'
             'company_type = "CORPORATION"\norganization_size = "SMALL"\ncountry = "DOM"\n'
             f'\n[[admins]]\nemail = {json.dumps(email)}\nfirst_name = "Browser"\n'
             f'last_name = "Admin"\npassword = {json.dumps(password)}\n',

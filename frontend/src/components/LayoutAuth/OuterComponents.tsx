@@ -17,10 +17,7 @@ import RenamePopup from "../General/RenamePopup";
 import { SaveAppDialog } from "../General/SaveAppDialog";
 import { ShareUserAppDialog } from "../General/SharedAppsDialog";
 import { ShareDashboardDialog } from "../General/SharedDashboardDialog";
-import TourGuide from "../InAppOnboarding/TourGuide";
-import WalkthroughGuide from "../InAppOnboarding/WalkthroughGuide";
 import ExcelExportDialog from "../LayoutAuth/DropdownSubs/ExcelExportDialog";
-import MarketingPopup from "./MarketingPopup";
 import OpenDataPlatformModal from "./OpenDataPlatformModal";
 import AddPromptDialog from "./PromptLibrary/AddPromptDialog";
 import SearchDialog from "./Search/SearchDialog";
@@ -58,10 +55,7 @@ export default function OuterComponents() {
 
   return (
     <>
-      <TourGuide />
-      <WalkthroughGuide />
       <AddConnectionModal />
-      <MarketingPopup />
       <AddPromptDialog />
       <AddSkillDialog />
       <ManageAppsDialog />

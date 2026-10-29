@@ -14,7 +14,6 @@ import type { WidgetT } from "~/components/types";
 import type { StateDispatch } from "~/hooks/useStateReducer";
 import { useShallowAppStore } from "~/lib/state/app";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
-import { useShallowTutorialStore } from "~/lib/state/tutorial";
 import { getAllWidgets } from "~/lib/utils";
 import { handleConnectionAdded } from "~/lib/utils/dataConnectors";
 import { useDataConnectorContext } from "../../Providers/DataConnectorContext";
@@ -44,13 +43,7 @@ export default function useAddSingleWidget(props: AddSingleWidgetProps) {
     getWidgetsByAttribute: state.getWidgetsByAttribute,
     updateWidget: state.updateWidget,
   }));
-  const { currentTutorial, currentStep, goToStep } = useShallowTutorialStore(
-    (state) => ({
-      currentTutorial: state.currentTutorial,
-      currentStep: state.currentStep,
-      goToStep: state.goToStep,
-    }),
-  );
+
   const { singleWidgets, setSingleWidgets, widget } = useShallowBackendConnectorStore(
     (state) => ({
       singleWidgets: state.singleWidgets,
@@ -95,11 +88,6 @@ export default function useAddSingleWidget(props: AddSingleWidgetProps) {
             isTested: true,
             loading: false,
           });
-          if (currentTutorial === "data_connectors" && currentStep === 3) {
-            setTimeout(() => {
-              goToStep(4);
-            }, 500);
-          }
         })
         .catch((e) => {
           form.setError("endpoint", { message: e.message });
@@ -107,7 +95,7 @@ export default function useAddSingleWidget(props: AddSingleWidgetProps) {
           dispatch({ loading: false });
         });
     },
-    [dispatch, form.setError, currentTutorial, currentStep, goToStep, allWidgets],
+    [dispatch, form.setError, allWidgets],
   );
 
   const updateWidgets = useCallback(
@@ -186,11 +174,6 @@ export default function useAddSingleWidget(props: AddSingleWidgetProps) {
               description: cleanData.description,
             });
           }
-          if (currentTutorial === "data_connectors" && currentStep === 4) {
-            setTimeout(() => {
-              goToStep(5);
-            }, 500);
-          }
 
           const finalWidget = {
             ...cleanData,
@@ -213,8 +196,6 @@ export default function useAddSingleWidget(props: AddSingleWidgetProps) {
       state.isTested,
       singleWidgets,
       id,
-      currentTutorial,
-      currentStep,
       dispatch,
       dashboardId,
       pendingNavigate,

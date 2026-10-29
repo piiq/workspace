@@ -162,27 +162,6 @@ describe("Dashboard API functions", () => {
       // Assert that updateOnlySharedItems was called
       expect(updateOnlySharedItemsMock).toHaveBeenCalled();
     });
-
-    it("should not update shared dashboards for terminal tier", async () => {
-      const { useSharedAppStore } = await import("~/lib/state/sharedApp");
-      const { useFeatureFlagsStore } = await import("~/lib/state/featureFlags");
-
-      const updateOnlySharedItemsMock = vi.fn();
-      vi.mocked(useSharedAppStore.getState).mockReturnValue({
-        updateOnlySharedItems: updateOnlySharedItemsMock,
-      } as any);
-
-      // Mock the feature flags to be terminal
-      vi.mocked(useFeatureFlagsStore.getState).mockReturnValue({
-        featureFlags: { tier: "terminal" },
-      } as any);
-
-      // Call the function
-      await getSharedDashboardsAndUpdate();
-
-      // Assert that updateOnlySharedItems was not called
-      expect(updateOnlySharedItemsMock).not.toHaveBeenCalled();
-    });
   });
 
   it("should save dashboards and show notification", async () => {
