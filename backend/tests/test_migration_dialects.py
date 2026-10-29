@@ -394,6 +394,12 @@ class TestPostgreSQLMigrations:
                     ))
 
                 async with read_sessions.session() as session:
+                    from api import base, models
+
+                    roles = await session.scalars(
+                        sa.select(models.ChatMessages.role).where(models.ChatMessages.role == base.ChatMessageRole.human)
+                    )
+                    assert roles.all() == []
                     row = (await session.execute(probe.select().where(probe.c.id == row_id))).one()
                     assert row.payload == {"labels": ["sync"]}
                     assert row.amount == Decimal("12.34")

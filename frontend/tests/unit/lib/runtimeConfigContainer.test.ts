@@ -10,7 +10,7 @@ import { RuntimeConfigSchema } from "~/lib/runtimeConfigSchema";
 const run = promisify(execFile);
 const renderer = resolve(
   import.meta.dirname,
-  "../../../../lite/render-frontend-config.full.sh",
+  "../../../../scripts/render-frontend-config.sh",
 );
 const roots: string[] = [];
 

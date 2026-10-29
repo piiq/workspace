@@ -53,9 +53,11 @@ services:
       - data:/redis
 
   fastapi:
+    init: true
     build:
       context: ..
-      dockerfile: backend/fastapi.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: backend
     container_name: fastapi
     env_file:
       - ../backend/envs/.env
@@ -76,6 +78,7 @@ services:
           - fastapi
     volumes:
       - ../backend:/opt/code
+      - workspace-data:/data
     depends_on:
       mysql:
         condition: service_healthy
@@ -83,9 +86,12 @@ services:
         condition: service_healthy
 
   rq_worker:
+    init: true
     build:
       context: ..
-      dockerfile: backend/rqworker.Dockerfile
+      dockerfile: docker/Dockerfile
+      target: backend
+    command: ["worker"]
     container_name: rq_worker
     env_file:
       - ../backend/envs/.env
@@ -97,6 +103,7 @@ services:
       - local-net
     volumes:
       - ../backend:/opt/code
+      - workspace-data:/data
     develop:
       watch:
         - action: sync+restart
@@ -119,6 +126,7 @@ networks:
     driver: bridge
 
 volumes:
+  workspace-data:
   data:
     driver: local
   db:

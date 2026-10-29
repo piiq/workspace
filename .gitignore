@@ -4,3 +4,5 @@
 /.env
 /.env.*
 !/.env.example
+/docker/.env
+/lite/scripts/render-frontend-config.sh

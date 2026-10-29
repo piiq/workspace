@@ -126,7 +126,7 @@ Vite serves the compiled files at `/plugins/<scope>/<package>/` during developme
 
 Use `bun run dev` after preparation for source development. Re-run preparation and reload Workspace when changing the selection. To remove all selected plugins, run `bun scripts/prepare-frontend.ts` from the repository root. A checkout with no prepared output also uses an empty selection.
 
-The frontend Dockerfile includes the same prepared output from the repository root context. Prepare plugins on the host, then run `docker build -f frontend/Dockerfile -t workspace-frontend:dev .`. Plugin repositories and their dependency installations are not needed inside that image build.
+The frontend Dockerfile includes the same prepared output from the repository root context. Prepare plugins on the host, then run `docker buildx build --load -f docker/Dockerfile --target frontend -t workspace-frontend:dev .`. Plugin repositories and their dependency installations are not needed inside that image build.
 
 ## Installing plugins at runtime
 

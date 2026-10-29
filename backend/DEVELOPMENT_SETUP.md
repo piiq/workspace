@@ -37,9 +37,7 @@ tracked. Create it once from the template:
 cp backend/envs/.env.sqlite.example backend/envs/.env.sqlite
 ```
 
-Provisioning stays as a host-side command. The backend image intentionally does
-not bake in `backend/scripts/`, so bootstrap scripts such as `init_users.py`
-continue to run from your local virtualenv.
+The backend image includes provisioning scripts and `openbb-admin`. Run provisioning inside the API container so it uses the same database and bootstrap-file path as the API and worker.
 
 ## Setup Steps
 
@@ -62,16 +60,15 @@ code changes.
 Use `user_create.json` generated for the same database as the API. Run `scripts.init_users` with at least one administrator in each configuration; it creates the organization and its Admin/User role mappings.
 
 ```bash
-rm -f backend/user_create.json
-cd backend
-../.venv/bin/python -m scripts.init_users
+docker compose -f docker/docker-compose-local-dev.yml exec fastapi python -m scripts.init_users
+docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
 ```
 
 This reads entity/admin configuration from `backend/scripts/cfgs/config.toml` and:
 
 - Creates an entity ("Local Development") with Admin and User permission maps
 - Creates the admin user (`admin@openbb.co` / `asdQWE123!`) as a superuser
-- Writes `user_create.json` with UUIDs needed by the running app
+- Writes `/data/user_create.json` with UUIDs needed by the API and worker
 
 The HubSpot errors in the output are expected (fake API keys in local dev).
 
@@ -125,15 +122,12 @@ To start completely from scratch:
 # Stop and remove containers + volumes
 docker compose -f docker/docker-compose-local-dev.yml down -v
 
-# Remove generated state
-rm -f backend/user_create.json
-
 # Restart
 docker compose -f docker/docker-compose-local-dev.yml up --build -d
 
 # Recreate the admin user/bootstrap data
-cd backend
-../.venv/bin/python -m scripts.init_users
+docker compose -f docker/docker-compose-local-dev.yml exec fastapi python -m scripts.init_users
+docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
 ```
 
 ## Troubleshooting
