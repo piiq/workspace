@@ -1244,12 +1244,7 @@ export const useCopilotStore = createWithEqualityFn<CopilotState>()(
               normalizedHolders.findIndex((c) => c.url === copilot.url) === index,
           );
 
-          // Auto-select an agent when none is currently selected (or the current
-          // selection is gone). Without this, agents arriving from the backend or
-          // persist rehydrate (e.g. lite, where openbbCopilot is off and
-          // selectedCopilot starts null) leave the panel stuck on "No copilot
-          // selected" until the user re-adds the agent. The built-in OpenBB copilot
-          // and any still-valid selection are preserved.
+          // Select an available agent when the saved selection is missing.
           const selectedCopilot = get().selectedCopilot;
           const availableCopilots = uniqueCopilots
             .filter((holder) => holder.enabled !== false)

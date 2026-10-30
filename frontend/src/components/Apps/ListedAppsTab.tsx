@@ -22,7 +22,6 @@ import {
 } from "~/hooks/useMarketplaceSubmissions";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import { useCanSubmitApp } from "~/lib/appSubmissionFlag";
-import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
 import { useAppStore } from "~/lib/state/app";
 import { useBackendConnectorStore } from "~/lib/state/backendConnector";
 import { useMcpToolsStore } from "~/lib/state/mcpTools";
@@ -44,7 +43,6 @@ import type {
   SubmissionTarget,
 } from "~/types/marketplaceSubmission";
 import type { ApiKeySaveResult } from "./ApiKeyModal";
-import { ContactVendorModal } from "./ContactVendorModal";
 import {
   type AppsFuseKey,
   buildAppsFuseSearchQuery,
@@ -103,7 +101,6 @@ const DEFAULT_STATE = {
   category: undefined as string | undefined,
   view: "all" as ViewFilter,
   isLoading: false,
-  contactApp: null as ListedApp | null,
 };
 type AppsTabState = typeof DEFAULT_STATE;
 
@@ -208,7 +205,6 @@ export function ListedAppsTab({ appSlug }: ListedAppsTabProps) {
       toastType: "success",
     });
   }, [deletingSubmission, deleteSubmission]);
-  const isLite = isLiteEnvironment();
 
   const { outdatedApps, needsUpdate } = useMemo(() => {
     if (subscriptions?.length === 0 || !listedApps?.length)
@@ -856,7 +852,6 @@ export function ListedAppsTab({ appSlug }: ListedAppsTabProps) {
                       : undefined
                   }
                   onDisconnect={subscribed ? () => handleUnsubscribe(app) : undefined}
-                  isLite={isLite}
                 />
               );
             })
@@ -931,9 +926,6 @@ export function ListedAppsTab({ appSlug }: ListedAppsTabProps) {
             onNext={
               filteredApps.length > 1 ? () => handleNavigateApp("next") : undefined
             }
-            onContactVendor={
-              isLite ? () => dispatch({ contactApp: state.selectedApp }) : undefined
-            }
           />
 
           <RateAppDialog
@@ -944,12 +936,6 @@ export function ListedAppsTab({ appSlug }: ListedAppsTabProps) {
           />
         </>
       )}
-
-      <ContactVendorModal
-        app={state.contactApp}
-        isOpen={!!state.contactApp}
-        onClose={() => dispatch({ contactApp: null })}
-      />
     </TabsPrimitive.Content>
   );
 }

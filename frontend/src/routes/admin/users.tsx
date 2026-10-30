@@ -25,11 +25,9 @@ import Icon from "~/components/Icon";
 import { SettingsLayout } from "~/components/LayoutAuth/Skeleton/SettingsLayout";
 import Tooltip from "~/components/Tooltip";
 import { useStateReducer } from "~/hooks/useStateReducer";
-import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
+import { getConfig } from "~/lib/runtimeConfig";
 import { RenderNoData } from "~/routes/admin";
 import type { User } from "~/types/user.type";
-
-const isLite = isLiteEnvironment();
 
 const getUserId = (user: User) => user.uuid;
 
@@ -305,7 +303,7 @@ export default function AdminUsers() {
               size="sm"
               onClick={() => dispatch({ openInvite: true })}
             >
-              {isLite ? "Add users" : "Invite users"}
+              {getConfig().services.email ? "Invite users" : "Add users"}
             </Button>
           </SnowflakeHide>
         </div>

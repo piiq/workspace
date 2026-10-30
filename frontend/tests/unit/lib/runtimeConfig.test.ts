@@ -1,9 +1,9 @@
 vi.unmock("~/lib/runtimeConfig");
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  getConfig,
   _resetConfig,
+  getConfig,
   parseBool,
   parseStringArray,
 } from "~/lib/runtimeConfig";
@@ -100,12 +100,20 @@ describe("getConfig", () => {
       plugins: { runtimeEnabled: false },
     };
     _resetConfig();
-    expect(getConfig().plugins).toEqual({ runtimeEnabled: false, manifestUrl: "/plugins.json" });
+    expect(getConfig().plugins).toEqual({
+      runtimeEnabled: false,
+      manifestUrl: "/plugins.json",
+    });
   });
 
   it("reads from window.__APP_CONFIG__ when valid", () => {
     window.__APP_CONFIG__ = {
-      urls: { backend: "https://test.example.com", ai: "https://ai.example.com", platform: "", database: "" },
+      urls: {
+        backend: "https://test.example.com",
+        ai: "https://ai.example.com",
+        platform: "",
+        database: "",
+      },
       authentication: {},
       authProviders: {},
       copilot: {},
@@ -201,7 +209,6 @@ describe("getConfig", () => {
     expect(cfg.authentication.allowEmailLogin).toBe(true);
     expect(cfg.copilot.enabled).toBe(false);
     expect(cfg.ui.defaultTheme).toBe("dark");
-    expect(cfg.ui.isLite).toBe(false);
     expect(cfg.ui.showMarketplace).toBe(true);
     expect(cfg.whiteLabel.name).toBe("OpenBB Workspace");
   });
@@ -215,23 +222,6 @@ describe("getConfig", () => {
     const cfg = getConfig();
     expect(cfg.authentication.allowEmailLogin).toBe(false);
     expect(cfg.copilot.enabled).toBe(true);
-  });
-
-  it("reads VITE_LITE into ui.isLite", () => {
-    vi.stubEnv("VITE_PAYMENTS_URL", "https://x.test");
-    vi.stubEnv("VITE_AI_API_URL", "https://x.test");
-    vi.stubEnv("VITE_LITE", "true");
-
-    const cfg = getConfig();
-    expect(cfg.ui.isLite).toBe(true);
-  });
-
-  it("defaults ui.isLite to false when VITE_LITE is empty", () => {
-    vi.stubEnv("VITE_PAYMENTS_URL", "https://x.test");
-    vi.stubEnv("VITE_LITE", "");
-
-    const cfg = getConfig();
-    expect(cfg.ui.isLite).toBe(false);
   });
 
   it("defaults ui.showMarketplace to true and reads VITE_UI_SHOW_MARKETPLACE", () => {
@@ -248,10 +238,7 @@ describe("getConfig", () => {
     vi.stubEnv("VITE_AUTHENTICATION_IDENTITY_PROVIDERS", "google, microsoft");
 
     const cfg = getConfig();
-    expect(cfg.authentication.identityProviders).toEqual([
-      "google",
-      "microsoft",
-    ]);
+    expect(cfg.authentication.identityProviders).toEqual(["google", "microsoft"]);
   });
 });
 

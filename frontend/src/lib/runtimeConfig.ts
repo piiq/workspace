@@ -87,7 +87,6 @@ function buildConfigFromEnv(): RuntimeConfig {
       defaultTheme: e.VITE_UI_DEFAULT_THEME,
       odpDownloadInstaller: e.VITE_UI_ODP_DOWNLOAD_INSTALLER,
       showSalesEmail: e.VITE_UI_SHOW_SALES_EMAIL,
-      isLite: e.VITE_LITE,
       showMarketplace: e.VITE_UI_SHOW_MARKETPLACE,
     },
     services: {

@@ -81,11 +81,6 @@ export function getAiApiUrl() {
 export const LETS_TALK_FORM_URL =
   "https://app.formbricks.com/s/cqx6ygvxkpy0gydm9jafz57w?embed=true";
 
-// Formbricks form embedded in the "Contact" popup for marketplace apps (lite mode).
-// TODO: replace the form id with the dedicated vendor-contact form id.
-export const CONTACT_VENDOR_FORM_URL =
-  "https://app.formbricks.com/s/cqx6ygvxkpy0gydm9jafz57w?embed=true";
-
 export const IMAGE_FILE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif"];
 
 /**

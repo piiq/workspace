@@ -30,39 +30,15 @@ export default defineConfig(({ mode }) => {
   const APP_DESCRIPTION = env.VITE_WL_DESCRIPTION;
   const APP_SHORT_NAME = env.VITE_WL_SHORT_NAME;
   const IS_SNOWFLAKE = env.VITE_SNOWFLAKE_NATIVE_APP === "true";
-  // ── Build the locked-config overlay from the deployment's policy ──
-  // Two ways to supply the policy (which fields are locked, to what values):
-  //   - VITE_LOCKED_CONFIG_PROFILE: names a strict, in-repo profile in
-  //     config-profiles/ (e.g. "lite" → config-profiles/lite.locked.json).
-  //     Strict profiles must triage every schema field — see buildLockedConfig.
-  //   - VITE_LOCKED_CONFIG_FILE: a bespoke JSON file the deployment owns
-  //     (on-prem / customer images), typically non-strict.
-  // Absent → nothing is locked, which is the default for the standard build,
-  // on-prem, and free-tier. buildLockedConfig validates the JSON against
-  // RuntimeConfigSchema, so only known, correctly-typed fields survive.
   let lockedConfig: LockedConfig = {};
   const lockedConfigFile = env.VITE_LOCKED_CONFIG_FILE;
-  const lockedConfigProfile = env.VITE_LOCKED_CONFIG_PROFILE;
-  if (lockedConfigFile && lockedConfigProfile) {
-    throw new Error(
-      "Set either VITE_LOCKED_CONFIG_PROFILE or VITE_LOCKED_CONFIG_FILE, not both",
-    );
+  if (env.VITE_LOCKED_CONFIG_PROFILE) {
+    throw new Error("VITE_LOCKED_CONFIG_PROFILE is unsupported. Use VITE_LOCKED_CONFIG_FILE for a deployment policy.");
   }
-  const lockedPolicyPath = lockedConfigProfile
-    ? path.resolve(
-        import.meta.dirname,
-        "config-profiles",
-        `${lockedConfigProfile}.locked.json`,
-      )
-    : lockedConfigFile
-      ? path.resolve(process.cwd(), lockedConfigFile)
-      : undefined;
-  if (lockedPolicyPath) {
+  if (lockedConfigFile) {
+    const lockedPolicyPath = path.resolve(process.cwd(), lockedConfigFile);
     if (!existsSync(lockedPolicyPath)) {
-      const source = lockedConfigProfile
-        ? `VITE_LOCKED_CONFIG_PROFILE is set to "${lockedConfigProfile}"`
-        : `VITE_LOCKED_CONFIG_FILE is set to "${lockedConfigFile}"`;
-      throw new Error(`${source} but no file exists at ${lockedPolicyPath}`);
+      throw new Error(`VITE_LOCKED_CONFIG_FILE does not exist: ${lockedPolicyPath}`);
     }
     lockedConfig = buildLockedConfig(
       JSON.parse(readFileSync(lockedPolicyPath, "utf-8")),
@@ -145,7 +121,6 @@ export default defineConfig(({ mode }) => {
           defaultTheme: env.VITE_UI_DEFAULT_THEME,
           odpDownloadInstaller: env.VITE_UI_ODP_DOWNLOAD_INSTALLER,
           showSalesEmail: env.VITE_UI_SHOW_SALES_EMAIL,
-          isLite: env.VITE_LITE,
           showMarketplace: env.VITE_UI_SHOW_MARKETPLACE,
         },
         services: {

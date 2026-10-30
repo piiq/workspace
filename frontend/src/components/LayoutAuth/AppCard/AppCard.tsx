@@ -23,7 +23,6 @@ import Tooltip from "~/components/Tooltip";
 import { useStateReducer } from "~/hooks/useStateReducer";
 import { useCanSubmitApp } from "~/lib/appSubmissionFlag";
 import { inSnowflakeNativeApp } from "~/lib/constants";
-import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
 import { getConfig } from "~/lib/runtimeConfig";
 import { useShallowBackendConnectorStore } from "~/lib/state/backendConnector";
 import { useShallowMcpToolsStore } from "~/lib/state/mcpTools";
@@ -272,8 +271,7 @@ const AppCard = memo<AppCardProps>((props) => {
       canSubmitApp &&
       isBackendApp &&
       template.type === "user" &&
-      template.source?.id &&
-      !isLiteEnvironment()
+      template.source?.id
     ) {
       elements.splice(elements.length - 1, 0, {
         label: "List app to marketplace",

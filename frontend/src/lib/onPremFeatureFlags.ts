@@ -18,7 +18,3 @@ export function getShowDemoRequestButton(): boolean {
   const cfg = getConfig();
   return cfg.ui.showDemoRequestButton && cfg.services.hubspotForms;
 }
-
-export function isLiteEnvironment(): boolean {
-  return getConfig().ui.isLite;
-}

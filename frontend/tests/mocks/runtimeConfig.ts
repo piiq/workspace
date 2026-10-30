@@ -62,7 +62,6 @@ export const mockConfig = {
     defaultTheme: "dark" as const,
     odpDownloadInstaller: true,
     showSalesEmail: false,
-    isLite: false,
     showMarketplace: true,
   },
   services: {

@@ -14,12 +14,10 @@ import { Form, FormField } from "~/components/ds/molecules/Form";
 import { TabsContent } from "~/components/ds/molecules/Tabs";
 import Icon from "~/components/Icon";
 import Tooltip from "~/components/Tooltip";
-import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
 import { getConfig } from "~/lib/runtimeConfig";
 import type { CreateUserDTO } from "~/types/user.type";
 
 const servicesEmailFF = getConfig().services.email;
-const isLite = isLiteEnvironment();
 
 const userFormSchemaBase = z.object({
   first_name: z.string().min(1),
@@ -64,7 +62,7 @@ export default function InviteSingleUser({
       last_name: "",
       email: "",
       role: "",
-      bypass_invitation: isLite || !servicesEmailFF,
+      bypass_invitation: !servicesEmailFF,
     },
   });
 
@@ -165,39 +163,34 @@ export default function InviteSingleUser({
                 )}
               />
             )}
-            {!isLite && (
-              <FormField
-                name="bypass_invitation"
-                control={userForm.control}
-                render={({ field }) => (
-                  <div className="flex items-center gap-1.5 pb-6">
-                    <Checkbox
-                      label="Bypass invitation"
-                      className="text-ds-text-caption"
-                      labelClassName="max-w-none whitespace-nowrap ml-1"
-                      checked={!servicesEmailFF || field.value}
-                      onCheckedChange={servicesEmailFF ? field.onChange : undefined}
-                      disabled={!servicesEmailFF}
-                    />
-                    <Tooltip
-                      message={
-                        servicesEmailFF
-                          ? "By selecting this option, the user will be added to the organization without the need to accept an invitation."
-                          : "Email service is disabled. Users will be added directly without invitation emails."
-                      }
-                      position="top"
-                    >
-                      <button type="button" className="inline-flex">
-                        <Icon
-                          id="help-outline-circle"
-                          className="text-ds-text-caption"
-                        />
-                      </button>
-                    </Tooltip>
-                  </div>
-                )}
-              />
-            )}
+            <FormField
+              name="bypass_invitation"
+              control={userForm.control}
+              render={({ field }) => (
+                <div className="flex items-center gap-1.5 pb-6">
+                  <Checkbox
+                    label="Bypass invitation"
+                    className="text-ds-text-caption"
+                    labelClassName="max-w-none whitespace-nowrap ml-1"
+                    checked={!servicesEmailFF || field.value}
+                    onCheckedChange={servicesEmailFF ? field.onChange : undefined}
+                    disabled={!servicesEmailFF}
+                  />
+                  <Tooltip
+                    message={
+                      servicesEmailFF
+                        ? "By selecting this option, the user will be added to the organization without the need to accept an invitation."
+                        : "Email service is disabled. Users will be added directly without invitation emails."
+                    }
+                    position="top"
+                  >
+                    <button type="button" className="inline-flex">
+                      <Icon id="help-outline-circle" className="text-ds-text-caption" />
+                    </button>
+                  </Tooltip>
+                </div>
+              )}
+            />
           </div>
           {errorMessage && <p className="text-alert-error pb-6">{errorMessage}</p>}
           <AdminDialogFooter
