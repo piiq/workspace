@@ -1,7 +1,7 @@
 """Declarative scope for the user data export/import.
 
 This module is the single source of truth for *what moves* when a user's account
-is exported from OpenBB Hub and imported into OpenBB Lite. Both
+is exported from OpenBB Hub and imported into Workspace. Both
 ``scripts.export_user_data`` and ``scripts.import_user_data`` read this list, so
 the two sides cannot drift apart.
 
@@ -38,7 +38,7 @@ SCOPE_VERSION = 4
 # ``password`` deserves its own note: PasswordType.process_bind_param bcrypt
 # hashes on *every* write, so a hash round-tripped through the ORM would be
 # double-hashed and the account would be permanently unloggable. The importer
-# sets an unknown random password instead and the Lite admin assigns a real one.
+# sets an unknown random password instead and the Workspace admin assigns a real one.
 GLOBAL_REDACT = ("password", "auth_token", "totp_secret")
 
 
@@ -89,7 +89,7 @@ INCLUDED: list[TableSpec] = [
         label="Account profile, display settings and onboarding state",
         redact=("stripe_id", "microsoft_id", "referred_by", "referral_code"),
         note=(
-            "permissions_uuid is repointed to the local Lite entity on import. "
+            "permissions_uuid is repointed to the local Workspace entity on import. "
             "referral_code is regenerated because it carries a UNIQUE constraint."
         ),
     ),
@@ -239,7 +239,7 @@ EXCLUDED: list[ExcludedTable] = [
     ExcludedTable(
         "user_role",
         "user_uuid",
-        "Org RBAC. Lite bootstraps its own entity and Admin/User permission "
+        "Org RBAC. Workspace bootstraps its own entity and Admin/User permission "
         "maps, so Hub role rows would dangle.",
     ),
     ExcludedTable(
@@ -262,8 +262,7 @@ EXCLUDED: list[ExcludedTable] = [
     ),
     ExcludedTable("user_usage", "user_uuid", "Resource counters are calculated at the destination."),
     ExcludedTable(
-        "user_app_subscription", "user_uuid", "Marketplace subscriptions; no "
-        "marketplace in Lite."
+        "user_app_subscription", "user_uuid", "Marketplace subscriptions reference source-deployment listings."
     ),
     ExcludedTable("rate_vendor_app", "user_uuid", "Marketplace app reviews."),
     ExcludedTable("vendor", "owner_uuid", "Marketplace publisher identity."),
@@ -289,24 +288,22 @@ IMPORT_OVERRIDE_REASONS: dict[str, dict[str, str]] = {
         "password": (
             "Never carried over. PasswordType re-hashes on write, and the "
             "chosen policy is admin-set-only, so the importer writes an "
-            "unguessable random value nobody holds and the Lite admin assigns "
+            "unguessable random value nobody holds and the Workspace admin assigns "
             "a real password."
         ),
         "temporary_password": "Flags the account as needing a password set.",
         "confirmed": (
-            "Login rejects unconfirmed accounts. The user already confirmed on "
-            "Hub, so re-confirming in Lite would be a dead end -- there is no "
-            "confirmation email to receive."
+            "Imported accounts are marked confirmed so they can sign in "
+            "without an additional email confirmation."
         ),
         "is_superuser": "Hub superuser status does not transfer to a new instance.",
-        "deleted": "A soft-deleted Hub account imports as a live Lite account.",
-        "stripe_id": "No billing in Lite.",
+        "deleted": "A soft-deleted Hub account imports as a live Workspace account.",
+        "stripe_id": "No billing in Workspace.",
     },
     "api_source": {
         "vendor_app_uuid": (
-            "Points at a marketplace listing, which is EXCLUDED and will never "
-            "exist in Lite. With PRAGMA foreign_keys=ON this would fail the "
-            "insert outright."
+            "Source marketplace listing IDs are not transferred. Clear this "
+            "reference to satisfy destination foreign-key constraints."
         ),
         "entity_uuid": "Org ownership does not transfer; these become personal.",
     },
@@ -323,7 +320,7 @@ def import_overrides(spec: TableSpec) -> dict[str, Any]:
     """Values the importer forces onto every row of ``spec``.
 
     ``permissions_uuid`` is deliberately absent: it has to be resolved against
-    the live Lite database at import time, so the import script sets it.
+    the live Workspace database at import time, so the import script sets it.
     """
     if spec.table == "user":
         return {

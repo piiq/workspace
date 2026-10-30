@@ -4,7 +4,7 @@
 
 Produces ``openbb-export-<email>-<timestamp>.zip`` containing the user's rows as
 JSONL, their uploaded files, a manifest, and a README telling them how to import
-it into OpenBB Lite.
+it into Workspace.
 
 What travels is defined entirely by ``scripts.user_data_scope`` -- run
 ``--describe-scope`` to print the contract, which is also embedded in the
@@ -211,11 +211,11 @@ want the files themselves.
     return """## Your uploaded files
 
 The `files/` folder holds every file you uploaded to OpenBB, plus your profile
-picture. **These are not imported into OpenBB Lite** -- they are here so you
+picture. **These are not imported into Workspace** -- they are here so you
 keep your own copy.
 
 Unzip the archive and move `files/` somewhere safe before deleting it. If you
-want any of them back inside OpenBB Lite, upload them again there.
+want any of them back inside Workspace, upload them again there.
 """
 
 
@@ -237,20 +237,20 @@ Store it somewhere private, and delete it once you have imported it -- but see
 "Your uploaded files" below first, because that folder is the only copy you get.
 
 {_files_section(result)}
-## Importing into OpenBB Lite
+## Importing into Workspace
 
-1. Install OpenBB Lite and start it, mounting the folder holding this archive:
+1. Install Workspace and start it, mounting the folder holding this archive:
 
-       docker run -d --name openbb -p 3000:3000 \\
+       docker run -d --name openbb -p 8080:80 \\
            -v openbb-data:/data \\
            -v /path/to/this/folder:/import \\
-           openbb/lite
+           workspace:dev
 
 2. Import this archive:
 
        docker exec openbb openbb-import /import/{result.archive.name}
 
-3. Get the admin login and sign in at http://localhost:3000
+3. Get the admin login and sign in at http://localhost:8080
 
        docker exec openbb credentials
 

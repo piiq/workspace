@@ -1,12 +1,13 @@
 # Workspace containers
 
-Run commands from the repository root. Both images use `docker/Dockerfile` and the repository root as the build context.
+Run commands from the repository root. All three images use `docker/Dockerfile` and the repository root as the build context.
 
 ## Build
 
 ```sh
 docker buildx build --load -f docker/Dockerfile --target frontend -t workspace-frontend:dev .
 docker buildx build --load -f docker/Dockerfile --target backend -t workspace-backend:dev .
+docker buildx build --load -f docker/Dockerfile --target workspace -t workspace:dev .
 ```
 
 The frontend serves a runtime build through nginx. Prepare build-time plugins with [the plugin preparation command](../docs/plugins.md#including-plugins-in-a-frontend-build) before building; compiled output under `.build/plugins/` is included without copying plugin repositories into the image. A checkout without prepared output builds with no optional plugins.
@@ -22,6 +23,40 @@ The backend includes the API, RQ worker, migrations, provisioning scripts, and `
 | `openbb-admin [arguments]` | Run the admin CLI. |
 
 `api` is the image's default command. Migration and bootstrap failures exit with an error. The worker uses the same image and backend settings as the API. Compose supplies an init process to forward signals and reap worker children. `workspace-backend --help` lists the commands.
+
+## Combined deployment
+
+The `workspace` target runs nginx, the API, an RQ worker, and Redis in one container. It uses the same application and runtime settings as the separate images. Start it with:
+
+```sh
+docker compose -f docker/docker-compose.workspace.yml up --build -d --wait
+docker compose -f docker/docker-compose.workspace.yml exec workspace credentials
+```
+
+Open `http://localhost:8080` and sign in with the printed credentials. To use Docker directly:
+
+```sh
+docker run -d --name workspace -p 8080:80 -v workspace-data:/data workspace:dev
+docker exec workspace credentials
+```
+
+The image defaults to SQLite at `/data/openbb.db`, file storage at `/data/storage`, and Redis on `127.0.0.1:6379`. Redis state, bootstrap output, provisioning configuration, and secrets also persist under `/data`. Keep the volume when recreating the container. `docker compose down` keeps it; `down -v` deletes it.
+
+Startup generates missing `JWT_SECRET`, `OPENBB_AES_KEY`, `LOCAL_STORAGE_SECRET_KEY`, and administrator credentials, and saves them in `/data/secrets.env`. Set `OPENBB_ADMIN_EMAIL` and `OPENBB_ADMIN_PASSWORD` to choose the administrator login. Explicit environment values override saved values; values absent from the environment survive container recreation. Provisioning runs on every start and sets the administrator password to the configured value. Redis starts before migrations so server databases can acquire their migration lock. A migration or provisioning failure stops startup before the API, worker, and nginx start.
+
+Pass backend and frontend environment variables through `docker run -e` or a Compose override's `environment` section. For a different published port or hostname, set `SELFURL` to the browser-facing API URL including `/api`, and `FRONTENDURL`, `PROURL`, and `BACKEND_CORS_ORIGINS` to the Workspace origin. `NGINX_PORT` controls nginx's container port; `PORT` controls the API port and must match `BACKEND_UPSTREAM`.
+
+Use the database and object-storage settings described below to connect PostgreSQL, MySQL, or S3-compatible storage. Supply database credentials and host/port settings when changing `DATABASE_TYPE`. API and worker processes inherit the same settings. The backend image's global MySQL default is independent of the combined image's SQLite default.
+
+Run account management and imports inside the container:
+
+```sh
+docker exec workspace workspace-command openbb-admin auth login --api-url http://127.0.0.1:8000
+docker exec workspace openbb-import /import/account.zip
+docker exec workspace supervisorctl status
+```
+
+Mount the directory containing the archive at `/import` when creating the container. `workspace-command` loads the persisted secrets before running backend commands; the import helper uses it so credentials are encrypted with the same key as the API. See [account export and import](../admin_cli/README.md) for archive contents and scope.
 
 ## Separate deployment
 
@@ -83,4 +118,4 @@ PLAYWRIGHT_PASSWORD='WorkspaceTest123!' \
 bun run playwright test tests/e2e/auth.spec.ts tests/e2e/data-conectors.spec.ts tests/e2e/dashboards.spec.ts
 ```
 
-These scenarios check login settings, uploads, exports, and saved dashboards. The [browser test guide](../frontend/tests/e2e/README.md#run-against-a-deployment) describes account setup and deployment options. Worker startup and completed jobs appear in `docker compose logs worker`.
+These scenarios check login settings, uploads, exports, and saved dashboards. The [browser test guide](../frontend/tests/e2e/README.md#run-against-a-deployment) describes account setup and deployment options. Worker startup and completed jobs appear in `docker compose logs worker` for the separate deployment and `docker compose -f docker/docker-compose.workspace.yml logs workspace` for the combined deployment.

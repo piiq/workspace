@@ -247,7 +247,7 @@ Returns a new temporary password.
 ### 9. Export a User's Data
 
 Downloads a complete copy of somebody's account as a zip, which they can import
-into OpenBB Lite.
+into Workspace.
 
 Exports include current chat history. Re-export older account archives before importing.
 
@@ -327,25 +327,25 @@ instance uses a different key. Treat the file as a secret and delete it once the
 user has it.
 
 The archive also contains a `files/` folder with everything the user uploaded.
-Those files are **not** imported into OpenBB Lite; they are there so the user
+Those files are **not** imported into Workspace; they are there so the user
 keeps their own copy.
 
-#### Importing into OpenBB Lite
+#### Importing into Workspace
 
-The import runs inside the user's own Lite container, so it needs no token — it
+The import runs inside the user's own Workspace container, so it needs no token — it
 is a local command on a machine they already control.
 
 ```bash
-docker run -d --name openbb -p 3000:3000 \
+docker run -d --name openbb -p 8080:80 \
     -v openbb-data:/data \
     -v /path/to/exports:/import \
-    openbb/lite
+    workspace:dev
 
 docker exec openbb openbb-import /import/openbb-export-<email>-<stamp>.zip
 docker exec openbb credentials   # admin login, then set the user's password
 ```
 
-The imported account has **no usable password** — none is exported. The Lite
+The imported account has **no usable password** — none is exported. The Workspace
 admin sets one after importing.
 
 ## Bulk Provisioning

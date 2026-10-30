@@ -878,20 +878,20 @@ def print_import_instructions(
     print(f"""
   Your OpenBB data is in {name}.
 
-  To load it into OpenBB Lite:
+  To load it into Workspace:
 
-    1. Start OpenBB Lite with the folder holding this file mounted:
+    1. Start Workspace with the folder holding this file mounted:
 
-       docker run -d --name openbb -p 3000:3000 \\
+       docker run -d --name openbb -p 8080:80 \\
            -v openbb-data:/data \\
            -v /path/to/the/folder:/import \\
-           openbb/lite
+           workspace:dev
 
     2. Import it:
 
        docker exec openbb openbb-import /import/{name}
 
-    3. Get the admin login and sign in at http://localhost:3000
+    3. Get the admin login and sign in at http://localhost:8080
 
        docker exec openbb credentials
 
@@ -902,7 +902,7 @@ def print_import_instructions(
     if with_files:
         print(
             "    - Your uploaded files are in the archive's files/ folder. They are\n"
-            "      NOT loaded into Lite, so unzip and keep them somewhere safe."
+            "      NOT loaded into Workspace, so unzip and keep them somewhere safe."
         )
     else:
         print(

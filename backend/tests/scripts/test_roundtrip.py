@@ -3,9 +3,9 @@
 This is the test that stands behind the whole feature. It seeds a database
 against the live schema, runs the real ``export_user`` to produce a real zip,
 then runs the real ``import_archive`` against a *separate* database standing in
-for a fresh OpenBB Lite install, and compares the two accounts row by row.
+for a fresh Workspace install, and compares the two accounts row by row.
 
-``PRAGMA foreign_keys=ON`` is enabled on the destination, matching Lite. That
+``PRAGMA foreign_keys=ON`` is enabled on the destination, matching Workspace. That
 makes insert ordering a genuine constraint rather than a claim: a row inserted
 before the row it references fails here exactly as it would in production.
 """
@@ -202,11 +202,11 @@ def _seed_source(session):
 
 
 def _seed_destination(session):
-    """A fresh Lite install, as scripts.init_users leaves it."""
+    """A fresh Workspace install, as scripts.init_users leaves it."""
     session.add(
         models.Entity(
             uuid=LITE_ENTITY,
-            name="OpenBB Lite",
+            name="Workspace",
             entity_type_uuid=_entity_type(session),
         )
     )
@@ -239,7 +239,7 @@ def _seed_destination(session):
 def databases(tmp_path_factory):
     root = tmp_path_factory.mktemp("roundtrip")
 
-    src_path, dst_path = root / "hub.db", root / "lite.db"
+    src_path, dst_path = root / "hub.db", root / "workspace.db"
     for path, seed in ((src_path, _seed_source), (dst_path, _seed_destination)):
         sync = sa.create_engine(f"sqlite:///{path}")
         Base.metadata.create_all(sync)
@@ -248,7 +248,7 @@ def databases(tmp_path_factory):
 
     src = create_async_engine(f"sqlite+aiosqlite:///{src_path}")
     dst = create_async_engine(f"sqlite+aiosqlite:///{dst_path}")
-    _enable_fks(dst)  # Lite runs with foreign keys enforced
+    _enable_fks(dst)  # Workspace runs with foreign keys enforced
     return async_sessionmaker(src), async_sessionmaker(dst)
 
 
@@ -312,7 +312,7 @@ async def test_destination_actually_enforces_foreign_keys(databases):
     """Guards the guard.
 
     Every ordering claim in this file rests on the destination behaving like
-    Lite. If the PRAGMA silently stopped applying, the import could pass here
+    Workspace. If the PRAGMA silently stopped applying, the import could pass here
     while failing in production, so assert both that the pragma is set and that
     a violating insert is genuinely rejected.
     """
@@ -334,7 +334,7 @@ async def test_destination_actually_enforces_foreign_keys(databases):
 
 
 async def test_import_succeeds_with_foreign_keys_enforced(imported):
-    """Insert ordering is real: a bad order fails here as it would in Lite."""
+    """Insert ordering is real: a bad order fails here as it would in Workspace."""
     _, import_result = imported
 
     assert import_result.total_rows > 0
@@ -467,7 +467,7 @@ async def test_hub_privileges_and_billing_do_not_transfer(databases, imported):
     async with dst_sessions() as s:
         user = await s.get(models.User, USER_UUID)
 
-    assert user.is_superuser is False, "Hub superuser must not become a Lite superuser"
+    assert user.is_superuser is False, "Hub superuser must not become a Workspace superuser"
     assert user.stripe_id is None
 
 

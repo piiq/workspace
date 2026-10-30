@@ -212,7 +212,7 @@ def target_db(archive):
 
 @pytest.mark.parametrize("table", sorted(SAMPLES), ids=str)
 def test_row_survives_export_and_reimport(table, source_db, target_db):
-    """Hub row -> archive line -> Lite row, compared as archive lines.
+    """Hub row -> archive line -> Workspace row, compared as archive lines.
 
     Columns the importer deliberately resets are excluded here and asserted
     individually in the override tests below.
@@ -292,7 +292,7 @@ def test_imported_user_has_a_password_nobody_holds(source_db, target_db):
 
 
 def test_marketplace_reference_is_cleared_on_import(source_db, target_db):
-    """vendor_app is EXCLUDED, so the FK would dangle in Lite."""
+    """vendor_app is EXCLUDED, so the FK would dangle in Workspace."""
     imported = target_db.get(models.ApiSource, SAMPLES["api_source"].uuid)
 
     assert imported.vendor_app_uuid is None

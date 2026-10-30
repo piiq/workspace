@@ -59,7 +59,7 @@ PLAYWRIGHT_PASSWORD=WorkspaceTest123! \
 bun run test:e2e
 ```
 
-For the separate container deployment, follow [the container setup and verification commands](../../../docker/README.md).
+For combined and separate container deployments, follow [the container setup and verification commands](../../../docker/README.md).
 
 Setting `PLAYWRIGHT_BASE_URL` uses the supplied deployment and account; Playwright does not start source servers or provision accounts. For deployments exposing registration, password recovery, or Google login, set `PLAYWRIGHT_ALLOW_REGISTRATION=true`, `PLAYWRIGHT_ALLOW_FORGOT_PASSWORD=true`, or `PLAYWRIGHT_IDENTITY_PROVIDERS=google` to match the deployed login settings. The configuration test checks the matching controls.
 

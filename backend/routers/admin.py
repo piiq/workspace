@@ -542,7 +542,7 @@ async def post_export_user_data(
     resetting a password is recoverable, exfiltrating an account is not.
 
     The archive carries the user's dashboards, widgets, custom backends and
-    chats, and can be imported into OpenBB Lite. Uploaded files travel in the
+    chats, and can be imported into Workspace. Uploaded files travel in the
     archive's files/ folder for the user to keep, but are not reinstated on
     import. Exactly what travels is defined by ``scripts.user_data_scope``.
 

@@ -95,7 +95,7 @@ def test_gzip_json_content_round_trips_structurally():
 
 
 def test_encrypted_columns_travel_as_plaintext():
-    """Hub and Lite have different AES keys, so ciphertext would not decrypt."""
+    """Hub and Workspace have different AES keys, so ciphertext would not decrypt."""
     spec = scope.spec_by_table("custom_copilot")
     headers = {"Authorization": "Bearer sk-secret-value"}
     copilots = [{"name": "my copilot", "id": "abc"}]

@@ -1,6 +1,6 @@
 """Unit tests for dialect-specific IntegrityError handling in api.helpers.
 
-Regression for lite/SQLite deployments: SQLite reports duplicate keys as
+Regression for SQLite deployments: SQLite reports duplicate keys as
 "UNIQUE constraint failed: <table>.<column>", which handle_duplicate_pk
 previously did not recognize, turning every insert-then-update upsert
 (e.g. renaming a data connector) into a 400 "Unknown database error occurred".
