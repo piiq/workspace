@@ -56,3 +56,31 @@ USER appuser
 EXPOSE 8000
 ENTRYPOINT ["workspace-backend"]
 CMD ["api"]
+
+FROM backend AS workspace
+USER root
+RUN apt-get update && apt-get install --no-install-recommends -y nginx redis-server supervisor gettext-base tini \
+    && rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
+COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
+COPY docker/frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --chmod=755 scripts/render-frontend-config.sh /usr/local/bin/render-frontend-config.sh
+COPY docker/workspace/supervisord.conf /etc/supervisor/supervisord.conf
+COPY --chmod=755 docker/workspace/entrypoint.sh /usr/local/bin/workspace
+COPY docker/workspace/environment.sh /usr/local/share/workspace/environment.sh
+COPY --chmod=755 docker/workspace/command.sh /usr/local/bin/workspace-command
+COPY --chmod=755 docker/workspace/credentials.sh /usr/local/bin/credentials
+COPY --chmod=755 docker/workspace/import.sh /usr/local/bin/openbb-import
+ENV DATABASE_TYPE=sqlite DB_PATH=/data/openbb.db \
+    STORAGE_PROVIDER=folder FOLDER_STORAGE_PATH=/data/storage \
+    REDIS_HOST=127.0.0.1 REDIS_PORT=6379 REDIS_PASS="" \
+    EMAIL_PROVIDER=none HUBSPOT=false PROMETHEUS=false WORKERS=1 \
+    DISABLE_REGISTRATION=true \
+    NGINX_PORT=80 BACKEND_UPSTREAM=127.0.0.1:8000 BACKEND_URL=/api \
+    SELFURL=http://localhost:8080/api FRONTENDURL=http://localhost:8080 PROURL=http://localhost:8080 \
+    AI_COPILOT_AI_ENHANCEMENTS=false UI_SHOW_CHANGELOG=false
+EXPOSE 80
+VOLUME ["/data"]
+HEALTHCHECK --interval=5s --timeout=5s --start-period=30s --retries=10 \
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('NGINX_PORT', '80') + '/api/health', timeout=3)"
+ENTRYPOINT ["/usr/bin/tini", "--", "workspace"]
+CMD ["start"]
