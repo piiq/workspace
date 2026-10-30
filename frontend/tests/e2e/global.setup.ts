@@ -20,18 +20,14 @@ setup("sign in with the CLI-created account", async ({ page, request }) => {
       mkdirSync("playwright/.cache", { recursive: true });
       const cli = (...args: string[]) =>
         JSON.parse(
-          execFileSync(
-            "poetry",
-            ["run", "python", "../admin_cli/openbb-admin", ...args, "--json"],
-            {
-              cwd: resolve("../backend"),
-              env: {
-                ...process.env,
-                OPENBB_CONFIG_FILE: resolve("playwright/.cache/admin.json"),
-              },
-              encoding: "utf8",
+          execFileSync("python", ["../admin_cli/openbb-admin", ...args, "--json"], {
+            cwd: resolve("../backend"),
+            env: {
+              ...process.env,
+              OPENBB_CONFIG_FILE: resolve("playwright/.cache/admin.json"),
             },
-          ),
+            encoding: "utf8",
+          }),
         );
       cli(
         "auth",

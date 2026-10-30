@@ -11,7 +11,7 @@ on:
       - 'backend/alembic.ini'
       - 'backend/pytest.ini'
       - 'backend/pyproject.toml'
-      - 'backend/poetry.lock'
+      - 'backend/uv.lock'
       - 'docker/backend/**'
       - '.github/workflows/backend-integration-tests.yml'
 
@@ -32,11 +32,18 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@main
+        with:
+          version: '0.13.6'
+          enable-cache: true
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+          activate-environment: true
+
       - name: Install dependencies
         run: |
-          pip install poetry
-          poetry config virtualenvs.create false
-          poetry install --with dev
+          uv sync --locked
 
       - name: Run Integration Tests
         run: |

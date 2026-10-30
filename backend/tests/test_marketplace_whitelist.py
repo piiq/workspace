@@ -6,7 +6,7 @@ Covers the additions for the admin whitelist + submission gating feature:
   - 403 enforcement on create/update/submit for non-whitelisted developers
 
 Requires the backend test infra (MySQL + Redis via testcontainers):
-    cd backend && poetry run pytest tests/test_marketplace_whitelist.py
+    cd backend && pytest tests/test_marketplace_whitelist.py
 """
 
 from unittest.mock import patch

@@ -52,11 +52,13 @@ case "$DB" in
 esac
 
 # Pick a Python with the simulator's deps (prefer the backend venv).
-PYTHON="${PYTHON:-}"
-if [ -z "$PYTHON" ]; then
-  if   [ -x "$BACKEND/venv/Scripts/python.exe" ]; then PYTHON="$BACKEND/venv/Scripts/python.exe"
-  elif [ -x "$BACKEND/venv/bin/python" ];        then PYTHON="$BACKEND/venv/bin/python"
-  else PYTHON="python"; fi
+if [ "$DOWN" = 0 ] && [ "$NORUN" = 0 ] && [ -z "${PYTHON:-}" ]; then
+  if   [ -x "$BACKEND/.venv/bin/python" ]; then PYTHON="$BACKEND/.venv/bin/python"
+  elif [ -x "$BACKEND/.venv/Scripts/python.exe" ]; then PYTHON="$BACKEND/.venv/Scripts/python.exe"
+  else
+    echo "Run uv sync --locked in backend/ or set PYTHON to its interpreter." >&2
+    exit 1
+  fi
 fi
 
 cd "$ROOT"
