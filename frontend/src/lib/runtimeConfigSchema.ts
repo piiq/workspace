@@ -98,7 +98,6 @@ export const RuntimeConfigSchema = z.object({
     defaultTheme: z.enum(["light", "dark"]).default("dark"),
     odpDownloadInstaller: boolField(true),
     showSalesEmail: boolField(false),
-    isLite: boolField(false),
     showMarketplace: boolField(true),
   }),
   services: z.object({
@@ -148,9 +147,8 @@ export type RuntimeConfig = z.infer<typeof RuntimeConfigSchema>;
 //
 // The *policy* (which fields are locked, to what values) is NOT defined in
 // this repo. It is supplied at build time as a JSON object — see
-// `vite.config.ts`, which reads `VITE_LOCKED_CONFIG_FILE`. The OpenBB Lite
-// image owns that file (`locked.config.json`). Builds without a policy file
-// leave configuration editable at runtime.
+// `vite.config.ts`, which reads `VITE_LOCKED_CONFIG_FILE`. Builds without a
+// policy file leave configuration editable at runtime.
 //
 // This module only defines the shape and the validation. `RuntimeConfigSchema`
 // itself is the allowlist: `buildLockedConfig` throws on unknown groups/fields
@@ -184,9 +182,7 @@ export type LockedConfig = Partial<{
  * either locked (given a value) or explicitly listed in `_unlocked`
  * (`group.*` wildcards mark a fully overridable group). An untriaged field, a
  * path in both lists, or an unknown path in `_unlocked` throws. This is the
- * tripwire that keeps in-repo profiles (`config-profiles/`) from silently
- * drifting when a new schema field is added — fail-closed instead of
- * fail-open.
+ * validation that requires deployment policies to account for every schema field.
  */
 export function buildLockedConfig(raw: unknown): LockedConfig {
   if (!raw || typeof raw !== "object") return {};
@@ -290,11 +286,7 @@ function enforceStrictTriage(
       }
       if (!isLocked && !isUnlocked) {
         throw new Error(
-          `Field "${path}" is not triaged for the Lite profile.\n` +
-            "Every runtime config field needs a Lite decision:\n" +
-            "  - locked off in Lite -> add it with a value to config-profiles/lite.locked.json\n" +
-            `  - operator-configurable in Lite -> add "${path}" to "_unlocked"\n` +
-            "Full workflow: https://github.com/OpenBB-finance/lite#changing-what-lite-locks",
+          `Field "${path}" is not triaged. Set a locked value or add "${path}" to "_unlocked".`,
         );
       }
     }

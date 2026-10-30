@@ -65,7 +65,6 @@ window.__APP_CONFIG__ = {
     defaultTheme: "dark",
     odpDownloadInstaller: true,
     showSalesEmail: true,
-    isLite: false,
     showMarketplace: true,
   },
   services: {

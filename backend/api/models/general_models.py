@@ -1,6 +1,6 @@
 """General models"""
 
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from api.models.model_helpers import Base, DateMixin, UUIDMixin
@@ -29,19 +29,3 @@ class Feedback(Base, UUIDMixin, DateMixin):
     emoji: Mapped[int]
     url: Mapped[str] = mapped_column(Text())
     email: Mapped[None | str] = mapped_column(Text())
-
-
-class StripeEvent(Base, UUIDMixin, DateMixin):
-    """Audit record of every Stripe webhook event received.
-
-    The unique event_id doubles as the dedupe key: Stripe redelivers events,
-    and the webhook treats a conflicting insert as "already processed". Only
-    the Stripe webhook (routers/stripe_lite.py) writes here — the route is
-    excluded from on-prem/Lite builds, so this table stays empty there.
-    """
-
-    __tablename__ = "stripe_event"
-
-    event_id: Mapped[str] = mapped_column(String(255), unique=True)
-    type: Mapped[str] = mapped_column(String(100))
-    livemode: Mapped[bool]

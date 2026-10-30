@@ -11,7 +11,6 @@ Source code for OpenBB Workspace and the components that build and run it.
 | `admin_cli/` | CLI for managing users, entities, and backend operations |
 | `docker/` | Compose deployments and test infrastructure |
 | `.github/workflows/` | Repository workflows |
-| `lite/` | Docker packaging that assembles OpenBB Lite from the backend and frontend |
 | `excel-add-in/` | The OpenBB Add-in for Excel (Office.js, TypeScript/React) |
 
 Each component keeps its own README with setup and development instructions.
@@ -40,14 +39,15 @@ Follow [backend/DEVELOPMENT_SETUP.md](backend/DEVELOPMENT_SETUP.md) for environm
 docker compose -f docker/docker-compose-local-dev.yml up --build --watch
 ```
 
-The frontend and backend Docker recipes use the repository root as their build context:
+The frontend, backend, and combined Workspace targets use the repository root as their build context:
 
 ```bash
 docker buildx build --load -f docker/Dockerfile --target frontend -t workspace-frontend:dev .
 docker buildx build --load -f docker/Dockerfile --target backend -t workspace-backend:dev .
+docker buildx build --load -f docker/Dockerfile --target workspace -t workspace:dev .
 ```
 
-See [the container instructions](docker/README.md) for runtime configuration, account provisioning, and the separate deployment.
+See [the container instructions](docker/README.md) for runtime configuration, account provisioning, and combined or separate deployments.
 
 ## Checks
 

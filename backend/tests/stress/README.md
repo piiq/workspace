@@ -26,10 +26,10 @@ brings up the topology you want to test.
 ```bash
 cd backend/tests/stress
 
-# MySQL (server build), 3 workers, 80 users — the production-representative run
+# MySQL, 3 workers, 80 users — the production-representative run
 ./run_stress.sh --db mysql --workers 3 --users 80
 
-# Lite build (SQLite), single worker, realistic small load — seed the DB on first run
+# SQLite, single worker, realistic small load — seed the DB on first run
 ./run_stress.sh --db sqlite --workers 1 --users 20 --seed
 
 # MCP-impact A/B: hold API load fixed, add a pool of MCP-only hammerers
@@ -45,7 +45,7 @@ cd backend/tests/stress
 
 | flag | default | meaning |
 |---|---|---|
-| `--db` | `mysql` | `mysql` (server build) or `sqlite` (lite Cython build) |
+| `--db` | `mysql` | `mysql` or `sqlite` |
 | `--workers` | `1` | uvicorn worker processes |
 | `--users` | `40` | simulated API users |
 | `--duration` | `20` | seconds |
@@ -58,7 +58,7 @@ cd backend/tests/stress
 
 The simulator authenticates as `admin@openbb.co` / `asdQWE123!` (override with `ADMIN_EMAIL` /
 `ADMIN_PASSWORD` env). It needs the frontend User-Agent to skip rate limiting — this defaults to
-`test` (the value in the dev/lite envs); override with `FRONTEND_UA` if your env differs.
+`test` (the value in the development environments); override with `FRONTEND_UA` if your env differs.
 
 ## What it does
 
@@ -83,6 +83,4 @@ Then it reports the live runtime gauges scraped from `/metrics`:
 - **MySQL and SQLite stacks share container names** (`fastapi`, `redis`), so the launcher tears down
   any existing stack before starting. Only one runs at a time.
 - **SQLite is single-writer.** `--db sqlite --workers >1` will produce `database is locked` errors
-  under write load — that's expected; the lite build is meant to run `--workers 1`.
-- The lite (`sqlite`) image is **Cython-compiled**, so the launcher rebuilds it each run to pick up
-  code changes; the MySQL dev image is bind-mounted and doesn't need a rebuild.
+  under write load — that's expected; use `--workers 1` for SQLite.

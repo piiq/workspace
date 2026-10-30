@@ -93,7 +93,7 @@ def read_manifest(zf: ZipFile) -> dict[str, Any]:
         raise ImportError_(
             f"Archive manifest version {version} is not supported by this build "
             f"(supports {sorted(SUPPORTED_MANIFEST_VERSIONS)}). Use a matching "
-            "version of OpenBB Lite."
+            "version of Workspace."
         )
 
     if manifest.get("scope_version") != scope.SCOPE_VERSION:

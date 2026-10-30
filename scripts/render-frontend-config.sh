@@ -83,7 +83,6 @@ csv_json_array() {
 : "${UI_ODP_DOWNLOAD_INSTALLER:=false}"
 : "${UI_SHOW_SALES_EMAIL:=false}"
 : "${UI_SHOW_MARKETPLACE:=true}"
-: "${UI_IS_LITE:=false}"
 
 : "${SERVICES_POSTHOG:=false}"
 : "${SERVICES_HUBSPOT_FORMS:=false}"
@@ -168,8 +167,7 @@ window.__APP_CONFIG__ = {
     defaultTheme: "${UI_DEFAULT_THEME}",
     odpDownloadInstaller: ${UI_ODP_DOWNLOAD_INSTALLER},
     showSalesEmail: ${UI_SHOW_SALES_EMAIL},
-    showMarketplace: ${UI_SHOW_MARKETPLACE},
-    isLite: ${UI_IS_LITE}
+    showMarketplace: ${UI_SHOW_MARKETPLACE}
   },
   services: {
     posthog: ${SERVICES_POSTHOG},

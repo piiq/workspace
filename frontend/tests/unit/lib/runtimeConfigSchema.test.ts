@@ -81,12 +81,12 @@ describe("buildLockedConfig — strict mode", () => {
       _strict: true,
       _unlocked: [
         ...wildcardAllExcept("ui"),
-        ...uiFields.filter((f) => f !== "isLite").map((f) => `ui.${f}`),
+        ...uiFields.filter((f) => f !== "showMarketplace").map((f) => `ui.${f}`),
       ],
-      ui: { isLite: true },
+      ui: { showMarketplace: true },
     });
 
-    expect(locked).toEqual({ ui: { isLite: true } });
+    expect(locked).toEqual({ ui: { showMarketplace: true } });
   });
 
   it("accepts a strict policy that unlocks everything and locks nothing", () => {
@@ -96,10 +96,10 @@ describe("buildLockedConfig — strict mode", () => {
   it("without _strict, _unlocked is ignored and triage is not enforced", () => {
     const locked = buildLockedConfig({
       _unlocked: ["ui.*"],
-      ui: { isLite: true },
+      ui: { showMarketplace: true },
     });
 
-    expect(locked).toEqual({ ui: { isLite: true } });
+    expect(locked).toEqual({ ui: { showMarketplace: true } });
   });
 
   it("throws on an untriaged field, naming it and both resolution paths", () => {
@@ -110,11 +110,7 @@ describe("buildLockedConfig — strict mode", () => {
       });
 
     expect(run).toThrow(/Field "ui\.showCompanionMode" is not triaged/);
-    expect(run).toThrow(/config-profiles\/lite\.locked\.json/);
     expect(run).toThrow(/"_unlocked"/);
-    expect(run).toThrow(
-      /github\.com\/OpenBB-finance\/lite#changing-what-lite-locks/,
-    );
   });
 
   it("throws when a path is both locked and listed in _unlocked", () => {
@@ -122,9 +118,9 @@ describe("buildLockedConfig — strict mode", () => {
       buildLockedConfig({
         _strict: true,
         _unlocked: wildcardAll,
-        ui: { isLite: true },
+        ui: { showMarketplace: true },
       }),
-    ).toThrow(/"ui\.isLite".*locked.*"_unlocked"/);
+    ).toThrow(/"ui\.showMarketplace".*locked.*"_unlocked"/);
   });
 
   it("throws on an unknown path in _unlocked", () => {

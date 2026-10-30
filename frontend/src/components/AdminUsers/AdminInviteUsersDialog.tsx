@@ -3,7 +3,7 @@ import { useState } from "react";
 import { getEntityMap } from "~/api/admin.api";
 import ImportUsers from "~/components/AdminUsers/InviteUser/ImportUsers";
 import InviteSingleUser from "~/components/AdminUsers/InviteUser/InviteSingleUser";
-import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
+import { getConfig } from "~/lib/runtimeConfig";
 import { BaseDialog, type BaseDialogProps } from "../ds/dialogs/BaseDialog";
 import { DialogHeader, DialogTitle } from "../ds/dialogs/Dialog";
 import { Tabs, TabsList, TabsTrigger } from "../ds/molecules/Tabs";
@@ -28,7 +28,9 @@ export function AdminInviteUsersDialog({ open, onClose }: BaseDialogProps) {
       modal={true}
     >
       <DialogHeader>
-        <DialogTitle>{isLiteEnvironment() ? "Add Users" : "Invite Users"}</DialogTitle>
+        <DialogTitle>
+          {getConfig().services.email ? "Invite Users" : "Add Users"}
+        </DialogTitle>
       </DialogHeader>
       {permissionsUUID ? (
         <div className="flex flex-col gap-[20px] h-full grow">

@@ -1,0 +1,15 @@
+services:
+  workspace:
+    image: ${WORKSPACE_IMAGE:-workspace:dev}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: workspace
+    ports:
+      - "${WORKSPACE_PORT:-8080}:80"
+    volumes:
+      - workspace-data:/data
+    stop_grace_period: 140s
+
+volumes:
+  workspace-data:

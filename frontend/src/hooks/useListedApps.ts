@@ -1,29 +1,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiClient } from "~/api/api";
 import { getUserSubscriptions, SUBSCRIPTIONS_QUERY_KEY } from "~/api/auth.api";
-import { isLiteEnvironment } from "~/lib/onPremFeatureFlags";
 import { createURLString } from "~/lib/utils/widgetParams";
 import type { ListedApp } from "~/types/listedApps";
 
-// In lite the app is served from a non-OpenBB origin and its configured backend is
-// not the marketplace backend, so the marketplace listing must be fetched
-// cross-origin from the OpenBB backend (CORS allow-listed there).
-const MARKETPLACE_URL = "https://backend.openbb.co";
-
-export function getMarketplaceBaseUrl(): string | undefined {
-  // Normal deployments hit their own backend (apiClient interceptor → urls.backend).
-  if (!isLiteEnvironment()) return undefined;
-  return MARKETPLACE_URL;
-}
-
 async function fetchListedApps(): Promise<ListedApp[]> {
-  const baseURL = getMarketplaceBaseUrl();
-  // The marketplace host rejects the lite session token, so the cross-origin
-  // request must go out unauthenticated.
-  const { data } = await apiClient.get<ListedApp[]>(
-    "/marketplace/apps",
-    baseURL ? { baseURL, headers: { authorization: "" } } : undefined,
-  );
+  const { data } = await apiClient.get<ListedApp[]>("/marketplace/apps");
   for (const app of data) {
     for (const img_key of ["img", "img_dark", "img_light"]) {
       if (!app?.appImages?.[img_key]) continue;

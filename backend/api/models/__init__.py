@@ -11,7 +11,7 @@ from .entity_models import (
     RolePrompt,
     entity_get_supreme,
 )
-from .general_models import Feedback, Log, StripeEvent
+from .general_models import Feedback, Log
 from .marketplace_models import RateVendorApp, UserAppSubscription, Vendor, VendorApp
 from .usage_models import UserUsage
 from .user_models import (

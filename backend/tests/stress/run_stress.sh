@@ -6,7 +6,7 @@
 #   ./run_stress.sh --db mysql  --workers 1 --users 80 --mcp-users 40 --api-mcp 0   # MCP-impact A/B
 #
 # Flags (all optional; defaults in []):
-#   --db        mysql | sqlite        [mysql]   sqlite = the "lite" Cython build
+#   --db        mysql | sqlite        [mysql]   SQLite database
 #   --workers   N                     [1]       uvicorn worker processes
 #   --users     N                     [40]      simulated API users
 #   --duration  seconds               [20]
@@ -47,7 +47,7 @@ OVERLAY="docker/docker-compose.stress.yml"
 
 case "$DB" in
   mysql)  BASE="docker/docker-compose-local-dev.yml";;
-  sqlite) BASE="docker/docker-compose-lite.yml";;
+  sqlite) BASE="docker/docker-compose-local-dev-sqlite.yml";;
   *) echo "--db must be mysql or sqlite" >&2; exit 2;;
 esac
 
@@ -70,14 +70,11 @@ fi
 
 # MySQL and SQLite stacks share container names, so clear any existing stack first.
 docker compose -f docker/docker-compose-local-dev.yml down >/dev/null 2>&1 || true
-docker compose -f docker/docker-compose-lite.yml down       >/dev/null 2>&1 || true
-
-# Lite is a Cython image (no bind mount) and must be built to pick up code changes.
-BUILD=""; [ "$DB" = sqlite ] && BUILD="--build"
+docker compose -f docker/docker-compose-local-dev-sqlite.yml down       >/dev/null 2>&1 || true
 
 echo ">> bringing up $DB stack: workers=$WORKERS host_port=$HOST_PORT"
 STRESS_WORKERS="$WORKERS" STRESS_HOST_PORT="$HOST_PORT" \
-  docker compose -f "$BASE" -f "$OVERLAY" up -d $BUILD --force-recreate
+  docker compose -f "$BASE" -f "$OVERLAY" up -d --force-recreate
 
 echo ">> waiting for http://localhost:$HOST_PORT/health ..."
 for _ in $(seq 1 40); do

@@ -39,9 +39,7 @@ DISABLE_CORS=1
 API and RQ worker containers to use Docker networking (`mysql`, `redis`), so the
 same `.env` file works for both host tooling and containers.
 
-The SQLite compose files (`docker/docker-compose-local-dev-sqlite.yml`,
-`docker/docker-compose-lite.yml`) read `backend/envs/.env.sqlite`, which is not
-tracked. Create it once from the template:
+The SQLite Compose file (`docker/docker-compose-local-dev-sqlite.yml`) reads `backend/envs/.env.sqlite`, which is not tracked. Create it from the template and set `MODE=onprem`:
 
 ```sh
 cp backend/envs/.env.sqlite.example backend/envs/.env.sqlite

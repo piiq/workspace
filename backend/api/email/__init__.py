@@ -86,16 +86,3 @@ class EmailService:
     @staticmethod
     def send_new_entity(to: str, entity_name: str) -> None:
         return email_provider.send_new_entity(to, entity_name)
-
-    @staticmethod
-    def send_install_email(
-        to: str,
-        first_name: str,
-        access_key_id: str,
-        secret_access_key: str,
-        expiration: str,
-        version: str,
-    ) -> None:
-        return email_provider.send_install_email(
-            to, first_name, access_key_id, secret_access_key, expiration, version
-        )

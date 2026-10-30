@@ -115,6 +115,7 @@ def _inspect_and_verify(engine: sa.engine.Engine, dialect_name: str):
     assert "copilot_chat_old" not in tables
     assert "copilot_chats" not in tables
     assert "data_bundle" not in tables
+    assert "stripe_event" not in tables
     assert "enabled_widget_bundles" not in tables
     assert {"tier", "default_tier", "entitlement", "entity_entitlement", "entitlement_usage"}.isdisjoint(tables)
     assert "user_usage" in tables

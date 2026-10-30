@@ -5,9 +5,6 @@
 .github
 .idea
 .vscode
-lite/backend
-lite/terminalpro
-lite/_hub
 
 # Python build artifacts
 **/__pycache__
@@ -22,8 +19,7 @@ lite/_hub
 **/.coverage
 **/htmlcov
 
-# Backend Cython artifacts must NOT leak into the image — stale .so files
-# silently override what setup_compile.py decides to build.
+# Python extension build artifacts are excluded from source images.
 **/*.so
 **/*.c
 **/build/
