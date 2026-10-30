@@ -43,7 +43,7 @@ RUN npm run build:runtime
 
 
 ###############################################
-# Backend base — python + poetry deps
+# Backend base — Python dependencies
 ###############################################
 FROM python:3.13-slim AS python-base
 
@@ -53,15 +53,11 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=2.3.2 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=1 \
     PYSETUP_PATH="/opt" \
     VENV_PATH="/opt/.venv" \
     TZ="America/New_York"
 
-ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+ENV PATH="$VENV_PATH/bin:$PATH"
 
 RUN python -m pip install --upgrade pip setuptools
 
@@ -75,17 +71,13 @@ RUN apt-get update -y && apt-get upgrade -y \
 
 WORKDIR $PYSETUP_PATH
 
-RUN pip install --upgrade setuptools poetry
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /usr/local/bin/uv
+ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
 
-COPY backend/pyproject.toml backend/poetry.lock ./
-# Regenerate the lock if it's out of sync with pyproject.toml (e.g. after
-# moving deps into an optional group). --no-update keeps existing pins.
-RUN poetry lock --no-update || poetry lock
-RUN poetry install --only main
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 
-RUN $VENV_PATH/bin/pip install "cython>=3.0" "setuptools>=68"
-
-RUN rm -rf $VENV_PATH/src/slowapi/poetry.lock $VENV_PATH/src/slowapi/docs/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv uv pip install --python "$VENV_PATH/bin/python" "cython>=3.0" "setuptools>=68"
 
 
 ###############################################
@@ -111,14 +103,12 @@ RUN find api routers utilities -name "*.py" ! -name "__init__.py" | while read -
     && find . -type d -name "__pycache__" -prune -exec rm -rf {} + \
     && find api routers utilities -name "*.so" -exec strip --strip-unneeded {} +
 
-# Trim the venv now that compilation is done. Cython was build-only. Bytecode
-# (__pycache__/*.pyc) is recreated on first import as needed and adds up to
-# ~30-50 MB across site-packages.
+# Remove build tooling and bytecode from the runtime environment.
 #
 # DO NOT blindly delete dirs named "tests" / "docs" / "examples" here —
 # several packages ship real importable submodules under those names
 # (e.g. boto3.docs is a runtime module, not documentation).
-RUN $VENV_PATH/bin/pip uninstall -y cython pip setuptools 2>/dev/null || true \
+RUN uv pip uninstall --python "$VENV_PATH/bin/python" cython setuptools \
     && find $VENV_PATH -depth -type d -name __pycache__ -exec rm -rf {} + \
     && find $VENV_PATH -depth -name "*.pyc" -delete \
     && find $VENV_PATH -depth -name "*.pyo" -delete
