@@ -14,6 +14,7 @@ Reviews changes to `backend/` (FastAPI + SQLAlchemy 2.0 async + Alembic + RQ) ag
 ### LLM Review Protocol (must follow)
 
 Scope & evidence:
+
 - Review ONLY changes in the PR diff (or the files explicitly provided). Do not comment
   on unrelated code.
 - Every finding must include evidence: file path + line (or nearby identifier) + what
@@ -24,6 +25,7 @@ Scope & evidence:
   PR adds to that pattern or touches the exact call site.
 
 Severity:
+
 - **Blocking** = correctness, security, broken functionality, missing tests for
   meaningful logic changes, lint/type errors, and every **[BLOCKING]** rule in
   `REVIEW.md`.
@@ -35,6 +37,7 @@ Severity:
 **Async and query violations are BLOCKING** — this is the section that matters most in
 this codebase, because one blocking call stalls the event loop for every concurrent
 request:
+
 - Blocking I/O (`requests`, `time.sleep`, sync `boto3`, sync file/DB drivers) inside an
   `async def`, with no `run_in_threadpool` wrapper
 - Sequential `await`s of independent operations that should be `asyncio.gather`
@@ -45,6 +48,7 @@ request:
 - `commit()` inside a loop
 
 **Security gaps are BLOCKING**:
+
 - A route taking a client-supplied `uuid` without an ownership/permission check (IDOR)
 - Missing `response_model`, or a response model that can leak hashed passwords, tokens,
   API keys, or another user's identifiers
@@ -54,6 +58,7 @@ request:
 - Raw SQL assembled with f-strings/interpolation
 
 **Migration safety is BLOCKING**:
+
 - A model change with no migration, or a migration that doesn't match the model
 - `downgrade()` stubbed out with `pass`
 - Migrations importing app code or branching on runtime config
@@ -72,6 +77,7 @@ parameter to the existing one would do. Ask: "could this be a change to the exis
 helper instead of a new one?"
 
 **Missed simplification is a SHOULD FIX** — for every meaningful change, ask:
+
 - Could this be reframed so branches, mode flags, or helper layers disappear entirely,
   rather than just being tidied?
 - Are repeated conditionals signaling a missing model or missing helper?
@@ -81,6 +87,7 @@ helper instead of a new one?"
   a large refactor unless the complexity creates real risk.
 
 **Layering violations are a SHOULD FIX**:
+
 - `select(...)` inline in a router instead of in `api/crud.py`
 - Request/response shapes defined in a router instead of `api/schemas.py`
 - The PR pushing `routers/pro/helpers.py`, `api/schemas.py`, `routers/pro/index.py`, or
@@ -88,6 +95,7 @@ helper instead of a new one?"
   don't flag small edits to those files
 
 Behavior:
+
 - Prefer minimal fixes; don't request large refactors unless they reduce real risk.
 - If something can't be verified from the diff (runtime behavior, whether a migration
   applies cleanly), say so and recommend a specific check.
@@ -102,6 +110,7 @@ applies to the review text only; it does not change what you flag or the severit
 assign. Suggested code stays idiomatic Python.
 
 Rules:
+
 - **One idea per sentence.** Maximum 20 words for a descriptive sentence, 20 for an
   instruction.
 - **Maximum 6 sentences per paragraph.** Prefer bullets to paragraphs.
@@ -150,6 +159,7 @@ Example rewrite:
      (the repo default branch)
 3. **Run the lint gate on changed files** — this is what CI runs, so failures are
    Blocking:
+
    ```bash
    # changed Python files
    gh pr diff <number> --name-only | grep -E '\.py$' > /tmp/pr_files.txt
@@ -157,8 +167,8 @@ Example rewrite:
    cd backend && ruff check --output-format=concise . 2>&1 | tee /tmp/ruff_out.txt
    grep -F -f /tmp/pr_files.txt /tmp/ruff_out.txt
    ```
-   Tools are available in `backend/venv/Scripts/` (Windows) or via
-   `poetry run`. Also run `ruff format --check` on the changed files.
+
+   Run `uv sync --locked` in `backend/` and activate `backend/.venv` before running tools. Also run `ruff format --check` on the changed files.
 4. **Run the type gate on changed files**: `ty check <changed files>` (or `mypy
    --ignore-missing-imports`). Report only errors in PR files, as Blocking.
 5. **Walk each `REVIEW.md` section** against the diff:
@@ -194,7 +204,7 @@ Example rewrite:
 Write all text in ASD-STE100 Simplified Technical English (see the writing style rules
 above).
 
-```
+```text
 ## PR Review: [description]
 
 ### Lint / Type Errors (Blocking)

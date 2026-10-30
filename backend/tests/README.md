@@ -6,17 +6,19 @@
 
 - Docker must be running (testcontainers uses Docker to spin up MySQL and Redis)
 - Python 3.13 with the dev dependencies installed
-- poetry install --with dev
+- Run `uv sync --locked` in `backend/`
 
 ### Run tests
 
 ```bash
 cd backend
-source venv/Scripts/activate   # or on Windows: venv\Scripts\activate
+source .venv/bin/activate
 pytest tests -v
 ```
 
-That's it! **No manual docker-compose required.** Testcontainers automatically:
+On Windows, use `.\.venv\Scripts\Activate.ps1` in PowerShell or `.venv\Scripts\activate.bat` in cmd to activate the environment before running `pytest`.
+
+Testcontainers supplies the database and Redis; no separate Compose stack is needed. Testcontainers automatically:
 
 1. Starts fresh MySQL and Redis containers with random ports
 2. Configures the test environment to use those containers
@@ -82,30 +84,21 @@ Environment variables are set dynamically by `conftest.py` based on the containe
 
 ## Database Seeding
 
-The `/pro` endpoints require specific entities and permissions to exist in the database before tests can run. This seeding is handled automatically by the `_seed_pro_entities()` function in `conftest.py`.
+The `apply_migrations` fixture calls `_seed_workspace_entities()` in `fixtures/base.py` after applying database migrations. It provisions the default organization, member and admin roles, and an admin user for registration and login tests.
 
 ### What gets seeded
 
 The seed function creates the following records after database migrations run:
 
-1. **EntityType** - A single entity type record for "pro" entities
-2. **Entity (Developer)** - The developer-tier entity linked to `PRO_DEVELOPER_MAPPING`
-3. **Entity (Trial)** - The trial-tier entity linked to `PRO_TRIAL_MAPPING`
-4. **PermissionsEntityMap** - Permission mappings linking entities to their UUIDs
-5. **User (PRO_TRIAL_USER)** - The system user that serves as the `inviting_user_uuid` for new registrations
+1. `EntityType` and `Entity` records for the default organization
+2. `PermissionsEntityMap` records named `User` and `Admin` within that organization
+3. A confirmed admin user, `workspace-admin@openbb.co`, used as the default inviter
 
 ### UUID References
 
-The seed function uses specific UUIDs that align with the application's settings:
+The seed function sets `DEFAULT_PERMISSIONS_UUID`, `DEFAULT_ADMIN_PERMISSIONS_UUID`, `DEFAULT_INVITER_UUID`, and `DEFAULT_INVITER_EMAIL` to match the seeded records. These settings select the organization, roles, and inviter used by registration.
 
-| Record | UUID | Purpose |
-|--------|------|---------|
-| PRO_DEVELOPER_MAPPING | `22222222-2222-2222-2222-222222222222` | Developer tier permission mapping |
-| PRO_TRIAL_MAPPING | `11111111-1111-1111-1111-111111111111` | Trial tier permission mapping |
-| PRO_TRIAL_USER | `11111111-1111-1111-1111-111111111111` | Default inviting user for registrations |
-| Developer Entity | `33333333-3333-3333-3333-333333333333` | Developer entity record |
-| Trial Entity | `44444444-4444-4444-4444-444444444444` | Trial entity record |
-| EntityType | `55555555-5555-5555-5555-555555555555` | Entity type record |
+The UUID constants are defined alongside `_seed_workspace_entities()` in `fixtures/base.py`.
 
 ### The `pro_client` fixture
 
@@ -126,13 +119,7 @@ The `pro_client` fixture:
 
 ### Cleanup
 
-The test teardown (in `conftest.py`) handles cleanup by:
-
-1. Disabling foreign key checks
-2. Truncating all tables except `alembic_version`
-3. Re-enabling foreign key checks
-
-This ensures each test run starts with a clean database state.
+The database and client fixtures delete records belonging to their test users, sessions, roles, and entities. The default organization and inviter remain available throughout the test session. Testcontainers removes the database container after the session.
 
 ## Unit Tests (no Docker required)
 

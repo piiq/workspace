@@ -4,11 +4,12 @@ Playwright checks login settings, uploaded CSV/JSON data, connected backend widg
 
 ## Run from source
 
-Use Python 3.13 with an activated virtual environment, Poetry, Bun, Node supported by `frontend/package.json`, and a running Docker daemon. From the repository root:
+Use Python 3.13 with the activated backend virtual environment, uv, Bun, Node supported by `frontend/package.json`, and a running Docker daemon. From the repository root:
 
 ```bash
 cd backend
-poetry install --with dev
+uv sync --locked
+source .venv/bin/activate
 cd ../frontend
 bun install --frozen-lockfile
 cd ../packages/plugin-sdk
