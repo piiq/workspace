@@ -35,7 +35,7 @@ export default defineConfig({
   ],
   webServer: deployed ? undefined : [
     {
-      command: "poetry run python -m scripts.run_e2e",
+      command: "python -m scripts.run_e2e",
       cwd: "../backend",
       url: `${apiURL}/health`,
       gracefulShutdown: { signal: "SIGTERM", timeout: 30_000 },

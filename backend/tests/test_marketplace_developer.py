@@ -7,7 +7,7 @@ Covers the additions for the Workspace app-submission feature:
   - hard-delete frees the (vendor, name, version) slot for re-listing
 
 Requires the backend test infra (MySQL + Redis via testcontainers):
-    cd backend && poetry run pytest tests/test_marketplace_developer.py
+    cd backend && pytest tests/test_marketplace_developer.py
 """
 
 import os

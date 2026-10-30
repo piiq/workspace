@@ -24,14 +24,13 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/opt/.venv/bin:$PATH"
 
 FROM python-base AS backend-build
-ARG POETRY_VERSION=2.5.1
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /usr/local/bin/uv
 RUN apt-get update && apt-get install --no-install-recommends -y build-essential git \
     && rm -rf /var/lib/apt/lists/*
-RUN --mount=type=cache,target=/root/.cache/pip pip install poetry==${POETRY_VERSION}
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true POETRY_NO_INTERACTION=1
+ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
 WORKDIR /opt
-COPY backend/pyproject.toml backend/poetry.lock ./
-RUN --mount=type=cache,target=/root/.cache/pypoetry poetry install --only main
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 
 FROM nginx:stable-alpine AS frontend
 RUN apk add --no-cache bash

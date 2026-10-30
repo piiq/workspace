@@ -10,15 +10,11 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=2.3.2 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=1 \
     PYSETUP_PATH="/opt" \
     VENV_PATH="/opt/.venv" \
     TZ="America/New_York"
 
-ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
+ENV PATH="$VENV_PATH/bin:$PATH"
 
 RUN python -m pip install --upgrade pip setuptools
 
@@ -34,17 +30,14 @@ RUN apt-get update -y && apt-get upgrade -y \
 
 WORKDIR $PYSETUP_PATH
 
-RUN pip install --upgrade setuptools poetry
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /usr/local/bin/uv
+ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
 
-COPY backend/pyproject.toml backend/poetry.lock ./
-RUN poetry install --only main
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 
-# Install build tooling into the project venv (not the system Python), since
-# setup_compile.py runs under that venv. setuptools is not a runtime dep so
-# poetry didn't include it; Cython needs it for the Extension/setup machinery.
-RUN $VENV_PATH/bin/pip install "cython>=3.0" "setuptools>=68"
-
-RUN rm -rf $VENV_PATH/src/slowapi/poetry.lock $VENV_PATH/src/slowapi/docs/requirements.txt
+# Compile against the same Python environment used by the application.
+RUN --mount=type=cache,target=/root/.cache/uv uv pip install --python "$VENV_PATH/bin/python" "cython>=3.0" "setuptools>=68"
 
 ###############################################
 # Compile — produce .so for api / routers / utilities

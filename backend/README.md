@@ -14,8 +14,8 @@ From the repository root:
 docker compose -f docker/docker-compose-local-dev.yml up --build --watch
 
 # in a second terminal
-cd backend
-../.venv/bin/python -m scripts.init_users
+docker compose -f docker/docker-compose-local-dev.yml exec fastapi python -m scripts.init_users
+docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
 ```
 
 This runs the API and RQ worker in Docker with the local `backend/` folder mounted.
@@ -31,7 +31,7 @@ See [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) for the full workflow.
 | `utilities/` | Configuration, shared utilities |
 | `alembic/` | Database migration revisions |
 | `envs/` | Environment files (`.env`) |
-| `scripts/` | Dev-only scripts and config (excluded from Docker images) |
+| `scripts/` | Provisioning, import/export, and development scripts |
 | `tests/` | Test suite (`pytest`) |
 | `run.py` | Application entrypoint (Gunicorn + Uvicorn) |
 | `main.py` | FastAPI app factory |
@@ -42,21 +42,25 @@ See [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) for the full workflow.
 - The `User.password` column uses a `PasswordType` TypeDecorator that bcrypt-hashes
   on write. Always pass plaintext passwords — never pre-hash.
 
+For source commands and tests, run `uv sync --locked` in `backend/` and activate `.venv` with `source .venv/bin/activate`. Python 3.13 is required.
+
 ## Database Migrations
 
 ```bash
 # Apply pending migrations
-../.venv/bin/python -m alembic upgrade head
+python -m alembic upgrade head
 
 # Create a new migration after model changes
-../.venv/bin/python -m alembic revision --autogenerate -m "description"
+python -m alembic revision --autogenerate -m "description"
 ```
 
-## Testing
+## Checks
 
 ```bash
-../.venv/bin/python -m pytest
+ruff check .
+ty check
+pytest
 ```
 
-Requires a running MySQL instance (see [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md)).
+The pytest suite starts database and Redis containers through Docker. See [the test guide](tests/README.md) for setup and individual test commands.
 Coverage report is generated at `htmlcov/index.html`.

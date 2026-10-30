@@ -6,70 +6,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-class MockChargebeeCustomerResult:
-    """Mock result for Chargebee customer creation."""
-
-    def __init__(self, customer_id: str = "ch_test_123"):
-        self.customer = MagicMock()
-        self.customer.id = customer_id
-        self.customer.email = "test@openbb.co"
-
-
-class MockChargebeeSubscriptionResult:
-    """Mock result for Chargebee subscription."""
-
-    def __init__(self, subscription_id: str = "sub_test_123"):
-        self.subscription = MagicMock()
-        self.subscription.id = subscription_id
-        self.subscription.status = "active"
-        self.subscription.customer_id = "ch_test_123"
-
-
-class MockChargebeePortalResult:
-    """Mock result for Chargebee portal session."""
-
-    def __init__(self):
-        self.portal_session = MagicMock()
-        self.portal_session.id = "portal_test_123"
-        self.portal_session.access_url = "https://test.chargebee.com/portal"
-
-
-class MockChargebeeHostedPageResult:
-    """Mock result for Chargebee hosted page."""
-
-    def __init__(self):
-        self.hosted_page = MagicMock()
-        self.hosted_page.id = "hp_test_123"
-        self.hosted_page.url = "https://test.chargebee.com/hosted"
-        self.hosted_page.state = "created"
-
-
-def create_mock_chargebee():
-    """Create a comprehensive mock for the chargebee module."""
-    mock_chargebee = MagicMock()
-
-    mock_chargebee.Customer.create.return_value = MockChargebeeCustomerResult()
-    mock_chargebee.Customer.retrieve.return_value = MockChargebeeCustomerResult()
-    mock_chargebee.Customer.update.return_value = MockChargebeeCustomerResult()
-    mock_chargebee.Customer.list.return_value = MagicMock(list=[])
-
-    mock_chargebee.Subscription.create.return_value = MockChargebeeSubscriptionResult()
-    mock_chargebee.Subscription.retrieve.return_value = MockChargebeeSubscriptionResult()
-    mock_chargebee.Subscription.update.return_value = MockChargebeeSubscriptionResult()
-    mock_chargebee.Subscription.cancel.return_value = MockChargebeeSubscriptionResult()
-    mock_chargebee.Subscription.list.return_value = MagicMock(list=[])
-
-    mock_chargebee.PortalSession.create.return_value = MockChargebeePortalResult()
-
-    mock_chargebee.HostedPage.checkout_new.return_value = MockChargebeeHostedPageResult()
-    mock_chargebee.HostedPage.checkout_existing.return_value = MockChargebeeHostedPageResult()
-    mock_chargebee.HostedPage.manage_payment_sources.return_value = MockChargebeeHostedPageResult()
-
-    mock_chargebee.configure = MagicMock()
-
-    return mock_chargebee
-
-
 def create_mock_hubspot():
     """Create a comprehensive mock for hubspot module functions."""
     return {
@@ -91,13 +27,10 @@ def create_mock_hubspot():
 
 @pytest.fixture(autouse=True)
 def mock_external_services():
-    """Mock Chargebee/HubSpot integrations for each test."""
-    mock_chargebee = create_mock_chargebee()
+    """Mock HubSpot integrations for each test."""
     mock_hubspot = create_mock_hubspot()
 
     with ExitStack() as stack:
-        stack.enter_context(patch.dict("sys.modules", {"chargebee": mock_chargebee}))
-
         stack.enter_context(patch("api.hubspot.send_confirmation", mock_hubspot["send_confirmation"]))
         stack.enter_context(patch("api.hubspot.send_welcome_email", mock_hubspot["send_welcome_email"]))
         stack.enter_context(patch("api.hubspot.send_password_reset", mock_hubspot["send_password_reset"]))
@@ -118,7 +51,6 @@ def mock_external_services():
         stack.enter_context(patch("api.hubspot.send_support_received", mock_hubspot["send_support_received"]))
 
         yield {
-            "chargebee": mock_chargebee,
             "hubspot": mock_hubspot,
         }
 

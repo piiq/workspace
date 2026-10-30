@@ -12,8 +12,18 @@ For automated browser tests, follow the [browser test setup](../frontend/tests/e
 ## Prerequisites
 
 - Docker and Docker Compose
-- Python 3.13 and Poetry with a virtual environment at `.venv/` only if you want to run
-  tests or scripts directly on the host
+- Python 3.13 and uv for running tests or scripts on the host
+
+For source commands, create and activate the backend environment from the repository root:
+
+```sh
+cd backend
+uv sync --locked
+source .venv/bin/activate
+cd ..
+```
+
+`backend/uv.lock` pins runtime and development dependencies. `uv sync --locked --no-dev` installs runtime dependencies without development tools. Use `uv add` and `uv remove` in `backend/` to change dependencies. Python and pytest run directly from the activated environment.
 
 ## Environment
 

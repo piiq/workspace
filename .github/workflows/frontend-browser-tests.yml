@@ -16,6 +16,8 @@ on:
       - 'frontend/bun.lock'
       - 'frontend/tests/e2e/**'
       - 'frontend/playwright.config.ts'
+      - 'backend/pyproject.toml'
+      - 'backend/uv.lock'
       - 'frontend/src/lib/plugins/**'
       - 'frontend/src/lib/runtimeConfig.ts'
       - 'frontend/src/lib/runtimeConfigSchema.ts'
@@ -50,12 +52,19 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@main
+        with:
+          version: '0.13.6'
+          enable-cache: true
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+          activate-environment: true
+
       - name: Install backend dependencies
         working-directory: backend
         run: |
-          pip install poetry
-          poetry config virtualenvs.create false
-          poetry install --with dev
+          uv sync --locked
 
       - name: Setup Node
         uses: actions/setup-node@v4

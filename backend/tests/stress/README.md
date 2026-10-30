@@ -18,8 +18,7 @@ brings up the topology you want to test.
 ## Prerequisites
 
 - Docker + `docker compose`.
-- A Python with `aiohttp` and `websockets` for the simulator. The launcher auto-uses the backend
-  venv (`backend/venv`) if present; otherwise set `PYTHON=/path/to/python`.
+- A Python with `aiohttp` and `websockets` for the simulator. Run `uv sync --locked` in `backend/` to create `backend/.venv`, which the launcher uses automatically, or set `PYTHON=/path/to/python`. The `--down` and `--no-run` modes do not require host Python.
 - Run from a bash shell (Git Bash on Windows).
 
 ## Quick start
