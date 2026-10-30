@@ -29,7 +29,6 @@ class Template(Enum):
     NEW_DASHBOARD_SHARED = "new-dashboard-shared-with-you"
     NEW_ENTITY_CREATED = "new-entity-created"
     ODP_INVITE = "odp-invite"
-    OPENBB_LITE_INSTRUCTIONS = "openbb-lite-instructions"
 
 
 def confirm_mailchimp() -> None:
@@ -370,26 +369,3 @@ class MailChimpEmail(EmailAbstract):
     @staticmethod
     def send_new_entity(to: str, entity_name: str) -> None:
         return send_new_entity(to, entity_name)
-
-    @staticmethod
-    def send_install_email(
-        to: str,
-        first_name: str,
-        access_key_id: str,
-        secret_access_key: str,
-        expiration: str,
-        version: str,
-    ) -> bool:
-        return send_template(
-            Template.OPENBB_LITE_INSTRUCTIONS,
-            to,
-            None,
-            {
-                "first_name": first_name,
-                "access_key_id": access_key_id,
-                "secret_access_key": secret_access_key,
-                "expiration": expiration,
-                "version": version,
-            },
-            from_email="support@openbb.co",
-        )

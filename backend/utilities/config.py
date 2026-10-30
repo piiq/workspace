@@ -22,8 +22,7 @@ from botocore.client import BaseClient, Config
 from botocore.session import Session
 from fastapi.encoders import jsonable_encoder
 from pydantic import (
-    BaseModel as PydanticBaseModel,
-    ConfigDict,
+    BaseModel,
     EmailStr,
     Field,
     HttpUrl,
@@ -45,26 +44,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 _RedisCacheT = TypeVar("_RedisCacheT")
-
-
-class BaseModel(PydanticBaseModel):
-    """BaseModel subclass that ignores Cython-compiled methods.
-
-    When this module is compiled by Cython 3, plain `def method(self): ...`
-    bodies become `cyfunction` objects on the class. Pydantic's metaclass
-    scans the class namespace for unannotated attributes and treats anything
-    that isn't a recognised callable type (FunctionType, property, etc.) as
-    a malformed field. `cyfunction` is not in its default ignore list.
-
-    `type(lambda: None)` evaluates to FunctionType in plain Python and to
-    the cyfunction type when this file is compiled — adding whichever it
-    happens to be is a no-op in dev and the real fix in the lite build.
-
-    Project Pydantic models should inherit from this class instead of
-    pydantic.BaseModel directly.
-    """
-
-    model_config = ConfigDict(ignored_types=(type(lambda: None),))
 
 
 def create_path(*path: str) -> str:
@@ -842,7 +821,7 @@ class GeneralSettings(BaseModel):
 
     FRONTENDURL: str = "https://my.openbb.co"
     SELFURL: str
-    MODE: Literal["production", "local", "test", "onprem", "lite"]
+    MODE: Literal["production", "local", "test", "onprem"]
     EMAIL_PROVIDER: str = "mailchimp"  # "hubspot" or "mailchimp"
     OPENBB_FRONTEND_USER_AGENT: str = "colinlovedrust"
     OKTA_DOMAIN: str | None = None
@@ -889,15 +868,6 @@ class GeneralSettings(BaseModel):
     SUPPRESSED_API_ROUTES: list[str] | None = Field(default_factory=list)
     STORAGE_PROVIDER: Literal["aws", "azure", "gcp", "folder"] = "aws"
     ALLOWED_MCP_HOSTNAMES: list[str] = Field(default_factory=list)
-    STRIPE_WEBHOOK_SECRET: str | None = None
-    STRIPE_WEBHOOK_TOLERANCE_SECONDS: int = 300
-    # Private provisioning lambda invoked via the AWS SDK; authorized by the
-    # pod's IAM role. Set empty to skip provisioning + install email.
-    LITE_LAMBDA_FUNCTION_NAME: str = "dev-lite-onboarding"
-    # Docker tag customers pull (e.g. "0.3.1"). Bump per release; rendered into
-    # the install email so the `docker pull / run` commands stay current.
-    # This is ignored for now - I made it "latest" by default
-    OPENBB_LITE_DOCKER_TAG: str = "0.0.3"
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
@@ -924,13 +894,10 @@ class GeneralSettings(BaseModel):
         return self.MODE == "test"
 
     def is_prod(self) -> bool:
-        return self.MODE in {"production", "onprem", "lite"}
+        return self.MODE in {"production", "onprem"}
 
     def is_onprem(self) -> bool:
         return self.MODE == "onprem"
-
-    def is_lite(self) -> bool:
-        return self.MODE == "lite"
 
     def set_is_worker(self, is_worker: bool) -> None:
         self.IS_WORKER_CONTAINER = is_worker

@@ -62,19 +62,3 @@ class EmailAbstract:
     @staticmethod
     def send_new_entity(to: str, entity_name: str) -> None:
         raise NotImplementedError
-
-    @staticmethod
-    def send_install_email(
-        to: str,
-        first_name: str,
-        access_key_id: str,
-        secret_access_key: str,
-        expiration: str,
-        version: str,
-    ) -> None:
-        """Deliver the Lite install instructions email.
-
-        Renders the `openbb-lite-instructions` template with merge vars for
-        the AWS credentials, name, expiration date, and Docker tag.
-        """
-        raise NotImplementedError

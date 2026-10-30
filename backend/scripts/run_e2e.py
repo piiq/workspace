@@ -81,7 +81,6 @@ def main() -> None:
             "LOCAL_STORAGE_SECRET_KEY": "workspace-local-browser-tests-secret",
             "DISABLE_REGISTRATION": "false",
             "OPENBB_AUTH_TOKEN": jwt.encode({"sub": "openbb"}, "workspace-local-browser-tests-secret", algorithm="HS256"),
-            "LITE_LAMBDA_FUNCTION_NAME": "",
             "SUPPRESSED_API_ROUTERS": "[]",
             "SUPPRESSED_API_ROUTES": "[]",
         }

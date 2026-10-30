@@ -53,14 +53,6 @@ from routers.pro import (
     workspace_mcp,
 )
 from routers.pro.workspace_mcp.asgi import create_workspace_mcp_asgi_app
-
-# Optional Lite Checkout module. Delete routers/stripe_lite.py for builds that
-# should not ship the Stripe webhook (e.g. on-prem customer deploys); the
-# server starts normally without it.
-try:
-    from routers import stripe_lite  # type: ignore[attr-defined]
-except ImportError:
-    stripe_lite = None
 from utilities import config
 from utilities.feedback_providers import get_feedback_provider
 from utilities.runtime_metrics import start_runtime_metrics
@@ -136,10 +128,6 @@ routers = [
     run_tasks.router,
     testing.router,
 ]
-if stripe_lite is not None and not config.settings.is_onprem():
-    # gate for making sure onprem doesnt get it - even with a misconfigure
-    logger.info("Stripe Lite router is enabled", exclude=True)
-    routers.append(stripe_lite.router)
 
 
 @app.exception_handler(Exception)

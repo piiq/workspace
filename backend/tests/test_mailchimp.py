@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from api.base import create_html
 from api.email.mailchimp import (
-    MailChimpEmail,
     Template,
     send_account_takeover,
     send_create_account,
@@ -418,21 +417,6 @@ class TestSendWrappers:
         assert mock_send.call_args[0][0] == Template.NEW_ENTITY_CREATED
         data = mock_send.call_args[0][3]
         assert "'Acme Corp'" in data["entity_name"]
-
-    @patch("api.email.mailchimp.send_template")
-    def test_send_install_email_from_support(self, mock_send):
-        mock_send.return_value = True
-        result = MailChimpEmail.send_install_email(
-            to="user@test.com",
-            first_name="Ada",
-            access_key_id="AKIA123",
-            secret_access_key="secret",
-            expiration="2027-07-21",
-            version="1.2.3",
-        )
-        assert result is True
-        assert mock_send.call_args[0][0] == Template.OPENBB_LITE_INSTRUCTIONS
-        assert mock_send.call_args.kwargs["from_email"] == "support@openbb.co"
 
     @patch("api.email.mailchimp.send_template")
     def test_send_invite_emails_sends_to_all(self, mock_send):
