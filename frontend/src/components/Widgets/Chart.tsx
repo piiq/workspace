@@ -146,7 +146,6 @@ export default function Chart() {
               filename: title.replace(/-/g, "").replace(/ /g, "_"),
               width: plotDiv.clientWidth || plotDiv.layout.width || 800,
               height: plotDiv.clientHeight || plotDiv.layout.height || 600,
-              // @ts-expect-error
               scale: 2, // Higher scale for better quality
             });
           });

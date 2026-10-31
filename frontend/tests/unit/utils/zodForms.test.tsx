@@ -63,6 +63,7 @@ describe("plugin widget definitions", () => {
   it("uses the structural renderer schema in Widget Builder", () => {
     const { $schema, ...rendererSchema } = z.toJSONSchema(widgetTypesSchema, {
       target: "draft-7",
+      metadata: z.registry(),
     });
     expect(builderSchema.additionalProperties.properties.type.anyOf).toEqual(
       rendererSchema.anyOf,

@@ -19,8 +19,12 @@ const PlotLazy = lazy(async () => {
 
 export const Plot = forwardRef<Plotly.PlotlyHTMLElement, PlotParams>((props, ref) => (
   <Suspense fallback={null}>
-    {/* @ts-expect-error */}
-    <PlotLazy {...props} ref={ref} />
+    <PlotLazy
+      {...props}
+      config={{ showSendToCloud: false, ...props.config }}
+      // @ts-expect-error Plotly augments the div with chart methods at runtime.
+      ref={ref}
+    />
   </Suspense>
 ));
 
@@ -118,7 +122,6 @@ function PlotlyChart({
           color: darkmode ? "#fff" : "#000",
         };
 
-        // @ts-expect-error
         newPlotData.layout.template = darkmode
           ? DARK_CHARTS_TEMPLATE
           : LIGHT_CHARTS_TEMPLATE;
