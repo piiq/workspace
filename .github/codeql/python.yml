@@ -1,0 +1,4 @@
+name: Python security queries
+
+packs:
+  - codeql/python-queries:AlertSuppression.ql
