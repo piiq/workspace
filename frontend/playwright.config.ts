@@ -54,7 +54,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {
-        VITE_PAYMENTS_URL: apiURL,
+        VITE_BACKEND_URL: apiURL,
         VITE_AUTHENTICATION_ALLOW_EMAIL_LOGIN: "true",
         VITE_AUTHENTICATION_ALLOW_REGISTRATION: "false",
         VITE_AUTHENTICATION_ALLOW_FORGOT_PASSWORD: "false",

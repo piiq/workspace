@@ -23,7 +23,7 @@ import {
   setupMSW,
 } from "../../mocks/msw-utils";
 
-const BASE_URL = "https://backend.openbb.dev";
+const BASE_URL = "http://localhost:8000";
 
 // Create a test axios client (similar to apiClient but without store dependencies)
 const testClient = axios.create({

@@ -67,12 +67,6 @@ VALID_PATHS = [
     "/pro/check-update",
 ]
 
-LOCALHOST_ORIGINS = [
-    "http://localhost:1420",
-    "https://localhost:1420",
-    "http://localhost",
-]
-
 # Public, unauthenticated, read-only endpoints that anyone may call from any
 # origin (including localhost). The global CORSMiddleware only permits the
 # BACKEND_CORS_ORIGINS allowlist, so these paths are handled separately by

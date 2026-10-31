@@ -18,7 +18,7 @@ export const MIN_SCREENSHOTS = 2;
 
 /**
  * Fixed set of marketplace categories an app can be listed under. Mirrors the
- * categories on the public marketplace (payments.openbb.dev/marketplace/apps).
+ * categories on the configured marketplace backend (/marketplace/apps).
  */
 export const APP_CATEGORIES = [
   "Sentiment",

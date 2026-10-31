@@ -648,7 +648,7 @@ export const IFRAME_SRCDOC_SANDBOX_ATTRIBUTES =
 
 // For src= iframes (Iframe.tsx) — external URL origin, NOT parent origin.
 // allow-same-origin lets external site use its own cookies/storage.
-// SAFE: different origin cannot access pro.openbb.co localStorage.
+// A different origin cannot access Workspace localStorage.
 export const IFRAME_SANDBOX_ATTRIBUTES = `${IFRAME_SRCDOC_SANDBOX_ATTRIBUTES} allow-same-origin`;
 
 // Widget Metadata Constants

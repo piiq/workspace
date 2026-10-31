@@ -2,7 +2,7 @@
 
 Internal guide for publishing and managing marketplace apps.
 
-All `/admin/marketplace/*` endpoints require a **superuser** session token.
+All `/admin/marketplace/*` endpoints require a superuser session token.
 
 ## Getting Your Token
 
@@ -14,12 +14,12 @@ All `/admin/marketplace/*` endpoints require a **superuser** session token.
 
 ## Publishing a Developer's App
 
-The most common flow. A developer has submitted an app — it's in `development` status.
+A developer's submitted app has `development` status. Review and publish it with these steps.
 
 ### 1. List apps waiting for review
 
 ```bash
-curl "https://payments.openbb.dev/admin/marketplace/apps?status=development" \
+curl "http://localhost:8080/api/admin/marketplace/apps?status=development" \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -49,30 +49,30 @@ Find the version the developer asked you to publish and use its `id` in the next
 Re-run verification to make sure manifests are reachable and valid:
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/verify \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/verify \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
-Check the response — `verification.status` should be `"ok"`. If there are errors, tell the developer to fix them.
+Check the response: `verification.status` should be `"ok"`. If there are errors, tell the developer to fix them.
 
 ### 3. Publish
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/publish \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/publish \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
 The app must be in `verified` or `development` status.
 
-**If another version of the same app is already published, it gets auto-disabled.** Only one version is live at a time.
+If another version of the same app is already published, it gets auto-disabled. Only one version is live at a time.
 
 ### 4. Confirm it's live
 
 ```bash
-curl https://payments.openbb.dev/marketplace/apps
+curl http://localhost:8080/api/marketplace/apps
 ```
 
-The app should now appear in the public list.
+Confirm the app appears in the public list.
 
 ---
 
@@ -82,11 +82,11 @@ If a published version has issues, roll back to the previous one:
 
 ```bash
 # Find the old version (it'll be in "disabled" status)
-curl "https://payments.openbb.dev/admin/marketplace/apps?status=disabled" \
+curl "http://localhost:8080/api/admin/marketplace/apps?status=disabled" \
   -H "Authorization: Bearer <TOKEN>"
 
 # Re-enable it (auto-disables the current published version)
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<OLD_APP_ID>/enable \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<OLD_APP_ID>/enable \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -99,7 +99,7 @@ If the developer hasn't used the self-serve flow, you can create the vendor + ap
 ### Create vendor + app
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -132,36 +132,36 @@ curl -X POST https://payments.openbb.dev/admin/marketplace/apps \
 
 | Field | Notes |
 |---|---|
-| `vendor_name` | Upserts — reuses existing vendor if name matches |
+| `vendor_name` | Reuses an existing vendor with the same name |
 | `version` | Free-form string. Defaults to `"1"` |
-| `app_name` | Display name shown to users. **Overrides `name` in the vendor's `apps.json`.** |
-| `short_description` | Marketplace tile copy. **Overrides `description` in the vendor's `apps.json`.** |
+| `app_name` | Display name shown to users. Overrides `name` in the vendor's `apps.json`. |
+| `short_description` | Marketplace tile copy. Overrides `description` in the vendor's `apps.json`. |
 | `category` | Optional category shown above the app name in the marketplace. |
 | `tagline` | Optional one-liner shown in the marketplace under the app name. |
-| `thumbnail_url` | Default app thumbnail. URL or base64. **Overrides `img` in the vendor's `apps.json`.** |
+| `thumbnail_url` | Default app thumbnail. URL or base64. Overrides `img` in the vendor's `apps.json`. |
 | `thumbnail_url_dark` | Optional dark-mode thumbnail. URL or base64. Overrides `img_dark`. Falls back to `thumbnail_url` if unset. |
 | `thumbnail_url_light` | Optional light-mode thumbnail. URL or base64. Overrides `img_light`. Falls back to `thumbnail_url` if unset. |
-| `media` | URLs shown in the app detail carousel (`MediaCarousel` frontend component). Each URL is classified independently: `youtube.com` / `youtu.be` → `<iframe>` embed, `.mp4`/`.webm`/`.mov`/`.m4v` → `<video>` with native controls, everything else → `<img>`. Accepted under the legacy name `screenshots` as well. See [Media carousel](#media-carousel) below. |
+| `media` | URLs shown in the app detail carousel (`MediaCarousel` frontend component). Each URL is classified independently: `youtube.com` / `youtu.be`: `<iframe>` embed, `.mp4`/`.webm`/`.mov`/`.m4v`: `<video>` with native controls, everything else: `<img>`. Accepted under the legacy name `screenshots` as well. See [Media carousel](#media-carousel) below. |
 | `api_key_url` | Endpoint we POST user-entered API keys to for verification. If unset, we fall back to calling the first widget in `widgets.json`. See [API Key Verification](#api-key-verification) below. |
 | `backend_base_url` | Auto-derives `widgets.json` and `apps.json` URLs |
 | `is_built_in` | `true` for first-party apps (skips URL verification) |
-| `auth_type` | Array of `"none"`, `"api_key"`, or `"custom"`. Allowed combinations: `["none"]`, `["api_key"]`, `["custom"]`, `["none", "api_key"]`, `["none", "custom"]`. **`["api_key", "custom"]` is rejected.** |
+| `auth_type` | Array of `"none"`, `"api_key"`, or `"custom"`. Allowed combinations: `["none"]`, `["api_key"]`, `["custom"]`, `["none", "api_key"]`, `["none", "custom"]`. `["api_key", "custom"]` is rejected. |
 | `auth_fields` | Required when `auth_type` includes `"custom"`. Vendor-defined header fields rendered in the connect modal. See [Custom Auth Fields](#custom-auth-fields) below. |
 | `api_key_info_url` | Optional URL to the vendor's docs on how to obtain an API key. Surfaced next to the "Add API Key" modal so users can click straight through to signup / key-generation instructions. Complements `api_key_url` (which we POST keys to for verification). |
 | `vendor_thumbnail_url` | Optional vendor-level logo (URL or base64), stored on the vendor record. Use this when we want to show the vendor brand independently of the per-app `thumbnail_url` (shared across all apps from the same vendor). |
-| `owner_email` | Optional — assign ownership to a developer by email |
+| `owner_email` | Optional. Assign ownership to a developer by email |
 
 The response also includes `created_date` and `updated_date` (auto-populated, not settable). `created_date` is when the app was first submitted; `updated_date` is when any field was last modified or re-verification ran.
 
 ### Override semantics
 
-The `app_name`, `short_description`, `category`, `thumbnail_url`, `thumbnail_url_dark`, and `thumbnail_url_light` fields are **admin-controlled overrides**. Whatever value we set here is what users see in the marketplace and inside the Workspace — even if the vendor ships different values in their `apps.json`.
+The `app_name`, `short_description`, `category`, `thumbnail_url`, `thumbnail_url_dark`, and `thumbnail_url_light` fields are admin-controlled overrides. These values appear in the marketplace and Workspace, overriding the corresponding values in the vendor's `apps.json`.
 
-This is intentional: it means we can approve a specific listing look (name, copy, logo) and it stays locked in, independent of what the vendor pushes to their manifest. The rest of `apps.json` (tabs, widgets, prompts, groups) continues to flow through from the manifest as-is.
+The approved name, copy, and logo stay fixed when the vendor changes their manifest. The rest of `apps.json` (tabs, widgets, prompts, groups) continues to flow through from the manifest as-is.
 
 ### Media carousel
 
-The `media` array feeds the Workspace's `MediaCarousel` component on the app detail page. Each URL is classified independently at render time — there's no type metadata, and the backend doesn't validate or fetch the URLs:
+The `media` array feeds the Workspace's `MediaCarousel` component on the app detail page. The frontend classifies each URL at render time without type metadata. The backend stores URLs without fetching or validating them:
 
 | URL pattern | Renders as | Example |
 |---|---|---|
@@ -171,20 +171,20 @@ The `media` array feeds the Workspace's `MediaCarousel` component on the app det
 
 Developers can mix types freely. Things to check when reviewing:
 
-- **Broken or private URLs**: the backend does not HEAD-check `media` items, so a 404 or CORS-blocked asset will only be visible when you open the app in the Workspace. If you're approving an app, click through to the detail page and confirm every carousel item actually loads.
-- **Self-hosted videos**: must be a direct `.mp4`/`.webm`/`.mov`/`.m4v` file URL. A page URL that returns HTML (e.g. a Vimeo watch page) will be mis-classified as an image and render as a broken placeholder.
-- **CORS on videos**: self-hosted video files must be served with `Access-Control-Allow-Origin` headers the Workspace origin can use, otherwise playback silently fails.
-- **YouTube share links**: both `youtube.com/watch?v=...` and `youtu.be/...` are accepted. The carousel converts them to the embed form internally — developers don't need to pre-format.
-- **Legacy alias**: the same field is also accepted under the old name `screenshots` on request bodies and still emitted under that key on response bodies for backward compatibility. Prefer `media` in any new PATCH.
+- Broken or private URLs: the backend does not HEAD-check `media` items, so a 404 or CORS-blocked asset will only be visible when you open the app in the Workspace. If you're approving an app, click through to the detail page and confirm every carousel item actually loads.
+- Self-hosted videos: must be a direct `.mp4`/`.webm`/`.mov`/`.m4v` file URL. A page URL that returns HTML (e.g. a Vimeo watch page) will be mis-classified as an image and render as a broken placeholder.
+- CORS on videos: self-hosted video files must be served with `Access-Control-Allow-Origin` headers the Workspace origin can use, otherwise playback silently fails.
+- YouTube share links: both `youtube.com/watch?v=...` and `youtu.be/...` are accepted. The carousel converts them to the embed form internally.
+- Legacy alias: the same field is also accepted under the old name `screenshots` on request bodies and still emitted under that key on response bodies for backward compatibility. Prefer `media` in any new PATCH.
 
 ### API Key Verification
 
 When a user adds an app that requires a key, we need to verify the key before saving it. There are two modes, picked per-app:
 
-- **`api_key_url` is set** — we POST the user-provided key to that URL and expect a success/error response. The vendor fully controls the verification flow and can return a custom error message that's shown directly in the "Add API Key" modal.
-- **`api_key_url` is not set** — we verify by calling the first widget in the vendor's `widgets.json` with the key. Whatever error message that widget returns on an invalid key is what the user sees in the modal.
+- `api_key_url` is set: we POST the user-provided key to that URL and expect a success/error response. The vendor fully controls the verification flow and can return a custom error message that's shown directly in the "Add API Key" modal.
+- `api_key_url` is not set: we verify by calling the first widget in the vendor's `widgets.json` with the key. Whatever error message that widget returns on an invalid key is what the user sees in the modal.
 
-When reviewing a new app, confirm with the developer which mode they intended. If they're relying on the widget fallback, sanity-check that the first widget returns a clear, user-facing error string on auth failure — not a stack trace or generic 401.
+When reviewing a new app, confirm with the developer which mode they intended. If they're relying on the widget fallback, check that the first widget returns an error message explaining the authentication failure to the user. Stack traces and generic 401 responses do not explain how to correct the key.
 
 ### Custom Auth Fields
 
@@ -211,19 +211,19 @@ Use `auth_type: ["custom"]` (or `["none", "custom"]` for optional auth) when the
 
 Each item:
 
-- `id` — stable form key. Must be unique across the array.
-- `label` — user-facing field label shown in the modal.
-- `key` — HTTP header name sent on backend requests. Must be unique across the array.
-- `prefix` — optional string prepended to the user-entered value (e.g. `"Bearer "`).
+- `id`: stable form key. Must be unique across the array.
+- `label`: user-facing field label shown in the modal.
+- `key`: HTTP header name sent on backend requests. Must be unique across the array.
+- `prefix`: optional string prepended to the user-entered value (e.g. `"Bearer "`).
 
 Rules to enforce when reviewing:
 
-- All fields are required at connect time — there's no per-field optional flag yet.
-- Field order is preserved and reflected in the modal — confirm with the developer that the order makes sense.
+- All fields are required at connect time. The schema has no per-field optional flag.
+- The modal preserves field order. Confirm the order with the developer.
 - `["api_key", "custom"]` is invalid; pick one. If the vendor needs anonymous + custom, use `["none", "custom"]`.
-- Don't use `["none", "custom"]` with a single field that just maps to `Authorization: Bearer ...` — that's exactly what `["api_key"]` (or `["none", "api_key"]`) is for. `custom` is for the cases the default flow can't express.
+- For a single `Authorization: Bearer ...` field, use `["api_key"]` or `["none", "api_key"]`. `custom` is for the cases the default flow can't express.
 
-**Response:**
+Response:
 
 ```json
 {
@@ -238,7 +238,7 @@ Rules to enforce when reviewing:
 Save the `app_id`. Then publish:
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/publish \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/publish \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -247,7 +247,7 @@ curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/publish
 If the vendor already exists, use their `vendor_id`:
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/vendors/<VENDOR_ID>/apps \
+curl -X POST http://localhost:8080/api/admin/marketplace/vendors/<VENDOR_ID>/apps \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -264,7 +264,7 @@ curl -X POST https://payments.openbb.dev/admin/marketplace/vendors/<VENDOR_ID>/a
 So a developer can manage the app via the self-serve endpoints:
 
 ```bash
-curl -X PATCH https://payments.openbb.dev/admin/marketplace/apps/<APP_ID> \
+curl -X PATCH http://localhost:8080/api/admin/marketplace/apps/<APP_ID> \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"owner_email": "developer@acmedata.com"}'
@@ -278,11 +278,11 @@ curl -X PATCH https://payments.openbb.dev/admin/marketplace/apps/<APP_ID> \
 
 ```bash
 # All apps
-curl https://payments.openbb.dev/admin/marketplace/apps \
+curl http://localhost:8080/api/admin/marketplace/apps \
   -H "Authorization: Bearer <TOKEN>"
 
 # Filter by status
-curl "https://payments.openbb.dev/admin/marketplace/apps?status=published" \
+curl "http://localhost:8080/api/admin/marketplace/apps?status=published" \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -291,27 +291,27 @@ curl "https://payments.openbb.dev/admin/marketplace/apps?status=published" \
 All fields are optional. If `backend_base_url`, `apps_json_url`, or `widgets_json_url` change, re-verification runs automatically.
 
 ```bash
-curl -X PATCH https://payments.openbb.dev/admin/marketplace/apps/<APP_ID> \
+curl -X PATCH http://localhost:8080/api/admin/marketplace/apps/<APP_ID> \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"short_description": "Updated description"}'
 ```
 
-**Updatable fields:** `app_name`, `short_description`, `category`, `tagline`,  `thumbnail_url`, `thumbnail_url_dark`, `thumbnail_url_light`, `media`, `api_key_url`, `api_key_info_url`, `more_information_url`, `backend_base_url`, `apps_json_url`, `widgets_json_url`, `is_built_in`, `auth_type`, `auth_fields`, `vendor_name`, `vendor_description`, `vendor_website_url`, `vendor_thumbnail_url`, `documentation_url`, `contact_email`, `owner_email`
+Updatable fields: `app_name`, `short_description`, `category`, `tagline`,  `thumbnail_url`, `thumbnail_url_dark`, `thumbnail_url_light`, `media`, `api_key_url`, `api_key_info_url`, `more_information_url`, `backend_base_url`, `apps_json_url`, `widgets_json_url`, `is_built_in`, `auth_type`, `auth_fields`, `vendor_name`, `vendor_description`, `vendor_website_url`, `vendor_thumbnail_url`, `documentation_url`, `contact_email`, `owner_email`
 
-> Switching `auth_type` away from `custom` (e.g. `["custom"]` → `["api_key"]`) clears any stored `auth_fields` automatically. Switching *to* `custom` requires `auth_fields` in the same PATCH.
+> Switching `auth_type` away from `custom` (e.g. `["custom"]` to `["api_key"]`) clears any stored `auth_fields` automatically. Switching *to* `custom` requires `auth_fields` in the same PATCH.
 
 ### Disable (temporarily hide)
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/disable \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/disable \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
 ### Re-enable
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/enable \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/enable \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -320,7 +320,7 @@ curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/enable 
 Works from any status:
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/remove \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/remove \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -329,7 +329,7 @@ curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/remove 
 Refresh manifest cache and re-check URLs:
 
 ```bash
-curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/verify \
+curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/verify \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
@@ -338,7 +338,7 @@ curl -X POST https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/verify 
 ## Subscription Stats
 
 ```bash
-curl https://payments.openbb.dev/admin/marketplace/apps/<APP_ID>/subscriptions \
+curl http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/subscriptions \
   -H "Authorization: Bearer <TOKEN>"
 ```
 

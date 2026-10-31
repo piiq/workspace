@@ -1,15 +1,15 @@
 # OpenBB Hub Admin CLI & Python Client
 
-A single-file Python tool for managing OpenBB Hub entities and users. Zero dependencies (Python 3.8+ stdlib only).
+A single-file Python tool for managing OpenBB Hub entities and users. It requires Python 3.8 or later and uses the standard library.
 
-**Two ways to use:**
+Two ways to use:
 
-1. **CLI** - Command-line interface for shell scripts and manual operations
-2. **Python Client** - `HubAPIClient` class for programmatic access
+1. CLI - Command-line interface for shell scripts and manual operations
+2. Python Client - `HubAPIClient` class for programmatic access
 
 ## Quick Start
 
-**Note:** On Windows, replace `./openbb-admin` with `py openbb-admin` or `python openbb-admin` in all commands below.
+Note: On Windows, replace `./openbb-admin` with `py openbb-admin` or `python openbb-admin` in all commands below.
 
 ```bash
 # Authenticate
@@ -25,7 +25,7 @@ Auth credentials (token) persisted in `~/.openbb-hub/config.json` (automatically
 
 Set `OPENBB_CONFIG_FILE` to use a separate configuration file. Browser tests keep this file inside the checkout's ignored test directory.
 
-**Config file structure:**
+Config file structure:
 
 ```json
 {
@@ -34,12 +34,12 @@ Set `OPENBB_CONFIG_FILE` to use a separate configuration file. Browser tests kee
 }
 ```
 
-**Available fields:**
+Available fields:
 
 - `base_url` - API endpoint URL
 - `access_token` - Authentication token (set automatically by `auth login`)
 
-**Manual configuration:**
+Manual configuration:
 
 You can manually edit the config file or set environment variables:
 
@@ -59,7 +59,7 @@ EOF
 ./openbb-admin auth login
 ```
 
-**Note:** The config file value takes precedence over variable `OPENBB_BASE_URL`.
+Note: The config file value takes precedence over variable `OPENBB_BASE_URL`.
 
 ## Documentation
 
@@ -108,7 +108,7 @@ Create a config file `new-entity.json`:
 }
 ```
 
-**Available Entity Fields:**
+Available Entity Fields:
 
 - `name` (string, required) - Entity name
 - `entity_type_uuid` (UUID, required) - Entity type identifier
@@ -135,7 +135,7 @@ Organization roles control administration and sharing. Backend settings `COPILOT
 
 ### 3. Update an Entity
 
-**Simple update (inline JSON):**
+Simple update (inline JSON):
 
 ```bash
 # Set assets under management
@@ -145,7 +145,7 @@ Organization roles control administration and sharing. Backend settings `COPILOT
 ./openbb-admin entity update <entity-uuid> --data '{"country": "USA", "aum": 15000000}'
 ```
 
-**Update from file:**
+Update from file:
 
 Create `update-entity.json`:
 
@@ -160,7 +160,7 @@ Create `update-entity.json`:
 ./openbb-admin entity update <entity-uuid> --config update-entity.json
 ```
 
-**Available Update Fields** (all optional, only include what you want to change):
+Available Update Fields (all optional, only include what you want to change):
 
 - `name` - Entity name
 - `entity_code` - Entity type UUID
@@ -202,7 +202,7 @@ Create `update-entity.json`:
   --role admin
 ```
 
-**User Creation Fields:**
+User Creation Fields:
 
 - `entity_uuid` (UUID, required) - Target entity
 - `--email` (email, required) - User email
@@ -218,7 +218,7 @@ The command returns a temporary password for the new user.
 ./openbb-admin user delete analyst@acme.com
 ```
 
-**Note:** Regular admins can only delete users within their own entity. Superadmins can delete users from any entity.
+Note: Regular admins can only delete users within their own entity. Superadmins can delete users from any entity.
 
 ### 7. Move User Between Entities
 
@@ -255,18 +255,14 @@ Exports include current chat history. Re-export older account archives before im
 ./openbb-admin user export analyst@acme.com --out ./exports
 ```
 
-**Superuser only.** Unlike the rest of the `user` commands, this is not
-available to entity admins — it is gated on `is_superuser`, and a non-superuser
-token gets a `401`. A full export contains the account's backend and copilot
-credentials in the clear, so the bar is deliberately higher than for commands
-whose effects are recoverable.
+Export requires `is_superuser` because the archive contains the account's backend and copilot credentials in plaintext. Entity admins and other non-superusers receive `401`.
 
 Options:
 
 | Flag | Effect |
 | --- | --- |
 | `--out` | Directory or file path for the archive (default: current directory) |
-| `--with-files` | Download the account's uploaded files. **Slow** — see below. |
+| `--with-files` | Download the account's uploaded files. See the timing example below. |
 | `--include-history` | Include dashboard version history. Much larger archive. |
 | `--json` | Print `{"path": ..., "bytes": ...}` instead of the human summary |
 
@@ -287,9 +283,7 @@ python -m scripts.export_user_data --email user@example.com --with-files --out .
 
 #### Running it against a specific environment
 
-The CLI reads its token from `~/.openbb-hub/config.json`. Either log in, or drop
-an existing bearer token straight in — there is no `--token` flag and no
-environment variable for it.
+The CLI reads its token from `~/.openbb-hub/config.json`. Log in or save an existing bearer token in that file. The CLI accepts tokens through this file, with no `--token` flag or token environment variable.
 
 ```bash
 # Option A: log in as your superuser account
@@ -321,19 +315,15 @@ The same text ships inside every archive as `SCOPE.txt`.
 
 #### Handling the archive
 
-The zip contains **unencrypted credentials** — the auth headers for the user's
-custom backends and copilots. They cannot be encrypted, because the destination
-instance uses a different key. Treat the file as a secret and delete it once the
-user has it.
+The zip contains plaintext auth headers for the user's custom backends and copilots because the destination instance uses a different encryption key. Treat the file as a secret and delete it once the user has it.
 
 The archive also contains a `files/` folder with everything the user uploaded.
-Those files are **not** imported into Workspace; they are there so the user
+Those files are not imported into Workspace; they are there so the user
 keeps their own copy.
 
 #### Importing into Workspace
 
-The import runs inside the user's own Workspace container, so it needs no token — it
-is a local command on a machine they already control.
+The import runs as a local command inside the user's Workspace container and requires no session token.
 
 ```bash
 docker run -d --name openbb -p 8080:80 \
@@ -345,12 +335,11 @@ docker exec openbb openbb-import /import/openbb-export-<email>-<stamp>.zip
 docker exec openbb credentials   # admin login, then set the user's password
 ```
 
-The imported account has **no usable password** — none is exported. The Workspace
-admin sets one after importing.
+The archive excludes passwords. The Workspace admin must set a password for the imported account.
 
 ## Bulk Provisioning
 
-**Create Entity + Users in one operation:**
+Create Entity + Users in one operation:
 
 Generate template:
 
@@ -431,7 +420,7 @@ Data backends are API sources connected by default to an entity. Users in the en
 ./openbb-admin data-backend delete <entity-uuid> --name "my-backend"
 ```
 
-**Header format:** `key:value` or `key:value:location` where location is `headers` (default) or `query`.
+Header format: `key:value` or `key:value:location` where location is `headers` (default) or `query`.
 
 To restrict members to administrator-configured backends:
 
@@ -707,12 +696,12 @@ except APIError as e:
 | Find user by email | `user list --email X` | `user_get_by_email(email)` |
 | Add data backend | `data-backend add <uuid> --name X --url Y` | `data_backend_add(uuid, name, url)` |
 
-**Key benefits of the Python client:**
+Python client behavior:
 
-- No need to look up permission UUIDs - just use role names (`"admin"` or `"user"`)
-- `entity_update()` does smart partial updates (fetches current state, merges changes)
+- Use role names in place of permission UUIDs: (`"admin"` or `"user"`)
+- `entity_update()` fetches the current state and merges partial updates
 - `provision_full()` creates entity + all users in a single call
-- Proper error handling with `APIError` exceptions
+- API failures raise `APIError` exceptions
 
 ## Testing
 

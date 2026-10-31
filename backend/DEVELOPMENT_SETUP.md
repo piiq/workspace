@@ -140,35 +140,33 @@ docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
 
 ## Troubleshooting
 
-- **Migration hangs / "Another migration in progress":**
+- Migration hangs / "Another migration in progress":
   A previous migration failed and left a Redis lock. Clear it:
   `docker exec redis redis-cli flushall`
 
-- **Port 8000 already in use:**
+- Port 8000 already in use:
   Stop the existing stack or free the port before starting compose.
 
-- **Login returns 401 "Incorrect username or password":**
+- Login returns 401 "Incorrect username or password":
   Check that the account belongs to the expected organization and rerun `scripts.init_users` with its configured administrator credentials.
 
-- **Login returns 403 "User is not confirmed":**
+- Login returns 403 "User is not confirmed":
   The admin user was created without `confirmed=1`. This is fixed in the current
   `init_users.py`. Do a full reset.
 
-- **API or worker is not picking up code changes:**
+- API or worker is not picking up code changes:
   Confirm the bind mount is active and that you started Compose with `--watch`.
   If Compose watch is unavailable, restart `rq_worker` manually after worker-code
   changes.
 
-- **rq_worker can't connect to MySQL/Redis:**
+- rq_worker can't connect to MySQL/Redis:
   The worker runs inside Docker and must use container names (`mysql`, `redis`), not
   `localhost`. The compose file handles this via `environment:` overrides. If you see
   connection errors, verify the overrides are present in `docker/docker-compose-local-dev.yml`.
 
 ## Architecture Notes
 
-- The password column (`User.password`) uses a `PasswordType` SQLAlchemy TypeDecorator
-  that automatically bcrypt-hashes values on write. Code that inserts or updates
-  passwords must pass the **plaintext** password — never pre-hash it.
+- The password column (`User.password`) uses a `PasswordType` SQLAlchemy TypeDecorator that bcrypt-hashes values on write. Pass plaintext passwords when inserting or updating them to avoid hashing them twice.
 
 - The `OPENBB_AUTH_TOKEN` in `.env` is the service-to-service auth token. When
   `DISABLE_CORS=1`, the `/pro/*` endpoints auto-authenticate using this token,

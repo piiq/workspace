@@ -1,5 +1,7 @@
 # Workspace plugins
 
+For deployment commands, see [plugin installation](../docker/README.md#plugin-installation). This guide describes the SDK, plugin builds, and loading interfaces.
+
 `packages/plugin-sdk/` provides `@piiq/workspace-plugin-sdk`. The frontend consumes it as a local Bun dependency. Run `bun install --frozen-lockfile` in `frontend/` before typechecking or testing. Unit tests also require the SDK runtime and example dependencies described under [Building a plugin](#building-a-plugin). Plugin projects consume the SDK package without importing Workspace source files or stores.
 
 ## Registration
