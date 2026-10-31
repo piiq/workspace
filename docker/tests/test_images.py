@@ -59,6 +59,7 @@ def test_images(layout: str) -> None:
         project = f"workspace-images-{layout}-{uuid4().hex[:8]}"
         config = temporary / "config"
         config.mkdir()
+        # codeql[py/clear-text-storage-sensitive-data] Credentials belong to this temporary test deployment.
         (config / "account.toml").write_text(f"""[entity]
 name = "Image Checks"
 aum = 1000
@@ -108,6 +109,7 @@ password = "{ADMIN_PASSWORD}"
         }
         environment["WRITE_DB_PASSWORD"] = environment["READ_DB_PASSWORD"]
         (temporary / "backend.env").write_text(
+            # codeql[py/clear-text-storage-sensitive-data] These generated secrets belong to the temporary test services.
             "".join(f"{key}={value}\n" for key, value in environment.items())
         )
         combined = layout == "combined"
@@ -135,6 +137,7 @@ password = "{ADMIN_PASSWORD}"
                 "MCP_DEFAULT_SERVER_ENABLED": "false"
             }
         override = temporary / "override.json"
+        # codeql[py/clear-text-storage-sensitive-data] The administrator credentials are scoped to this temporary container.
         override.write_text(json.dumps({"services": services}))
         compose_file = (
             "docker-compose.workspace.yml" if combined else "docker-compose.yml"

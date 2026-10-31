@@ -1,0 +1,80 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test CodeQL result filtering
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@main
+        with:
+          version: '0.13.6'
+          enable-cache: true
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+          activate-environment: true
+      - run: uv sync --project backend --locked --only-group dev
+      - run: pytest .github/tests/test_filter_codeql_sarif.py -q
+
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            suppression-pack: ''
+          - language: javascript-typescript
+            suppression-pack: codeql/javascript-queries:AlertSuppression.ql
+          - language: python
+            suppression-pack: codeql/python-queries:AlertSuppression.ql
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          packs: ${{ matrix.suppression-pack }}
+      - name: Analyze source
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+          upload: failure-only
+          output: codeql-results
+      - name: Apply inline suppressions
+        run: python .github/scripts/filter_codeql_sarif.py codeql-results/*.sarif
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: codeql-results
+          category: /language:${{ matrix.language }}
