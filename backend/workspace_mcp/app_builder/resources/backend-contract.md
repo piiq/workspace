@@ -12,7 +12,7 @@ related:
 
 # Backend Contract
 
-An OpenBB Workspace backend is an **HTTP service** that returns JSON. Workspace fetches metadata and data from your backend over HTTP; it does not import your code, run your runtime, or care which language you use.
+An OpenBB Workspace backend is an HTTP service that returns JSON. Workspace fetches metadata and data from your backend over HTTP; it does not import your code, run your runtime, or care which language you use.
 
 Any framework that can serve JSON over HTTP works: FastAPI, Flask, Django, Express, Fastify, Hono, Spring, Actix, ASP.NET, Go's `net/http`, etc. The contract below is identical for all of them.
 
@@ -20,8 +20,8 @@ Any framework that can serve JSON over HTTP works: FastAPI, Flask, Django, Expre
 
 | Method | Path | Returns | Required? |
 |--------|------|---------|-----------|
-| `GET`  | `/widgets.json` | JSON **object** keyed by widget id | Yes |
-| `GET`  | `/apps.json`    | JSON **array** of app templates    | Optional, but required for app templates |
+| `GET`  | `/widgets.json` | JSON object keyed by widget id | Yes |
+| `GET`  | `/apps.json`    | JSON array of app templates    | Optional, but required for app templates |
 | `GET` (or `POST`) | One per widget | JSON shaped for that widget's `type` | One per widget referenced from `widgets.json` |
 
 The widget data endpoint URL is whatever each widget declares in `widgets.json` under `endpoint`. It can be any path on the same backend.
@@ -46,13 +46,9 @@ See `openbb://workspace/specs/widget-types` for type guidance and `openbb://work
 
 ## CORS
 
-Workspace runs in a browser. Your backend MUST allow CORS from at least these origins:
+Allow CORS from the origin of your Workspace deployment, including its scheme and port. Read `window.location.origin` in the Workspace browser console to get the value. For example, the combined container uses `http://localhost:8080` and Vite development uses `http://localhost:1420`.
 
-- `https://pro.openbb.co`
-- `https://pro.openbb.dev`
-- `http://localhost:1420` (Workspace desktop app, if used)
-
-Production browsers also block mixed content, so backends used from `https://pro.openbb.co` must serve over HTTPS. Local development over HTTP is fine for `http://localhost`.
+An HTTPS Workspace deployment requires HTTPS data backends because browsers block mixed content. Local development can use HTTP.
 
 ## Authentication
 
@@ -62,14 +58,14 @@ Auth is the backend's responsibility, not Workspace's. Common patterns:
 - Query parameter (e.g. `?api_key=...`) configured on the backend connection in Workspace.
 - No auth at all (local dev, internal trusted network).
 
-Header-based auth is preferred — keys stay out of URLs and access logs. Workspace lets users register backend connections with header or query-string credentials.
+Prefer header-based authentication to keep keys out of URLs and access logs. Workspace lets users register backend connections with header or query-string credentials.
 
 ## Optional endpoints and behaviors
 
-- `GET /` — A friendly root response. Helpful for sanity checks but not required.
-- `GET /thumbnails/{name}` — A simple way to serve app gallery SVG/PNG thumbnails referenced by `apps.json` `img`, `img_dark`, and `img_light`.
-- A `theme` query parameter — Widget endpoints often accept `theme=dark|light` so the response (e.g. a Plotly figure) matches the user's UI theme.
-- A `raw` query parameter — Chart endpoints often accept `raw=true` to return the underlying rows instead of the rendered figure, so AI agents and table conversions can work with the data.
+- `GET /`: A friendly root response. Helpful for sanity checks but not required.
+- `GET /thumbnails/{name}`: A simple way to serve app gallery SVG/PNG thumbnails referenced by `apps.json` `img`, `img_dark`, and `img_light`.
+- A `theme` query parameter: Widget endpoints often accept `theme=dark|light` so the response (e.g. a Plotly figure) matches the user's UI theme.
+- A `raw` query parameter: Chart endpoints often accept `raw=true` to return the underlying rows instead of the rendered figure, so AI agents and table conversions can work with the data.
 
 ## Encoding
 

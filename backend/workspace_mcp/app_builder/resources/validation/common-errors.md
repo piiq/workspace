@@ -20,7 +20,7 @@ The mistakes that catch real apps. When validation fails, walk this list before 
 |---------|-------|-----|
 | `widgets.json must be object` | Top-level is `[ ... ]` | Change to `{ "widget_id": { ... } }` |
 | `Missing required field: name` | Widget has no `name` | Add `"name": "Widget Name"` |
-| `Invalid widget type: xxx` | Typo or invented alias | Use a real type — `table`, `chart`, `metric`, `markdown`, `newsfeed`, `table_ssrm`, `live_grid`, `advanced_charting`, `chart-highcharts` |
+| `Invalid widget type: xxx` | Typo or invented alias | Use a supported type: `table`, `chart`, `metric`, `markdown`, `newsfeed`, `table_ssrm`, `live_grid`, `advanced_charting`, `chart-highcharts` |
 | `Invalid formatterFn: currency` | `"currency"` is not a valid value | Use `"none"` and pre-format the value if needed |
 | `data.columnsDefs must be an array` | Columns nested at the wrong path | Move to `data.table.columnsDefs` |
 | `gridData.w out of range` | Width too small/large | Use `w` between 10 and 40 |
@@ -62,25 +62,25 @@ The mistakes that catch real apps. When validation fails, walk this list before 
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| CORS error in browser | Backend doesn't allow the Workspace origin | Add `https://pro.openbb.co`, `https://pro.openbb.dev`, `http://localhost:1420` |
+| CORS error in browser | Backend doesn't allow the Workspace origin | Allow the origin returned by `window.location.origin` in the Workspace browser console |
 | `Mixed content blocked` | HTTPS Workspace can't reach HTTP backend | Serve the backend over HTTPS in production |
 | 404 on widget endpoint | Path typo or missing route | Confirm the route is registered; match `endpoint` exactly |
-| Wrong response shape | Endpoint returns the wrong kind of JSON for the widget type | Tables → array of rows; charts → Plotly figure JSON; metrics → array of `{label, value, ...}`; markdown → string; newsfeed → array of articles |
+| Wrong response shape | Endpoint returns the wrong kind of JSON for the widget type | Tables: array of rows; charts: Plotly figure JSON; metrics: array of `{label, value, ...}`; markdown: string; newsfeed: array of articles |
 | Garbled non-ASCII | JSON file read with OS locale (cp1252 on Windows) | Open files with `encoding="utf-8"` (Python) or your language's UTF-8 equivalent |
 
 ## State and styling
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `state.style` field rejected | `state.style` is closed | Use only `borderWidth` (0–24), `radius` (0–64), `contentPadding` (0–64), `shadow` (`none|sm|md|lg`) |
+| `state.style` field rejected | `state.style` is closed | Use only `borderWidth` (0-24), `radius` (0-64), `contentPadding` (0-64), `shadow` (`none|sm|md|lg`) |
 | `state.style.headerMode` set, no visible effect | Schema accepts it; renderer ignores it | Remove |
 | Speculative `state.*` field appears to do nothing | Schema-but-not-runtime field | Remove unless verified visually in Workspace |
 
 ## When the doc and the validator disagree
 
-Trust the running validator. Workspace's actual validator is the source of truth — adjust the files to match what it accepts, then update docs.
+Trust the running validator. Correct the files according to the running validator's errors, then correct any conflicting documentation.
 
-- **Preferred check** — `workspace_mcp`: `manage_backends(operation="add", url=...)` returns schema errors directly.
-- **Browser check**: Settings → Data Connectors → Connect Backend → Test.
+- Preferred check: `workspace_mcp`: `manage_backends(operation="add", url=...)` returns schema errors directly.
+- Browser check: Settings > Data Connectors > Connect Backend > Test.
 
 See `openbb://workspace/guides/debug-app` for the full diagnostic order.

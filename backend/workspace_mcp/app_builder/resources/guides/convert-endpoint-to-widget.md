@@ -26,7 +26,7 @@ Hit the endpoint with realistic params and read the JSON. Note:
 
 ## 2. Choose the widget type
 
-Match the response shape to a widget type. See `openbb://workspace/specs/widget-types` for the catalog and the "choose this, not that" rules.
+Match the response shape to a widget type. See `openbb://workspace/specs/widget-types` for the catalog and widget selection guidance.
 
 | Sample response shape | Widget type |
 |------------------------|-------------|
@@ -38,7 +38,7 @@ Match the response shape to a widget type. See `openbb://workspace/specs/widget-
 | WebSocket or push-style streaming rows | `live_grid` |
 | File / PDF collection metadata | `multi_file_viewer` |
 
-If the shape doesn't match any widget type cleanly, change the endpoint to fit the closest type — don't try to force the wrong renderer.
+If the shape doesn't match any widget type cleanly, change the endpoint to fit the closest type and renderer.
 
 ## 3. Pick `endpoint`, `name`, and `widget_id`
 
@@ -76,7 +76,7 @@ For `table`:
 }
 ```
 
-- Use `formatterFn`: `int`, `none`, `percent`, `normalized`, `normalizedPercent`, `dateToYear`. **`"currency"` is invalid** — use `"none"` and pre-format if needed.
+- Use `formatterFn`: `int`, `none`, `percent`, `normalized`, `normalizedPercent`, `dateToYear`. `"currency"` is invalid. Use `"none"` and pre-format if needed.
 - Use `renderFn` for visual treatment: `greenRed` for up/down, `cellOnClick` for navigation, `hoverCard` for markdown previews.
 - Pin identifier columns left (`pinned: "left"`).
 
@@ -101,7 +101,7 @@ To let users flip the whole table into a chart, set `data.table.chartView`:
 
 Supported `chartType`s include `line`, `bar`/`groupedBar`/`stackedBar`, `column`/`groupedColumn`/`stackedColumn`, `area`/`stackedArea`, `pie`, `donut`, `scatter`, `bubble`, `histogram`, `heatmap`, `treemap`, `waterfall`, `radarLine`/`radarArea`, `boxPlot`, `rangeBar`/`rangeArea` (see https://docs.openbb.co/workspace/developers/widget-types/aggrid-table-charts for the full list).
 
-For `chart`: have the endpoint return a Plotly figure (no title — the widget supplies it). Add a `raw=true` query param so AI agents and table conversions can read the underlying rows. Before reaching here, confirm a `table` with sparklines or `chartView` won't do the job — only pick `chart` when AG Grid lacks the type (candlesticks/OHLC, custom subplots) or you need annotations / technical indicators / non-row-shaped data.
+For `chart`: have the endpoint return a Plotly figure (no title, because the widget supplies it). Add a `raw=true` query param so AI agents and table conversions can read the underlying rows. Before reaching here, confirm a `table` with sparklines or `chartView` won't do the job. Pick `chart` when AG Grid lacks the type (candlesticks/OHLC, custom subplots) or you need annotations / technical indicators / non-row-shaped data.
 
 ## 6. Add descriptions
 
@@ -145,4 +145,4 @@ See `openbb://workspace/validation/common-errors` for the failure list and `open
 
 ## 9. Layer on click-through (if it makes sense)
 
-If this widget is a discovery table — movers, screeners, watchlists, IPO calendars — and a downstream widget on the same dashboard accepts a synced param (typically `symbol`), wire `cellOnClick` on the relevant column. See `openbb://workspace/specs/layout-grid` § "Click-through navigation".
+If this widget is a discovery table (movers, screeners, watchlists, IPO calendars) and a downstream widget on the same dashboard accepts a synced param (typically `symbol`), wire `cellOnClick` on the relevant column. See `openbb://workspace/specs/layout-grid` § "Click-through navigation".
