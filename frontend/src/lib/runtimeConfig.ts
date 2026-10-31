@@ -38,7 +38,7 @@ function buildConfigFromEnv(): RuntimeConfig {
   const e = import.meta.env;
   return RuntimeConfigSchema.parse({
     urls: {
-      backend: e.VITE_PAYMENTS_URL,
+      backend: e.VITE_BACKEND_URL,
       ai: e.VITE_AI_API_URL,
       database: e.VITE_DATABASE_API_URL,
     },

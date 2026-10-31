@@ -73,7 +73,7 @@ export default defineConfig(({ mode }) => {
 
       const config = RuntimeConfigSchema.parse({
         urls: {
-          backend: env.VITE_PAYMENTS_URL,
+          backend: env.VITE_BACKEND_URL,
           ai: env.VITE_AI_API_URL,
           database: env.VITE_DATABASE_API_URL,
         },

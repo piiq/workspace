@@ -16,34 +16,34 @@
  */
 window.__APP_CONFIG__ = {
   urls: {
-    backend: "https://backend.openbb.dev",
-    ai: "https://ai.openbb.dev",
+    backend: "http://localhost:8000",
+    ai: "",
     database: "",
   },
   authentication: {
     allowEmailLogin: true,
     allowRegistration: true,
     allowForgotPassword: true,
-    identityProviders: ["google"],
+    identityProviders: [],
     sendMicrosoftIdToken: false,
     sendOktaIdToken: false,
     sendUserEmailAsHeader: false,
   },
   authProviders: {
-    googleClientId: "508662717287-ls9frq1ohf1tvug8vm91ofhmbraiuegu.apps.googleusercontent.com",
-    azureClientId: "287dfc81-c4ac-4093-b77d-8cd00d1c0a55",
-    azureTenantId: "fd311a04-857a-46aa-82f3-52a928acad01",
+    googleClientId: "",
+    azureClientId: "",
+    azureTenantId: "",
     oktaClientId: "",
     oktaDomain: "",
   },
   copilot: {
     enabled: true,
-    openbbCopilot: true,
+    openbbCopilot: false,
     documentationLinks: true,
     webSearch: true,
     secFilings: false,
     jinaAi: true,
-    aiEnhancements: true,
+    aiEnhancements: false,
     saveSkillFromChat: false,
     showCustomKey: true,
   },
@@ -68,7 +68,7 @@ window.__APP_CONFIG__ = {
     showMarketplace: true,
   },
   services: {
-    posthog: true,
+    posthog: false,
     hubspotForms: true,
     email: true,
     cloudflareWorker: true,
@@ -86,8 +86,8 @@ window.__APP_CONFIG__ = {
     manifestUrl: "",
   },
   analytics: {
-    posthogKey: "phc_qgW2kepNXdY7q1ZIuV2RT5WFXRDcTCkYlB66ukrOH30",
-    posthogUrl: "https://info.openbb.dev",
+    posthogKey: "",
+    posthogUrl: "",
   },
   whiteLabel: {
     name: "OpenBB Workspace",

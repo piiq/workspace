@@ -85,7 +85,7 @@ export function WidgetPreviewPanel() {
           </div>
         ) : state.isDragging || state.isUpdatingPreview ? null : (
           <p className="text-center text-light-600 dark:text-dark-50 text-sm p-3">
-            Update the URL to a valid endpoint (needs to have pro.openbb.co enabled in
+            Update the URL to a valid endpoint (needs to allow this Workspace origin in
             CORS). You can check{" "}
             <a
               href="https://docs.openbb.co/workspace/data-widgets"

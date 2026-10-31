@@ -699,7 +699,7 @@ export function TroubleshootMessage() {
                   Your backend may have CORS (Cross-Origin Resource Sharing)
                   restrictions. Configure your server to allow requests from{" "}
                   <code className="bg-general-bg-secondary px-1 py-0.5 rounded text-[11px]">
-                    https://pro.openbb.co
+                    {window.location.origin}
                   </code>{" "}
                   by adding the appropriate CORS headers.
                 </p>
