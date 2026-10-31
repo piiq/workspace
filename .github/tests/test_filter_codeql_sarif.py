@@ -110,6 +110,9 @@ def test_workflow_filters_before_upload_and_preserves_default_queries():
         for step in steps
         if step.get("uses") == "github/codeql-action/upload-sarif@v4"
     )
+    initialize = next(
+        step for step in steps if step.get("uses") == "github/codeql-action/init@v4"
+    )
 
     assert analyze["with"]["upload"] == "failure-only"
     assert steps.index(analyze) < steps.index(filter_step) < steps.index(upload)
@@ -120,6 +123,20 @@ def test_workflow_filters_before_upload_and_preserves_default_queries():
     }
     assert "disable-default-queries" not in str(workflow)
     assert "paths-ignore" not in str(workflow)
+    assert initialize["with"]["config-file"] == "${{ matrix.config-file }}"
+    assert "packs" not in initialize["with"]
+    suppression_packs = {
+        "python": "codeql/python-queries:AlertSuppression.ql",
+        "javascript-typescript": "codeql/javascript-queries:AlertSuppression.ql",
+    }
+    for item in analysis["strategy"]["matrix"]["include"]:
+        if item["language"] == "actions":
+            assert not item["config-file"]
+            continue
+        config = yaml.safe_load((ROOT / item["config-file"]).read_text())
+        assert suppression_packs[item["language"]] in config["packs"]
+        assert not config.get("disable-default-queries", False)
+        assert "paths-ignore" not in config
     assert not any(
         key in analysis["permissions"] and analysis["permissions"][key] == "write"
         for key in ("contents", "packages")

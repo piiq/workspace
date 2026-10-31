@@ -129,7 +129,7 @@ function RenderResponseError({ content }: { content: string }) {
 }
 
 type ChartContent = {
-  data: Plotly.PlotData[];
+  data: Plotly.Data[];
   layout: Partial<Plotly.Layout>;
 };
 
@@ -323,7 +323,6 @@ const ResponseComponent = memo((props: ResponseComponentProps) => {
           data={chartContent.data ?? []}
           layout={{
             ...(chartContent.layout ?? {}),
-            // @ts-expect-error: Plotly layout template typing is not compatible with current theme templates
             template: theme === "dark" ? DARK_CHARTS_TEMPLATE : LIGHT_CHARTS_TEMPLATE,
             width: width ? width - 16 : undefined,
             height: height ? height - 16 : undefined,

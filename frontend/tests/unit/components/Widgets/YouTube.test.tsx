@@ -78,6 +78,26 @@ vi.mock("~/components/Widgets/custom/Markdown", () => ({
 }));
 
 describe("YouTube Widget", () => {
+  it.each([
+    "https://youtube.com.example.com/watch?v=hostile",
+    "https://example.com/youtube.com/watch?v=hostile",
+    "https://youtube.com@example.com/watch?v=hostile",
+    "https://notyoutube.com/watch?v=hostile",
+    "ftp://youtube.com/watch?v=hostile",
+  ])("rejects a saved video URL on an unsupported origin: %s", (youtubeUrl) => {
+    renderWidget(<YouTube />, { widgetOverrides: { storage: { youtubeUrl } } });
+    expect(document.querySelector("iframe")).not.toBeInTheDocument();
+    expect(screen.getByText("Unable to load video")).toBeInTheDocument();
+  });
+
+  it("rejects an unsupported host in the URL form", async () => {
+    const user = userEvent.setup();
+    renderWidget(<YouTube />, { widgetOverrides: { storage: {} } });
+    await user.type(screen.getByLabelText("YouTube URL"), "https://youtube.com.example.com/watch?v=hostile");
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    expect(await screen.findByText("Must be a valid YouTube URL")).toBeInTheDocument();
+  });
+
   it("renders empty state form when no URL provided", () => {
     renderWidget(<YouTube />, {
       widgetOverrides: { storage: {} },

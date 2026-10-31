@@ -56,7 +56,7 @@ describe("privateFunc", () => {
     }));
     expect(() => {
       privateFunc();
-    }).toThrowError(expected);
+    }).toThrow(expected);
   });
 
   test("failure.expiredToken", () => {
@@ -78,7 +78,7 @@ describe("privateFunc", () => {
     }));
     expect(() => {
       privateFunc();
-    }).toThrowError(expected);
+    }).toThrow(expected);
   });
 
   test("success.validToken", () => {

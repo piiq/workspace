@@ -15,6 +15,9 @@ on:
       - 'docker/backend/**'
       - '.github/workflows/backend-integration-tests.yml'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -17,11 +17,11 @@ import { useWidgetContext } from "../Widget.context";
 import { MarkdownContent } from "./custom/Markdown";
 
 const youtubeSchema = z.object({
-  url: z
-    .url()
-    .refine((url) => url.includes("youtube.com") || url.includes("youtu.be"), {
-      message: "Must be a valid YouTube URL",
-    }),
+  url: z.url({
+    protocol: /^https?$/,
+    hostname: /^(?:[\w-]+\.)*youtube\.com$|^youtu\.be$/,
+    error: "Must be a valid YouTube URL",
+  }),
 });
 
 type YoutubeForm = z.infer<typeof youtubeSchema>;
@@ -159,22 +159,23 @@ export default function YouTube() {
 
   const getEmbedUrl = (url: string) => {
     try {
+      youtubeSchema.parse({ url });
+      const parsed = new URL(url);
       let videoId = "";
 
-      if (url.includes("youtu.be")) {
-        videoId = url.split("youtu.be/")[1]?.split("?")[0];
-      } else if (url.includes("youtube.com/watch")) {
-        const urlParams = new URLSearchParams(new URL(url).search);
-        videoId = urlParams.get("v") || "";
-      } else if (url.includes("youtube.com/embed")) {
-        videoId = url.split("embed/")[1]?.split("?")[0];
+      if (parsed.hostname === "youtu.be") {
+        videoId = parsed.pathname.slice(1);
+      } else if (parsed.pathname === "/watch") {
+        videoId = parsed.searchParams.get("v") || "";
+      } else if (parsed.pathname.startsWith("/embed/")) {
+        videoId = parsed.pathname.slice("/embed/".length);
       }
 
       if (!videoId) {
         throw new Error("Could not extract video ID");
       }
 
-      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+      return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?enablejsapi=1`;
     } catch (error) {
       console.error("Error parsing YouTube URL:", error);
       return "";
@@ -196,6 +197,7 @@ export default function YouTube() {
 
   // Get params UI for backend widgets
   const { renderRow0Params, renderBelowNavbarRows } = useWidgetParamsPositions();
+  const embedUrl = url ? getEmbedUrl(url) : "";
 
   return (
     <DraggableCard
@@ -277,7 +279,7 @@ export default function YouTube() {
                   "No transcript available"
                 )}
               </div>
-            ) : embedError ? (
+            ) : embedError || !embedUrl ? (
               <SearchResultsNotFound
                 firstMessage="Unable to load video"
                 secondMessage="This video might be private, deleted, or have embedding disabled."
@@ -296,7 +298,7 @@ export default function YouTube() {
               </SearchResultsNotFound>
             ) : (
               <iframe
-                src={getEmbedUrl(url)}
+                src={embedUrl}
                 title={widget.name || "YouTube video"}
                 width="100%"
                 height="100%"

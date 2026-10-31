@@ -16,6 +16,9 @@ on:
       - 'backend/uv.lock'
       - '.github/workflows/backend-migration-tests.yml'
 
+permissions:
+  contents: read
+
 jobs:
   test-migrations:
     runs-on: ubuntu-latest

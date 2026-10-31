@@ -3,6 +3,9 @@ name: Excel Add-in Smoke Tests
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: excel-add-in

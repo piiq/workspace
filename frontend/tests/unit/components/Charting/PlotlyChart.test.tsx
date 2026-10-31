@@ -342,6 +342,7 @@ describe("PlotlyChart - Config Options", () => {
     expect(screen.getByTestId("plotly-plot")).toBeInTheDocument();
     const lastCall = mockPlotComponent.mock.calls.at(-1)[0];
     expect(lastCall.config.scrollZoom).toBe(true);
+    expect(lastCall.config.showSendToCloud).toBe(false);
     expect(lastCall.config.displayModeBar).toBe("hover");
   });
 

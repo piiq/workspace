@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => {
     name: "strip-config-script",
     transformIndexHtml(html) {
       if (mode === "runtime") return html;
+      // codeql[js/incomplete-multi-character-sanitization] This removes a known tag from the tracked HTML template; it does not sanitize untrusted HTML.
       return html.replace(/\s*<script\s+src="\/config\.js"><\/script>/i, "");
     },
   };

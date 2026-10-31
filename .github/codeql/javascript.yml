@@ -1,0 +1,4 @@
+name: JavaScript and TypeScript security queries
+
+packs:
+  - codeql/javascript-queries:AlertSuppression.ql

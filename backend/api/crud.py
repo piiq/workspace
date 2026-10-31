@@ -316,7 +316,7 @@ def get_match_exprs(search_term: str) -> list:
 
     # add :* to end of last word for prefix matching in postgres
     if settings.DATABASE_TYPE == "postgresql":
-        search_term = re.sub(r"(\w+)$", r"\1:*", search_term)
+        search_term = re.sub(r"\b(\w+)$", r"\1:*", search_term)
 
     for w in search_term.split():
         word = w.strip()

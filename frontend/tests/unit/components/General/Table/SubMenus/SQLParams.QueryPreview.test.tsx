@@ -228,7 +228,7 @@ describe("QueryPreview", () => {
     renderPreview({
       param: metricParam,
       sqlParamDefs: [commodityParam, metricParam as SqlParamDef],
-      storedParams: { Commodity: ["Wheat", "Corn"] },
+      storedParams: { Commodity: ["Wheat", "Corn", "O'Brien's"] },
     });
 
     fireEvent.click(getPreviewButton());
@@ -237,5 +237,6 @@ describe("QueryPreview", () => {
     const sent = readSentQuery(fetchSpy);
     expect(sent).toContain("'Wheat'");
     expect(sent).toContain("'Corn'");
+    expect(sent).toContain("'O''Brien''s'");
   });
 });

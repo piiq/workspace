@@ -13,7 +13,7 @@ describe("fromOADate", () => {
 
 describe("toOADate", () => {
     test("case1", () => {
-        const input = Moment("2020-01-01");
+        const input = Moment.utc("2020-01-01");
         const expected = 43831;
         const actual = toOADate(input);
         expect(actual).toEqual(expected);
@@ -32,7 +32,7 @@ describe("excelDateToString", () => {
         const input = "someBadInput";
         expect(() => {
             excelDateToString(input)
-        }).toThrowError(`Invalid date -> '${input}'. Use YYYY-MM-DD format or Excel date.`);
+        }).toThrow(`Invalid date -> '${input}'. Use YYYY-MM-DD format or Excel date.`);
     });
 
     test("case1", () => {

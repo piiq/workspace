@@ -49,11 +49,11 @@ jobs:
       matrix:
         include:
           - language: actions
-            suppression-pack: ''
+            config-file: ''
           - language: javascript-typescript
-            suppression-pack: codeql/javascript-queries:AlertSuppression.ql
+            config-file: .github/codeql/javascript.yml
           - language: python
-            suppression-pack: codeql/python-queries:AlertSuppression.ql
+            config-file: .github/codeql/python.yml
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -64,7 +64,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-          packs: ${{ matrix.suppression-pack }}
+          config-file: ${{ matrix.config-file }}
       - name: Analyze source
         uses: github/codeql-action/analyze@v4
         with:

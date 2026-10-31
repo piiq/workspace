@@ -92,8 +92,10 @@ async def confirm_account(
     encoded_email = quote(email or user_email)
 
     if pro == "true":
+        # codeql[py/url-redirection] The origin is administrator-configured; the email is an encoded query value.
         return RedirectResponse(f"{settings.PROURL}/login?email={encoded_email}")
 
+    # codeql[py/url-redirection] The origin is administrator-configured; the email is an encoded query value.
     return RedirectResponse(
         f"{settings.FRONTENDURL}/login?email={encoded_email}&email-confirmed=true"
     )
@@ -111,6 +113,7 @@ async def transfer_user(
     try:
         result = await takeover_user(token, db)
         if result.success and result.message == email:
+            # codeql[py/url-redirection] The origin is administrator-configured; the email is an encoded query value.
             return RedirectResponse(f"{settings.PROURL}/login?email={quote(email)}")
     except Exception as e:
         logger.error(f"Error transferring user: {e}")
