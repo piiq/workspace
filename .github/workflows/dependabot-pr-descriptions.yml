@@ -1,0 +1,82 @@
+name: Dependabot PR Descriptions
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+  pull_request:
+    paths:
+      - '.github/workflows/dependabot-pr-descriptions.yml'
+      - '.github/tests/test_dependabot_pr_descriptions.py'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test:
+    name: Test Dependabot description formatting
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@main
+        with:
+          version: '0.13.6'
+          enable-cache: true
+          working-directory: backend
+          cache-dependency-glob: uv.lock
+          activate-environment: true
+      - run: uv sync --project backend --locked --only-group dev
+      - run: pytest .github/tests/test_dependabot_pr_descriptions.py -q
+
+  format:
+    name: Format Dependabot descriptions
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request_target' &&
+       github.event.pull_request.user.login == 'dependabot[bot]' &&
+       github.event.sender.login == 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Keep dependency summaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+              --jq '.[] | select(.user.login == "dependabot[bot]" and .user.type == "Bot") | .number' \
+              > "$RUNNER_TEMP/pull-numbers"
+          else
+            jq -r '.pull_request.number' "$GITHUB_EVENT_PATH" > "$RUNNER_TEMP/pull-numbers"
+          fi
+
+          while IFS= read -r number; do
+            endpoint="repos/$GITHUB_REPOSITORY/pulls/$number"
+            gh api "$endpoint" > "$RUNNER_TEMP/pull.json"
+            if ! jq -e '.state == "open" and .user.login == "dependabot[bot]" and .user.type == "Bot"' \
+              "$RUNNER_TEMP/pull.json" > /dev/null; then
+              continue
+            fi
+            jq '{body: ((.body // "") | (split("<details>")[0] // "") |
+              (split("[![Dependabot compatibility score]")[0] // "") |
+              (split("\nDependabot will resolve")[0] // "") | sub("\\s+$"; ""))}' \
+              "$RUNNER_TEMP/pull.json" > "$RUNNER_TEMP/description.json"
+            if ! jq -e '.body | length > 0' "$RUNNER_TEMP/description.json" > /dev/null; then
+              echo "Dependabot PR #$number has no dependency summary." >&2
+              exit 1
+            fi
+            if jq -e --slurpfile description "$RUNNER_TEMP/description.json" \
+              '.body == $description[0].body' "$RUNNER_TEMP/pull.json" > /dev/null; then
+              continue
+            fi
+            gh api --method PATCH "$endpoint" --input "$RUNNER_TEMP/description.json" > /dev/null
+            echo "Formatted Dependabot PR #$number."
+          done < "$RUNNER_TEMP/pull-numbers"

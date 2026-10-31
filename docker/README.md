@@ -96,6 +96,8 @@ The full destination is `ghcr.io/your-account/workspace:my-build`: `ghcr.io` is 
 
 [Dependabot configuration](../.github/dependabot.yml) schedules weekly updates for Python, JavaScript, GitHub Actions, Docker base images, and Compose image references, with one open version-update pull request per ecosystem. Dependabot alerts and security updates, CodeQL default setup, secret scanning, and push protection are configured in the repository's GitHub security settings. Fork owners enable these settings for their repositories.
 
+The [Dependabot PR Descriptions workflow](../.github/workflows/dependabot-pr-descriptions.yml) keeps dependency summaries and removes generated changelog HTML, badges, and bot instructions so descriptions can be used as squash commit messages. It processes Dependabot-authored PRs when Dependabot opens or updates them. Run it manually to format existing open Dependabot PRs. Its formatting job reads and edits PR metadata with `pull-requests: write`. The repository's Actions event policy must allow `pull_request_target` for this workflow.
+
 Dependabot alerts depend on GitHub's dependency graph. Check Insights > Dependency graph for recognized manifests and resolved dependencies. Bun and uv update support does not establish complete transitive alert coverage. Docker and Compose updates cover image references. Operating-system packages installed inside images require separate vulnerability assessment. See [GitHub's supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories) and [dependency graph coverage](https://docs.github.com/en/code-security/reference/supply-chain-security/dependency-graph-supported-package-ecosystems).
 
 ## Backend commands
