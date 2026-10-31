@@ -6,13 +6,13 @@ Connect your own backends or OpenBB Platform instances to supply data. Workspace
 
 ## Tech Stack
 
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS + Radix UI
-- **State Management**: Zustand + React Query (TanStack Query)
-- **Routing**: React Router v6
-- **Testing**: Vitest + Playwright + MSW
-- **Linting/Formatting**: Biome
+- Framework: React 18 + TypeScript
+- Build Tool: Vite
+- Styling: Tailwind CSS + Radix UI
+- State Management: Zustand + React Query (TanStack Query)
+- Routing: React Router v6
+- Testing: Vitest + Playwright + MSW
+- Linting/Formatting: Biome
 
 ## Project Structure
 
@@ -72,7 +72,7 @@ bun install
 
 ### Building and running
 
-**Note:** Use this if you are testing the application. If you are developing the application use the development section below.
+Note: Use this if you are testing the application. If you are developing the application use the development section below.
 
 ```bash
 bun run build
@@ -95,6 +95,8 @@ bun run dev # or yarn dev, pnpm dev, npm dev
 ```
 
 This will start the web application in development mode on `http://localhost:1420`.
+
+The development configuration connects to `http://localhost:8000`. Set the backend's `PROURL` to `http://localhost:1420`; its CORS allowlist defaults to the origins of `PROURL` and `FRONTENDURL`. Set `VITE_BACKEND_URL`, other API URLs, OAuth client IDs, and analytics settings for your deployment in `.env.local`. Container deployments accept these settings at startup through environment variables; see [container configuration](../docker/README.md).
 
 ### Adding Icons
 
@@ -140,7 +142,7 @@ This approach keeps icons optimized and easy to manage while maintaining a singl
 
 ## Testing
 
-We follow a **Test-Driven Development (TDD)** approach. See [TESTING.md](./TESTING.md) for the complete testing guide including patterns, examples, and best practices.
+We follow a Test-Driven Development (TDD) approach. See [TESTING.md](./TESTING.md) for the complete testing guide including patterns, examples, and best practices.
 
 ### Quick Reference
 
