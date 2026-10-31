@@ -16,7 +16,7 @@ related:
 
 ## Top-level shape
 
-`widgets.json` is a JSON **object**. Keys are widget ids, values are widget definitions:
+`widgets.json` is a JSON object. Keys are widget ids, values are widget definitions:
 
 ```json
 {
@@ -25,11 +25,11 @@ related:
 }
 ```
 
-Returning a JSON array is the most common mistake here — Workspace will reject it. Widget ids are referenced by app layouts (the `i` field in `apps.json` layout items), so they must be stable.
+Workspace rejects a JSON array at the top level. Widget ids are referenced by app layouts (the `i` field in `apps.json` layout items), so they must be stable.
 
 ## Widget definition fields
 
-Each value is an object. The high-leverage fields:
+Each value is an object. The main fields:
 
 | Field | Required | Notes |
 |-------|----------|-------|
@@ -38,18 +38,18 @@ Each value is an object. The high-leverage fields:
 | `endpoint` | Yes | Path on this backend that serves the widget's data. |
 | `description` | Recommended | Tooltip text. |
 | `category` / `subCategory` | Optional | Grouping in the widget catalog. |
-| `gridData` | Optional | Default placement hint as `{w, h}`. Not the app layout — see below. |
+| `gridData` | Optional | Default placement hint as `{w, h}`. For app layout, see below. |
 | `params` | Optional | Array of parameter definitions. See `openbb://workspace/specs/widget-parameters`. |
 | `data` | Sometimes required | Type-specific config. For tables, `data.table.columnsDefs` is where column metadata lives. |
 | `source` | Optional | Array of source labels, e.g. `["API"]`. |
 | `runButton` | Optional | When `true`, the widget waits for the user to click Run before fetching. Default `false`. Only set `true` for heavy work (>5 s). |
 | `refetchInterval` | Optional | Auto-refresh interval in milliseconds. |
 
-Unknown keys are tolerated by some Workspace builds and ignored by others — don't author speculative fields.
+Use documented fields. Workspace builds may tolerate or ignore unknown keys.
 
 ## `gridData` is a hint, not the layout
 
-`gridData` is the default placement when a widget is dragged onto a dashboard from the catalog. It is *not* the layout used by an app template — that lives in `apps.json` under `tabs[].layout[]`. Don't try to express tabs or coordinates inside `widgets.json`.
+`gridData` is the default placement when a widget is dragged onto a dashboard from the catalog. App template layouts are defined in `apps.json` under `tabs[].layout[]`. Don't try to express tabs or coordinates inside `widgets.json`.
 
 ## Tables: column metadata path
 
@@ -74,10 +74,10 @@ See `openbb://workspace/specs/widget-types` for when to use these instead of a P
 
 Common mistakes:
 
-- Putting columns at top-level `columns` — rejected.
-- Putting columns at `data.columnsDefs` — rejected.
-- Using the `formatterFn` value `"currency"` — invalid. Use `"none"` and pre-format the values, or use `"int"`/`"percent"`/`"normalized"`/`"normalizedPercent"`/`"dateToYear"`.
-- Setting `defaultViz` — deprecated legacy field, never emit it. Setting it to a chart type disables the table entirely and breaks the table↔chart toggle. Use `"type": "table"` and, for a chart view, `data.table.chartView` as above; the widget then opens as the table with a working chart toggle.
+- Putting columns at top-level `columns`: rejected.
+- Putting columns at `data.columnsDefs`: rejected.
+- Using the `formatterFn` value `"currency"`: invalid. Use `"none"` and pre-format the values, or use `"int"`/`"percent"`/`"normalized"`/`"normalizedPercent"`/`"dateToYear"`.
+- `defaultViz` is deprecated. Exclude it from widget definitions. Setting it to a chart type disables the table entirely and breaks the table/chart toggle. Use `"type": "table"` and, for a chart view, `data.table.chartView` as above; the widget then opens as the table with a working chart toggle.
 
 ## Endpoint path
 
@@ -110,7 +110,7 @@ Common mistakes:
 
 ## What this spec does not cover
 
-- Choosing a widget type — see `openbb://workspace/specs/widget-types`.
-- Authoring params — see `openbb://workspace/specs/widget-parameters`.
-- Wiring layouts and parameter sync — see `openbb://workspace/specs/apps-json` and `openbb://workspace/specs/layout-grid`.
-- Common validation errors — see `openbb://workspace/validation/common-errors`.
+- Choosing a widget type: see `openbb://workspace/specs/widget-types`.
+- Authoring params: see `openbb://workspace/specs/widget-parameters`.
+- Wiring layouts and parameter sync: see `openbb://workspace/specs/apps-json` and `openbb://workspace/specs/layout-grid`.
+- Common validation errors: see `openbb://workspace/validation/common-errors`.

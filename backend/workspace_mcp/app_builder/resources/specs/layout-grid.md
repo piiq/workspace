@@ -15,9 +15,9 @@ Workspace lays out widgets on a fixed grid and supports param synchronization vi
 
 ## Grid
 
-- The grid is **40 columns wide**.
+- The grid is 40 columns wide.
 - Common widths: `w=40` full, `w=20` half, `w=10` quarter.
-- Minimum widget width: typically 8–10 columns.
+- Minimum widget width: typically 8-10 columns.
 - Height is flexible. Minimum is usually 4 rows. Avoid heights above ~20 unless the content really needs it.
 - A `navigation_bar` widget, when present, usually occupies `y=0` with `h=2`, so the first content row begins at `y=2`.
 
@@ -33,16 +33,16 @@ Use `i` for the widget id (not `id`). Use `x`, `y`, `w`, `h` directly (not neste
 
 | Widget type | Recommended `h` |
 |-------------|------------------|
-| `metric` | 4–6 |
-| `table` (small) | 8–12 |
-| `table` (medium) | 12–15 |
-| `chart` | 12–15 |
-| `newsfeed` | 12–15 |
-| `markdown` | 8–12 |
+| `metric` | 4-6 |
+| `table` (small) | 8-12 |
+| `table` (medium) | 12-15 |
+| `chart` | 12-15 |
+| `newsfeed` | 12-15 |
+| `markdown` | 8-12 |
 
 ## Tabs
 
-Tabs organize app sections. Use one tab when the dashboard fits on one screen; split into multiple tabs only when it actually helps the user. 3–5 tabs is a healthy ceiling.
+Tabs organize app sections. Use one tab when the dashboard fits on one screen; split into multiple tabs only when it actually helps the user. 3-5 tabs is a healthy ceiling.
 
 For a single, unnamed tab use empty strings:
 
@@ -54,9 +54,9 @@ For a single, unnamed tab use empty strings:
 
 Groups synchronize a parameter (e.g. `symbol`) across multiple widgets. The runtime is strict:
 
-1. **Group `name` must follow the literal `Group 1`, `Group 2`, ...** Custom names like `"symbol-group"` validate but don't link.
-2. **Group `type` must match the widget param's shape** — see `openbb://workspace/specs/apps-json`.
-3. **Three places must agree:** `groups[].widgetIds`, each layout item's `groups: ["Group N"]`, and each widget's own param config.
+1. Group `name` must follow the literal `Group 1`, `Group 2`, ... Custom names like `"symbol-group"` validate but don't link.
+2. Group `type` must match the widget param's shape. See `openbb://workspace/specs/apps-json`.
+3. Three places must agree: `groups[].widgetIds`, each layout item's `groups: ["Group N"]`, and each widget's own param config.
 
 Group object shape:
 
@@ -74,7 +74,7 @@ Group object shape:
 
 The single biggest UX upgrade: clicking a row in a discovery table updates the rest of the dashboard. Audit every `table` widget for it before declaring an app done.
 
-**The rule.** For every table column, check the column's `field`. If any `field` matches a `paramName` used by an app-level group (and the cell value is what the param expects, e.g. a ticker symbol), that column MUST have:
+The rule. For every table column, check the column's `field`. If any `field` matches a `paramName` used by an app-level group (and the cell value is what the param expects, e.g. a ticker symbol), that column MUST have:
 
 ```json
 {
@@ -90,7 +90,7 @@ The single biggest UX upgrade: clicking a row in a discovery table updates the r
 }
 ```
 
-**Requirements for the click to actually fire:**
+Requirements for the click to actually fire:
 
 1. The clickable widget AND target widgets share `"groups": ["Group 1"]` in the layout.
 2. Target widgets expose a parameter matching `paramName` (e.g. `symbol`).
@@ -98,9 +98,9 @@ The single biggest UX upgrade: clicking a row in a discovery table updates the r
 4. Use `renderFnParams.groupBy.paramName`, not `groupByParamName` (legacy name fails silently).
 5. Use `valueField` when the cell display differs from the param value (e.g. showing "Apple Inc." but sending "AAPL").
 
-**Discovery widgets (top movers, screeners, watchlists, IPO calendars, peer comparisons) belong in the symbol group's `widgetIds` AND their layout entry must include `"groups": ["Group 1"]` — even if the widget itself has no `symbol` param.** They emit clicks; they don't receive them.
+Discovery widgets (top movers, screeners, watchlists, IPO calendars, peer comparisons) belong in the symbol group's `widgetIds` AND their layout entry must include `"groups": ["Group 1"]`, even if the widget itself has no `symbol` param. They emit clicks; they don't receive them.
 
-**Sharp edge — `cellOnClick` plus a visible duplicate dropdown breaks the interaction.** If a widget has BOTH a `cellOnClick` column targeting param `X` AND that same `X` exposed as a visible dropdown in its own `params`, the click stops propagating reliably and the user gets a confusing dual-control UX. Pick one:
+A visible dropdown and `cellOnClick` for the same parameter break click propagation. If a widget has BOTH a `cellOnClick` column targeting param `X` AND that same `X` exposed as a visible dropdown in its own `params`, the click stops propagating reliably and the user gets a confusing dual-control UX. Pick one:
 
 - Keep the cellOnClick. Add `"show": false` to that param so the dropdown is hidden.
 - Or drop the cellOnClick from the column.
@@ -113,10 +113,10 @@ This rule applies only when the widget *receives* the click-targeted param. Pure
 - [ ] Every discovery table is in the symbol group's `widgetIds`.
 - [ ] Every layout entry that participates has `"groups": ["Group 1"]`.
 - [ ] For widgets that have BOTH a cellOnClick column AND a matching param: the param has `"show": false`.
-- [ ] Render in Workspace and click a row — confirm other widgets refresh.
+- [ ] Render in Workspace and click a row: confirm other widgets refresh.
 
 ## What this spec does not cover
 
-- Required `apps.json` fields and tab/layout schema — see `openbb://workspace/specs/apps-json`.
-- Widget-side param definitions — see `openbb://workspace/specs/widget-parameters`.
-- Type cheatsheet for groups — covered in `openbb://workspace/specs/apps-json`.
+- Required `apps.json` fields and tab/layout schema: see `openbb://workspace/specs/apps-json`.
+- Widget-side param definitions: see `openbb://workspace/specs/widget-parameters`.
+- Type cheatsheet for groups: covered in `openbb://workspace/specs/apps-json`.

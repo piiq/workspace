@@ -10,9 +10,9 @@ related:
   - openbb://workspace/examples/generic-http/minimal
 ---
 
-# Minimal Backend — Python + FastAPI
+# Minimal Backend: Python + FastAPI
 
-> This is an **implementation example**, not a platform requirement. Workspace is language-agnostic. If your project already uses a different framework, use that. See `openbb://workspace/examples/generic-http/minimal` for the framework-neutral shape.
+> This is an implementation example, not a platform requirement. Workspace is language-agnostic. If your project already uses a different framework, use that. See `openbb://workspace/examples/generic-http/minimal` for the framework-neutral shape.
 
 FastAPI is the recommended Python starter because most current OpenBB examples are written against it.
 
@@ -34,17 +34,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import json
+import os
 
 app = FastAPI()
 
-# Required CORS origins for OpenBB Workspace
+# Set WORKSPACE_ORIGIN to the browser origin of your Workspace deployment.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://pro.openbb.co",
-        "https://pro.openbb.dev",
-        "http://localhost:1420",
-    ],
+    allow_origins=[os.environ["WORKSPACE_ORIGIN"]],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -142,14 +139,14 @@ def symbols():
 ## Run and register
 
 ```text
-uvicorn main:app --reload --port 7779
+WORKSPACE_ORIGIN=http://localhost:8080 uvicorn main:app --reload --port 7779
 ```
 
-Then in Workspace: Settings → Data Connectors → Connect Backend → `http://localhost:7779`.
+Then in Workspace: Settings > Data Connectors > Connect Backend > `http://localhost:7779`.
 
 ## Notes specific to Python
 
-- **Always pass `encoding="utf-8"` to `open()`.** Defaults to OS locale. cp1252 on Windows will mangle non-ASCII characters silently.
-- **No Plotly chart titles.** When a widget is `type: "chart"`, the widget header already shows the title. Setting `fig.update_layout(title="...")` doubles up.
-- **Support `raw=True` on chart endpoints.** Return the underlying rows when `raw=True` is passed so AI agents and table conversions can consume the data.
-- **Reasonable runButton.** Default to `runButton: false` (or omit). Only set `true` for endpoints that take >5 s.
+- Always pass `encoding="utf-8"` to `open()`. Defaults to OS locale. cp1252 on Windows will mangle non-ASCII characters silently.
+- No Plotly chart titles. When a widget is `type: "chart"`, the widget header already shows the title. Setting `fig.update_layout(title="...")` doubles up.
+- Support `raw=True` on chart endpoints. Return the underlying rows when `raw=True` is passed so AI agents and table conversions can consume the data.
+- Reasonable runButton. Default to `runButton: false` (or omit). Only set `true` for endpoints that take >5 s.

@@ -48,8 +48,8 @@ export const mockFeatureFlags = {
   },
 };
 
-// Base URL for API - matches VITE_PAYMENTS_URL in tests
-const BASE_URL = "https://backend.openbb.dev";
+// Base URL for API - matches VITE_BACKEND_URL in tests
+const BASE_URL = "http://localhost:8000";
 
 export const handlers = [
   // ============ Auth Endpoints ============

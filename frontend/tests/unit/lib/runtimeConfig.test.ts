@@ -135,7 +135,7 @@ describe("getConfig", () => {
   });
 
   it("falls back to env vars without window.__APP_CONFIG__", () => {
-    vi.stubEnv("VITE_PAYMENTS_URL", "https://env-backend.test");
+    vi.stubEnv("VITE_BACKEND_URL", "https://env-backend.test");
     vi.stubEnv("VITE_AI_API_URL", "https://env-ai.test");
 
     const cfg = getConfig();
@@ -214,7 +214,7 @@ describe("getConfig", () => {
   });
 
   it("reads boolean env vars via parseBool", () => {
-    vi.stubEnv("VITE_PAYMENTS_URL", "https://x.test");
+    vi.stubEnv("VITE_BACKEND_URL", "https://x.test");
     vi.stubEnv("VITE_AI_API_URL", "https://x.test");
     vi.stubEnv("VITE_AUTHENTICATION_ALLOW_EMAIL_LOGIN", "false");
     vi.stubEnv("VITE_AI_COPILOT_ENABLED", "true");
@@ -225,7 +225,7 @@ describe("getConfig", () => {
   });
 
   it("defaults ui.showMarketplace to true and reads VITE_UI_SHOW_MARKETPLACE", () => {
-    vi.stubEnv("VITE_PAYMENTS_URL", "https://x.test");
+    vi.stubEnv("VITE_BACKEND_URL", "https://x.test");
     vi.stubEnv("VITE_UI_SHOW_MARKETPLACE", "false");
 
     const cfg = getConfig();
@@ -233,7 +233,7 @@ describe("getConfig", () => {
   });
 
   it("reads string array env vars via parseStringArray", () => {
-    vi.stubEnv("VITE_PAYMENTS_URL", "https://x.test");
+    vi.stubEnv("VITE_BACKEND_URL", "https://x.test");
     vi.stubEnv("VITE_AI_API_URL", "https://x.test");
     vi.stubEnv("VITE_AUTHENTICATION_IDENTITY_PROVIDERS", "google, microsoft");
 

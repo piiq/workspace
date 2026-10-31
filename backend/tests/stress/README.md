@@ -3,15 +3,13 @@
 A repeatable, multi-user load simulator for the backend + Workspace MCP, plus a launcher that
 brings up the topology you want to test.
 
-> These are **manual** load tests against a running stack — not part of the pytest suite. The
-> pytest regression tests (`tests/test_bridge_load.py`, `tests/test_runtime_metrics.py`,
-> `tests/test_workspace_mcp_bridge.py`) stay where they are.
+Run these load tests manually against a running stack. Pytest regression coverage is in `tests/test_bridge_load.py`, `tests/test_runtime_metrics.py`, and `tests/test_workspace_mcp_bridge.py`.
 
 ## Contents
 
 | file | purpose |
 |---|---|
-| `run_stress.sh` | launcher — brings up a topology (DB type × worker count) and runs the simulator |
+| `run_stress.sh` | Starts a topology (database type and worker count) and runs the simulator |
 | `load_simulator.py` | the load generator (realistic multi-user Workspace MCP traffic) |
 | `../../../docker/docker-compose.stress.yml` | one parameterized overlay (workers + Prometheus), layered on a base stack |
 
@@ -51,13 +49,13 @@ cd backend/tests/stress
 | `--duration` | `20` | seconds |
 | `--ramp` | `5` | stagger user arrival over this many seconds (avoids a thundering herd) |
 | `--mcp-users` | `0` | extra MCP-only users layered on top (for measuring MCP's impact on the API) |
-| `--api-mcp` | `1` | `0` makes the API users pure-API (no MCP in their mix) — use for the A/B above |
+| `--api-mcp` | `1` | `0` excludes MCP calls from simulated API traffic. Use this for the comparison above |
 | `--seed` | off | run `init_users` to create the admin user (needed once on a fresh DB) |
 | `--no-run` | off | bring the stack up but skip the simulator |
 | `--down` | off | tear the stack down and exit |
 
 The simulator authenticates as `admin@openbb.co` / `asdQWE123!` (override with `ADMIN_EMAIL` /
-`ADMIN_PASSWORD` env). It needs the frontend User-Agent to skip rate limiting — this defaults to
+`ADMIN_PASSWORD` env). It needs the frontend User-Agent to skip rate limiting. This defaults to
 `test` (the value in the development environments); override with `FRONTEND_UA` if your env differs.
 
 ## What it does
@@ -73,14 +71,13 @@ load to isolate the MCP server's impact on the rest of the API.
 The simulator prints, per action: count, `ok%`, p50/p95 latency, and HTTP status distribution.
 Then it reports the live runtime gauges scraped from `/metrics`:
 
-- `db_pool_connections` — checked-out connections per engine pool (n/a for SQLite — `StaticPool`).
-- `threadpool_tokens` — worker thread-pool occupancy.
-- `event_loop_lag_seconds` — event-loop scheduling delay (the main "something is blocking the loop"
-  signal).
+- `db_pool_connections`: checked-out connections per engine pool (not applicable to SQLite, which uses `StaticPool`).
+- `threadpool_tokens`: worker thread-pool occupancy.
+- `event_loop_lag_seconds`: event-loop scheduling delay, used to identify blocking operations.
 
 ## Notes / gotchas
 
-- **MySQL and SQLite stacks share container names** (`fastapi`, `redis`), so the launcher tears down
+- MySQL and SQLite stacks share container names (`fastapi`, `redis`), so the launcher tears down
   any existing stack before starting. Only one runs at a time.
-- **SQLite is single-writer.** `--db sqlite --workers >1` will produce `database is locked` errors
-  under write load — that's expected; use `--workers 1` for SQLite.
+- SQLite is single-writer. `--db sqlite --workers >1` will produce `database is locked` errors
+  under write load. Use `--workers 1` for SQLite.

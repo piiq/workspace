@@ -26,7 +26,7 @@ See [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) for the full workflow.
 
 | Path | Description |
 |---|---|
-| `api/` | Core application — models, schemas, helpers, auth |
+| `api/` | Application models, schemas, helpers, and authentication |
 | `routers/` | API route handlers |
 | `utilities/` | Configuration, shared utilities |
 | `alembic/` | Database migration revisions |
@@ -39,8 +39,7 @@ See [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) for the full workflow.
 ## Conventions
 
 - Use `api.base.get_now()` instead of `datetime.datetime.now`.
-- The `User.password` column uses a `PasswordType` TypeDecorator that bcrypt-hashes
-  on write. Always pass plaintext passwords — never pre-hash.
+- The `User.password` column uses a `PasswordType` TypeDecorator that bcrypt-hashes on write. Pass plaintext passwords to avoid hashing them twice.
 
 For source commands and tests, run `uv sync --locked` in `backend/` and activate `.venv` with `source .venv/bin/activate`. Python 3.13 is required.
 

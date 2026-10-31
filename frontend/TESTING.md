@@ -20,12 +20,12 @@ This document outlines the testing strategy, conventions, and best practices for
 
 ## Testing Philosophy
 
-We follow a **Test-Driven Development (TDD)** approach for new features:
+We follow a Test-Driven Development (TDD) approach for new features:
 
-1. **Write the test first** - Define expected behavior before implementation
-2. **Make it fail** - Verify the test fails for the right reason
-3. **Make it pass** - Write minimal code to pass the test
-4. **Refactor** - Clean up with the safety net of passing tests
+1. Write the test first - Define expected behavior before implementation
+2. Make it fail - Verify the test fails for the right reason
+3. Make it pass - Write minimal code to pass the test
+4. Refactor and rerun the tests
 
 ### Testing Pyramid
 
@@ -39,9 +39,9 @@ We follow a **Test-Driven Development (TDD)** approach for new features:
   /------------------\
 ```
 
-- **Unit tests**: Test individual functions, hooks, and components in isolation
-- **Integration tests**: Test component interactions with mocked APIs (MSW)
-- **E2E tests**: Test critical user flows in a real browser (Playwright)
+- Unit tests: Test individual functions, hooks, and components in isolation
+- Integration tests: Test component interactions with mocked APIs (MSW)
+- E2E tests: Test critical user flows in a real browser (Playwright)
 
 ---
 
@@ -161,7 +161,7 @@ bunx test-storybook --url http://127.0.0.1:6006
 
 ## Unit Testing
 
-We use **Vitest** with **React Testing Library** for unit tests.
+We use Vitest with React Testing Library for unit tests.
 
 ### Basic Component Test
 
@@ -310,7 +310,7 @@ describe("UserProfile", () => {
 
 ## E2E Testing
 
-We use **Playwright** for end-to-end tests that simulate real user behavior.
+We use Playwright for end-to-end tests that simulate real user behavior.
 
 ### Basic E2E Test
 
@@ -362,7 +362,7 @@ Do NOT write E2E tests for:
 
 ## Mocking with MSW
 
-Mock Service Worker (MSW) intercepts network requests for realistic API mocking. Our MSW setup provides comprehensive handlers for all API endpoints.
+Mock Service Worker (MSW) intercepts network requests and returns responses from test handlers.
 
 ### MSW File Structure
 
@@ -443,7 +443,7 @@ server.use(customHandler);
 
 ### Handler Patterns
 
-**1. Conditional responses based on request body:**
+1. Conditional responses based on request body:
 
 ```typescript
 http.post(`${BASE_URL}/pro/login`, async ({ request }) => {
@@ -461,7 +461,7 @@ http.post(`${BASE_URL}/pro/login`, async ({ request }) => {
 });
 ```
 
-**2. Conditional responses based on auth header:**
+2. Conditional responses based on auth header:
 
 ```typescript
 http.get(`${BASE_URL}/pro/validate`, ({ request }) => {
@@ -475,7 +475,7 @@ http.get(`${BASE_URL}/pro/validate`, ({ request }) => {
 });
 ```
 
-**3. Dynamic route parameters:**
+3. Dynamic route parameters:
 
 ```typescript
 http.get(`${BASE_URL}/pro/files/:fileUuid/presigned-url`, ({ params }) => {
@@ -487,7 +487,7 @@ http.get(`${BASE_URL}/pro/files/:fileUuid/presigned-url`, ({ params }) => {
 });
 ```
 
-**4. Passthrough for test-specific URLs:**
+4. Passthrough for test-specific URLs:
 
 ```typescript
 // Allow vi.fn() mocked URLs to pass through MSW
@@ -545,7 +545,7 @@ When adding new API endpoints:
 
 ### For New Features
 
-1. **Write E2E test** (if user-facing feature):
+1. Write E2E test (if user-facing feature):
 
    ```typescript
    test("user can export dashboard to PDF", async ({ page }) => {
@@ -555,7 +555,7 @@ When adding new API endpoints:
    });
    ```
 
-2. **Write integration test** for component:
+2. Write integration test for component:
 
    ```typescript
    describe("ExportButton", () => {
@@ -570,7 +570,7 @@ When adding new API endpoints:
    });
    ```
 
-3. **Write unit tests** for utilities/hooks:
+3. Write unit tests for utilities/hooks:
 
    ```typescript
    describe("useExport", () => {
@@ -582,17 +582,17 @@ When adding new API endpoints:
    });
    ```
 
-4. **Implement** code to make tests pass
+4. Implement code to make tests pass
 
-5. **Refactor** with confidence
+5. Refactor and rerun the tests
 
 ### For Bug Fixes
 
-1. **Write a test that reproduces the bug**
-2. **Verify the test fails**
-3. **Fix the bug**
-4. **Verify the test passes**
-5. **Commit both the test and fix together**
+1. Write a test that reproduces the bug
+2. Verify the test fails
+3. Fix the bug
+4. Verify the test passes
+5. Commit both the test and fix together
 
 ---
 
@@ -624,9 +624,9 @@ coverage: {
 
 ### New Code Requirements
 
-- **All new code must have tests**
-- **Minimum 80% coverage for new files**
-- **Critical paths require 100% coverage** (auth, payments, data handling)
+- All new code must have tests
+- Minimum 80% coverage for new files
+- Critical paths require 100% coverage (auth, payments, data handling)
 
 ---
 
@@ -713,28 +713,28 @@ describe("Modal", () => {
 
 ### Common Issues
 
-**"Cannot find module" errors.**
+"Cannot find module" errors.
 
 - Ensure path aliases are configured in `vitest.setup.ts`
 - Check that the import path matches the alias in `vite.config.ts`
 
-**"ResizeObserver is not defined".**
+"ResizeObserver is not defined".
 
 - Already polyfilled in `vitest.setup.ts`
 - If still failing, check test is using the setup file
 
-**"Canvas is not defined".**
+"Canvas is not defined".
 
 - Already mocked via `vitest-canvas-mock`
 - For charting tests, may need additional mocking
 
-**MSW not intercepting requests.**
+MSW not intercepting requests.
 
 - Ensure `setupMSW()` is called inside `describe` block
 - Check request URL matches handler exactly
 - Verify handler is using correct HTTP method
 
-**Flaky async tests.**
+Flaky async tests.
 
 - Use `waitFor` instead of arbitrary timeouts
 - Ensure proper cleanup between tests

@@ -40,7 +40,7 @@ pytest tests/test_auth.py::TestProLogin::test_login_valid_credentials -v
 ## Database Dialect Migration Tests
 
 Separate from the integration tests, `test_migration_dialects.py` verifies that
-`alembic upgrade head` works correctly on a **fresh** database for all three
+`alembic upgrade head` works correctly on a fresh database for all three
 supported dialects: MySQL, PostgreSQL, and SQLite.
 
 Each test spins up a fresh container (or temp file for SQLite), runs the full
@@ -67,7 +67,7 @@ python -m pytest tests/test_migration_dialects.py::TestMySQLMigrations -v
 python -m pytest tests/test_migration_dialects.py::TestPostgreSQLMigrations -v
 ```
 
-> **Note:** MySQL and PostgreSQL tests require Docker. SQLite runs without Docker.
+> Note: MySQL and PostgreSQL tests require Docker. SQLite runs without Docker.
 
 `--require-docker` fails before running tests when Docker is unavailable. Use it for runs covering all database dialects, including CI. Without that option, tests requiring Docker are skipped when it is unavailable.
 
@@ -77,8 +77,8 @@ python -m pytest tests/test_migration_dialects.py::TestPostgreSQLMigrations -v
 
 The test setup uses [testcontainers-python](https://testcontainers-python.readthedocs.io/) to automatically manage:
 
-- **MySQL 8.0** container (random port, auto-configured)
-- **Redis Alpine** container (random port, auto-configured)
+- MySQL 8.0 container (random port, auto-configured)
+- Redis Alpine container (random port, auto-configured)
 
 Environment variables are set dynamically by `conftest.py` based on the container ports.
 

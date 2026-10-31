@@ -37,16 +37,16 @@ Use [.env.local](https://vitejs.dev/guide/env-and-mode.html#env-files) file to o
 
 The add-in supports analytics configuration through environment variables:
 
-- **VITE_ENV**: Deployment environment
+- VITE_ENV: Deployment environment
   - `ONPREM`: Disables analytics for on-premise deployments
   - `DEVELOPMENT`: Disables analytics for development environments
   - `PRODUCTION`: Enables analytics (when PostHog variables are configured)
   - Other values: Enables analytics (when PostHog variables are configured)
 
-- **VITE_POSTHOG_API_KEY**: PostHog API key (required for analytics)
-- **VITE_POSTHOG_API_HOST**: PostHog API host (required for analytics)
+- VITE_POSTHOG_API_KEY: PostHog API key (required for analytics)
+- VITE_POSTHOG_API_HOST: PostHog API host (required for analytics)
 
-**For On-Premise Deployments**: Set `VITE_ENV=ONPREM` to completely disable analytics. Analytics will also be automatically disabled if PostHog environment variables are missing.
+For On-Premise Deployments: Set `VITE_ENV=ONPREM` to completely disable analytics. Analytics will also be automatically disabled if PostHog environment variables are missing.
 
 ### Generate custom functions & integration tests
 
@@ -200,7 +200,7 @@ npm run test
 
 ## Office Add-in React Vite Template
 
-This is a template for developing an [Office.JS](https://learn.microsoft.com/en-us/office/dev/add-ins/) Excel add-in with **Vite** and **React 18**. The main advantage of using this template is a much faster development cycle. The development server starts in just 2-3 seconds and hot-reloaded changes are near instant.
+This is a template for developing an [Office.JS](https://learn.microsoft.com/en-us/office/dev/add-ins/) Excel add-in with Vite and React 18. The main advantage of using this template is a much faster development cycle. The development server starts in just 2-3 seconds and hot-reloaded changes are near instant.
 
 ## Key differences
 

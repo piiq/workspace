@@ -12,15 +12,15 @@ related:
 
 # Review an App
 
-A structured pass for reviewing an existing app. Read the file you're reviewing first, then walk this list. Don't review prose; review the **contract correctness** first because broken contracts mask everything else.
+Read the app files, then check the backend interface and validation errors before reviewing layout or wording. Interface errors can prevent the app from loading.
 
 ## 1. Contract correctness
 
-- Does the backend serve `GET /widgets.json` returning a JSON **object**?
-- If app templates are shipped, does it serve `GET /apps.json` returning a JSON **array**?
-- Are CORS origins configured for `https://pro.openbb.co`, `https://pro.openbb.dev`, and `http://localhost:1420`?
-- If the backend is reached from `https://pro.openbb.co` in production, is it served over HTTPS?
-- Is the auth path explicit? (header, query string, or none — pick one and document it)
+- Does the backend serve `GET /widgets.json` returning a JSON object?
+- If app templates are shipped, does it serve `GET /apps.json` returning a JSON array?
+- Does the backend allow the browser origin of your Workspace deployment through CORS?
+- If Workspace uses HTTPS, does the backend also use HTTPS?
+- Is the auth path explicit? (header, query string, or none; document the choice)
 
 If any of these are wrong, fix before reviewing further.
 
@@ -33,8 +33,8 @@ If any of these are wrong, fix before reviewing further.
 - Param types match shape: `boolean` for toggles, `number` for free-form integers, `date` for dates, `endpoint` for dropdowns from a backend.
 - Dropdown option objects are simple unless an advanced picker is intentional: usually `{label, value}`. Do not add `extraInfo` by default.
 - Multi-select dimensions expose real individual choices. Avoid fake options like `All Geographies` or `2020-2024` unless the backend intentionally treats them as real domain values.
-- Table columns are at `data.table.columnsDefs` — not at `columns` and not at `data.columnsDefs`.
-- `formatterFn` uses one of `int|none|percent|normalized|normalizedPercent|dateToYear`. (`"currency"` is invalid — use `"none"`.)
+- Table columns are at `data.table.columnsDefs`. Definitions at `columns` or `data.columnsDefs` are rejected.
+- `formatterFn` uses one of `int|none|percent|normalized|normalizedPercent|dateToYear`. (`"currency"` is invalid. Use `"none"`.)
 - `runButton` is `false` (or absent) unless the work is genuinely heavy (>5 s).
 - Widget names and descriptions explain the business content. Names like `KPI Cards` and descriptions like `AG Grid combo chart` are too implementation-focused unless that is the user's explicit language.
 
@@ -56,16 +56,16 @@ See `openbb://workspace/specs/apps-json`.
 
 ## 4. Layout and widget endpoint compatibility
 
-- Coordinates land on the 40-column grid; widgets don't overlap.
-- Tab heights make sense per type (metrics 4–6, tables 8–15, charts 12–15).
-- Each widget's data endpoint is reachable and returns the shape its `type` expects (table → array of rows, chart → Plotly JSON, etc.).
+- Coordinates fit the 40-column grid; widgets don't overlap.
+- Tab heights make sense per type (metrics 4-6, tables 8-15, charts 12-15).
+- Each widget's data endpoint is reachable and returns the shape its `type` expects (table: array of rows, chart: Plotly JSON, etc.).
 - Endpoints honor the params their `widgets.json` declares.
 - Every table endpoint row contains every declared `data.table.columnsDefs[].field`.
 - Every `apps.json` chart state column (`chartModel.cellRange.columns`) exists in the referenced widget's output.
 
 ## 4.5 Semantic data correctness
 
-After contract shape passes, review whether the numbers and parameter behavior make sense:
+After interface validation passes, review whether the numbers and parameter behavior make sense:
 
 - Inspect source data dimensions: row counts, categories, time periods, entities, and explicit aggregate rows.
 - Compare default aggregate outputs to official aggregate/source rows when they exist. Do not silently recompute consolidated totals from granular rows if the source already provides consolidated rows.
@@ -78,8 +78,8 @@ After contract shape passes, review whether the numbers and parameter behavior m
 
 For every `table` widget:
 
-- If a column's `field` matches a synced `paramName` (e.g. `ticker` → `symbol`), the column has `renderFn: "cellOnClick"` with `renderFnParams.actionType = "groupBy"` and the right `groupBy.paramName`/`valueField`.
-- Discovery tables (movers, screeners, watchlists, IPO calendars, peer comparisons) are listed in the symbol group's `widgetIds` AND have `"groups": ["Group 1"]` on their layout entry — even when they have no `symbol` param.
+- If a column's `field` matches a synced `paramName` (e.g. `ticker` to `symbol`), the column has `renderFn: "cellOnClick"` with `renderFnParams.actionType = "groupBy"` and the right `groupBy.paramName`/`valueField`.
+- Discovery tables (movers, screeners, watchlists, IPO calendars, peer comparisons) are listed in the symbol group's `widgetIds` AND have `"groups": ["Group 1"]` on their layout entry, including widgets with no `symbol` param.
 - Widgets that BOTH receive a synced param AND have a `cellOnClick` column for it use `"show": false` on the receiving param. Otherwise the dual-control breaks the click.
 
 ## 6. Common Workspace validation failures
@@ -96,9 +96,9 @@ Walk `openbb://workspace/validation/common-errors`. Most reviews find at least o
 
 When you write the review:
 
-- Lead with **broken contract issues** (Workspace can't load the backend). These are blockers.
-- Then **shape issues** in `widgets.json` / `apps.json` (Workspace loads but specific widgets fail).
-- Then **UX issues** (click-through, discovery, type mismatches that work but feel dead).
-- Then **nice-to-haves** (descriptions, heights, prompts).
+- Lead with broken contract issues (Workspace can't load the backend). These are blockers.
+- Then shape issues in `widgets.json` / `apps.json` (Workspace loads but specific widgets fail).
+- Then UX issues (click-through, discovery, type mismatches that work but feel dead).
+- Then nice-to-haves (descriptions, heights, prompts).
 
-A reviewer's job is to find *the cheapest fix* that produces the biggest UX uplift — usually that's wiring `cellOnClick` correctly on the discovery tables, not ratcheting borderWidth.
+Prioritize fixes that make the app usable, such as connecting discovery-table clicks to the destination widgets.

@@ -19,6 +19,6 @@ The following are helpful resources in trying to solve issues:
 - [3rd Party Docs](http://s.sudre.free.fr/Stuff/Ivanhoe/FLAT.html)
 - [Summary SO Post](https://stackoverflow.com/questions/11487596/making-macos-installer-packages-which-are-developer-id-ready)
 
-**NOTE**: Press cmd + l to see the logs while the installer runs. Make sure to select the option
+NOTE: Press cmd + l to see the logs while the installer runs. Make sure to select the option
 thats shows all (and not just errors). Toward the bottom of the logs you will see a message that
 says "touched file: [path]". This is where your installation occurred.

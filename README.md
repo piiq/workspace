@@ -2,6 +2,10 @@
 
 Source code for OpenBB Workspace and the components that build and run it.
 
+## Run Workspace
+
+Start with [installation from source](docs/install-from-source.md) for a local Docker installation. Use [the advanced deployment guide](docker/README.md) for configuration, separate containers, databases, storage, administration, and plugin installation. [The plugin guide](docs/plugins.md) covers plugin development and loading interfaces.
+
 ## Layout
 
 | Directory | What it is |
@@ -48,6 +52,8 @@ docker buildx build --load -f docker/Dockerfile --target workspace -t workspace:
 ```
 
 See [the container instructions](docker/README.md) for runtime configuration, account provisioning, and combined or separate deployments.
+
+Use [the local image build command](docker/README.md#build) and [image integration tests](docker/README.md#test-images) to verify combined and separate deployments before publication. The [Workspace Images workflow](.github/workflows/workspace-images.yml) verifies native AMD64 and ARM64 images on `main` and supports manual runs with publication disabled by default. See [image names and tags](docker/README.md#image-publication).
 
 ## Checks
 

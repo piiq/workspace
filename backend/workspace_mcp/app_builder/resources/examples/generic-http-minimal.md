@@ -10,9 +10,9 @@ related:
   - openbb://workspace/examples/python-fastapi/minimal
 ---
 
-# Minimal Backend — Generic HTTP
+# Minimal Backend: Generic HTTP
 
-Workspace doesn't care which language or framework you use. This example shows the **HTTP shape** of a minimal backend so you can implement it in whatever stack you already have.
+Implement this HTTP interface in your project's language and framework.
 
 If you're already on Python and want a runnable starting point, see `openbb://workspace/examples/python-fastapi/minimal` instead.
 
@@ -106,17 +106,15 @@ That's it. Add more data routes for each widget you expose.
 
 ## CORS
 
-Allow these origins on every route:
+Configure the backend to allow your Workspace browser origin on every route. For a deployment at `https://workspace.example.com`:
 
 ```text
-Access-Control-Allow-Origin: https://pro.openbb.co
-Access-Control-Allow-Origin: https://pro.openbb.dev
-Access-Control-Allow-Origin: http://localhost:1420
+Access-Control-Allow-Origin: https://workspace.example.com
 Access-Control-Allow-Methods: GET, POST, OPTIONS
 Access-Control-Allow-Headers: *
 ```
 
-In practice, send the matching origin from the request rather than echoing a list. Most frameworks have a CORS plugin for this.
+Send the request origin after checking it against your configured allowlist. Most frameworks have CORS middleware for this.
 
 ## Auth (optional)
 
@@ -125,21 +123,21 @@ If the backend requires auth, accept either:
 - A custom header (e.g. `X-API-KEY: <key>`), or
 - A query string parameter (e.g. `?api_key=<key>`).
 
-Workspace lets users register the backend connection with header or query-string credentials, which it then attaches to every widget request. Header is preferred — keys stay out of URLs and access logs.
+Workspace lets users register the backend connection with header or query-string credentials, which it then attaches to every widget request. Prefer headers to keep keys out of URLs and access logs.
 
 ## Encoding
 
-Serve UTF-8 on every response. If you read JSON files from disk, open them explicitly as UTF-8 — defaulting to the OS locale will mangle non-ASCII content (Greek letters, em-dashes, emoji) on systems whose default isn't UTF-8.
+Serve UTF-8 on every response. If you read JSON files from disk, open them explicitly as UTF-8 because defaulting to the OS locale will mangle non-ASCII content (Greek letters, em-dashes, emoji) on systems whose default isn't UTF-8.
 
 ## Picking a stack
 
 Anything that can do the above works. Concrete starting points by ecosystem:
 
-- Python — FastAPI, Flask, Starlette, Django REST.
-- Node — Express, Fastify, Hono.
-- Go — `net/http`, Echo, Gin, Chi.
-- Rust — Axum, Actix-web.
-- Java/Kotlin — Spring Boot, Ktor.
-- C# — ASP.NET Core minimal APIs.
+- Python: FastAPI, Flask, Starlette, Django REST.
+- Node: Express, Fastify, Hono.
+- Go: `net/http`, Echo, Gin, Chi.
+- Rust: Axum, Actix-web.
+- Java/Kotlin: Spring Boot, Ktor.
+- C#: ASP.NET Core minimal APIs.
 
 If you want a runnable Python sample to copy from, see `openbb://workspace/examples/python-fastapi/minimal`.
