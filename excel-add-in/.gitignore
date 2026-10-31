@@ -38,6 +38,7 @@ src/functions/generator/__pycache__
 *.min.js
 *.min.css
 *.d.ts
+!src/vite-env.d.ts
 
 # OS files
 Thumbs.db

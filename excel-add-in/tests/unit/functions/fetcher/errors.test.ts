@@ -1,6 +1,7 @@
 import { VITE_PLATFORM_URL } from "~/constants";
 import OBBExcelError, { CFError, handleErrors } from "~/functions/fetcher/errors";
 
+jest.mock("~/constants", () => ({ VITE_PLATFORM_URL: "http://platform.test" }));
 
 test("handleErrors.objectLen1", () => {
   const errorResponse = {
@@ -16,7 +17,7 @@ test("handleErrors.objectLen1", () => {
   };
   expect(() => {
     handleErrors(errorResponse);
-  }).toThrowError("query -> Field required");
+  }).toThrow("query -> Field required");
 });
 
 test("handleErrors.objectLen2", () => {
@@ -46,7 +47,7 @@ test("handleErrors.objectLen2", () => {
   };
   expect(() => {
     handleErrors(errorResponse);
-  }).toThrowError(
+  }).toThrow(
     "provider -> Input should be 'fmp' or 'polygon';\nperiod -> Input should be 'annual' or 'quarter'",
   );
 });
@@ -58,7 +59,7 @@ test("handleErrors.stringObject1", () => {
   };
   expect(() => {
     handleErrors(errorResponse);
-  }).toThrowError(
+  }).toThrow(
     "interval ->   Input should be '1m', '5m', '15m', '30m', '1h', '4h' or '1d'",
   );
 });
@@ -69,7 +70,7 @@ test("handleErrors.stringObject2", () => {
   };
   expect(() => {
     handleErrors(errorResponse);
-  }).toThrowError('provider -> Input should be "fmp", "polygon" or "tiingo"');
+  }).toThrow('provider -> Input should be "fmp", "polygon" or "tiingo"');
 });
 
 test("handleErrors.stringPure", () => {
@@ -79,7 +80,7 @@ test("handleErrors.stringPure", () => {
   };
   expect(() => {
     handleErrors(errorResponse);
-  }).toThrowError(
+  }).toThrow(
     "Error in FMP request -> Required String parameter 'date' is not present",
   );
 });
@@ -88,21 +89,21 @@ test("handleErrors.fallBack", () => {
   const errorResponse = { detail: null };
   expect(() => {
     handleErrors(errorResponse);
-  }).toThrowError("Failed to fetch data.");
+  }).toThrow("Failed to fetch data.");
 });
 
 test("handleErrors.invalidToken", () => {
   const errorResponse = { detail: "test error" };
   expect(() => {
     handleErrors(errorResponse, 401, VITE_PLATFORM_URL);
-  }).toThrowError("Sign in with Pro account.");
+  }).toThrow("Sign in with Pro account.");
 });
 
 test("OBBExcelErrorRandomError", () => {
   const error = new Error("This is an error message");
   expect(() => {
     OBBExcelError(error);
-  }).toThrowError("This is an error message");
+  }).toThrow("This is an error message");
 });
 
 test("OBBExcelErrorCFError", () => {
