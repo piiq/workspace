@@ -1,6 +1,6 @@
 """Allow us to configure rate limiting for the API."""
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.security.utils import get_authorization_scheme_param
 from loguru import logger
 from slowapi import Limiter
@@ -57,7 +57,7 @@ def exempt_openbb_ai(request: Request) -> bool:
     bool
         True if the request should be exempt from rate limiting
     """
-    if settings.SELFURL != "https://payments.openbb.dev":
+    if settings.MODE != "local":
         return False
 
     try:
@@ -67,7 +67,7 @@ def exempt_openbb_ai(request: Request) -> bool:
         if openbb_scheme.lower() == "bearer":
             auth_helpers.check_openbb(openbb_param)
             return True
-    except auth_helpers.credentials_exception:
+    except HTTPException:
         return False
 
     return False

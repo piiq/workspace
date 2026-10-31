@@ -6,7 +6,8 @@ from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from ssl import SSLContext
-from typing import Any, Literal, TypeVar, overload
+from typing import Any, Literal, Self, TypeVar, overload
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import aioboto3
@@ -819,7 +820,7 @@ class GeneralSettings(BaseModel):
     IS_WORKER_CONTAINER: bool = False
     DISABLE_REGISTRATION: bool = False
 
-    FRONTENDURL: str = "https://my.openbb.co"
+    FRONTENDURL: str = ""
     SELFURL: str
     MODE: Literal["production", "local", "test", "onprem"]
     EMAIL_PROVIDER: str = "mailchimp"  # "hubspot" or "mailchimp"
@@ -842,28 +843,8 @@ class GeneralSettings(BaseModel):
     DISABLE_CORS: bool = False
     CLEAR_UNCONFIRMED_FILES_DATE: str = "2024-10-07"
     OPENBB_AUTH_TOKEN: str | None = None
-    BACKEND_CORS_ORIGINS: list[str] | str = [
-        "http://10.5.2.231:5173",
-        "https://pro.openbb.co",
-        "https://pro.openbb.dev",
-        "https://openbb-excel-add-in.vercel.app",
-        "https://excel.openbb.co",
-        "https://excel.openbb.dev",
-        "https://admin.openbb.co",
-        "https://admin.openbb.dev",
-        "https://bofa.openbb.dev",
-    ]
-    SPECIAL_EMAILS: set[EmailStr] = {
-        "colin99delahunty@gmail.com",
-        "colindelahunty@openbb.finance",
-        "andrewkenreich@gmail.com",
-        "andrewkenreich@openbb.co",
-        "andrewkenreich@openbb.finance",
-        "juanalfonso@openbb.co",
-        "juanalfonso@openbb.finance",
-        "jamesmaslek@openbb.co",
-        "jamesmaslek@openbb.finance",
-    }
+    BACKEND_CORS_ORIGINS: list[str] | str = Field(default_factory=list)
+    SPECIAL_EMAILS: set[EmailStr] = Field(default_factory=set)
     SUPPRESSED_API_ROUTERS: list[str] | None = Field(default_factory=list)
     SUPPRESSED_API_ROUTES: list[str] | None = Field(default_factory=list)
     STORAGE_PROVIDER: Literal["aws", "azure", "gcp", "folder"] = "aws"
@@ -924,6 +905,21 @@ class Settings(
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def configure_frontend_origins(self) -> Self:
+        self.FRONTENDURL = self.FRONTENDURL or self.PROURL
+        # An explicit allowlist replaces the deployment URLs, including an empty list.
+        if "BACKEND_CORS_ORIGINS" not in self.model_fields_set:
+            origins = []
+            for url in (self.PROURL, self.FRONTENDURL):
+                parsed = urlsplit(url)
+                if parsed.scheme in {"http", "https"} and parsed.netloc:
+                    origin = f"{parsed.scheme}://{parsed.netloc}"
+                    if origin not in origins:
+                        origins.append(origin)
+            self.BACKEND_CORS_ORIGINS = origins
+        return self
 
     def get_file_bucket(self) -> str:
         if self.STORAGE_PROVIDER == "aws":
