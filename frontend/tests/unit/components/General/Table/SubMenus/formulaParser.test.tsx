@@ -750,4 +750,13 @@ describe("compileExpression", () => {
     ];
     expect(compileExpression(tokens)).toBe('getValue("col\\"name")');
   });
+
+  it.each(['column\\name', 'column\nname', '\\"); throw new Error("injected"); //'])(
+    "keeps the column id %j inside its string literal",
+    (value) => {
+      const compiled = compileExpression([{ type: "column", value }]);
+      const getValue = (column: string) => column;
+      expect(new Function("getValue", `return ${compiled}`)(getValue)).toBe(value);
+    },
+  );
 });

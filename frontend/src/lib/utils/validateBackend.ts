@@ -605,7 +605,8 @@ export async function validateSource(
 
   if (!validated.templates.length || validated.errorMessage) return validated;
 
-  const tabWidgets = {} as { [appName: string]: { [tabId: string]: string[] } };
+  const tabWidgets: { [appName: string]: { [tabId: string]: string[] } } =
+    Object.create(null);
   const vendorApp = source.vendorApp;
   const isSingleTemplate = validated.templates.length === 1;
 
@@ -617,7 +618,7 @@ export async function validateSource(
         const widgetId = layout.i;
         if (builtinWidgets[widgetId]) continue;
 
-        if (!tabWidgets[t.name]) tabWidgets[t.name] = {};
+        if (!tabWidgets[t.name]) tabWidgets[t.name] = Object.create(null);
         if (!tabWidgets[t.name][tab.id]) tabWidgets[t.name][tab.id] = [];
         tabWidgets[t.name][tab.id].push(widgetId);
       }

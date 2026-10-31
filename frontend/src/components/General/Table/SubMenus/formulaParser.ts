@@ -452,8 +452,7 @@ function compileTokens(
     }
 
     if (token.type === "column") {
-      const escaped = token.value.replace(/"/g, '\\"');
-      result += `getValue("${escaped}")`;
+      result += `getValue(${JSON.stringify(token.value)})`;
     } else if (token.type === "number") {
       result += token.value;
     } else if (token.type === "operator") {

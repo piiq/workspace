@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Source } from "~/lib/state/backendConnector";
-import { validateBackend } from "~/lib/utils/validateBackend";
+import { validateBackend, validateSource } from "~/lib/utils/validateBackend";
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -24,6 +24,39 @@ describe("validateBackend - apps.json endpoint behavior", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
+  it.each(["__proto__", "constructor", "toString"])(
+    "validates app and tab names that match Object properties: %s",
+    async (name) => {
+      const app = {
+        name,
+        description: "An app supplied by a backend",
+        tabs: {
+          main: {
+            id: name,
+            name: "Main",
+            layout: [{ i: "prices", x: 0, y: 0, w: 10, h: 8 }],
+          },
+        },
+      };
+      mockFetch.mockImplementation(async (url: URL | string) => ({
+        ok: true,
+        headers: new Headers(),
+        json: async () => {
+          if (url.toString().endsWith("widgets.json")) {
+            return { prices: { name: "Prices", description: "Fixture prices", type: "table", endpoint: "prices" } };
+          }
+          if (url.toString().endsWith("apps.json")) return [app];
+          return [];
+        },
+      }));
+
+      const result = await validateSource(mockSource, { validateAllWidgets: false });
+      expect(result.errorMessage).toBeNull();
+      expect(result.templates[0].name).toBe(name);
+      expect(Object.hasOwn(Object.prototype, "prices")).toBe(false);
+    },
+  );
 
   it("should handle jsonify({}) correctly - returns empty object, no error message, 0 apps found", async () => {
     // Mock widgets.json response (required for validateBackend to work)

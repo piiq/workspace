@@ -369,7 +369,7 @@ export function getNewQuery(
     acc = acc.replace(
       new RegExp(`\\{\\{\\s*${paramName}\\s*\\}\\}`, "g"),
       Array.isArray(paramValue)
-        ? paramValue.map((v) => `'${v.replace("'", "''")}'`).join(", ")
+        ? paramValue.map((v) => `'${v.replaceAll("'", "''")}'`).join(", ")
         : String(paramValue),
     );
 

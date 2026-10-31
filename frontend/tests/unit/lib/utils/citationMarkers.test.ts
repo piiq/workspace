@@ -105,7 +105,7 @@ describe("protectAiMarkers", () => {
       "x <|start_citation_id|>cite-1<|end_citation_id|> y",
     );
 
-    // Simulate a sanitizer pass that strips tags but keeps plain text
+    // codeql[js/incomplete-multi-character-sanitization] This test simulates a text transform; it does not sanitize HTML for rendering.
     const transformed = protectedText.replace(/<[^>]*>/g, "");
     expect(restoreAiMarkers(transformed)).toBe('x <citation className="cite-1"/> y');
   });
