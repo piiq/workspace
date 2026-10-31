@@ -86,6 +86,7 @@ def main() -> None:
         }
         email = "admin@openbb.co"
         password = "asdQWE123!"  # noqa: S105
+        # codeql[py/clear-text-storage-sensitive-data] Credentials provision a temporary browser-test account.
         (data / "account.toml").write_text(
             '[entity]\nname = "Browser Tests"\naum = 1000\n'
             'company_type = "CORPORATION"\norganization_size = "SMALL"\ncountry = "DOM"\n'

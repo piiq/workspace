@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenBB Hub Admin CLI - v2.3.0
+OpenBB Hub Admin CLI - v2.3.1
 
 A single-file CLI tool for managing OpenBB Hub entities and users.
 Dependencies: Python 3.8+ stdlib only (no external packages required)
@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("openbb-admin")
 
-VERSION = "2.3.0"
+VERSION = "2.3.1"
 
 CONFIG_FILE = Path(
     os.environ.get("OPENBB_CONFIG_FILE", str(Path.home() / ".openbb-hub/config.json"))
@@ -84,9 +84,6 @@ class HubAPIClient:
             headers["Authorization"] = f"Bearer {self.access_token}"
 
         logger.debug(f"{method} {url}")
-        logger.debug(f"Headers: {json.dumps(headers, default=str)}")
-        if data:
-            logger.debug(f"Payload: {json.dumps(data, indent=2)}")
 
         req_data = json.dumps(data).encode("utf-8") if data else None
         request = urllib.request.Request(
@@ -813,6 +810,7 @@ def user_create(args: argparse.Namespace) -> None:
         if args.json:
             print(json.dumps(resp, indent=2))
         else:
+            # codeql[py/clear-text-logging-sensitive-data] The administrator needs the generated password to give it to the user.
             print(f"✓ User created. Temp password: {resp.get('temporary_password')}")
     except APIError as e:
         handle_api_error(e)
@@ -858,6 +856,7 @@ def user_reset_password(args: argparse.Namespace) -> None:
         if args.json:
             print(json.dumps(res, indent=2))
         else:
+            # codeql[py/clear-text-logging-sensitive-data] The administrator needs the reset password to give it to the user.
             print(f"✓ Password reset. Temp password: {res.get('temporary_password')}")
     except APIError as e:
         handle_api_error(e)
