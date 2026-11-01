@@ -90,8 +90,8 @@ export async function getWidgetDefinition(
   widgetIdOrName: string,
 ): Promise<WidgetDefinition> {
   const customBackendsStore = useCustomBackendsStore.getState();
-  let widgetDefinitionMap: Record<WidgetId, WidgetDefinition> | undefined = {};
-  widgetDefinitionMap = customBackendsStore.getBackendWidgets(backend.id)
+  let widgetDefinitionMap: Record<WidgetId, WidgetDefinition> | undefined =
+    customBackendsStore.getBackendWidgets(backend.id);
   if (isEmpty(widgetDefinitionMap)) {
     try {
       widgetDefinitionMap = await getWidgetDefinitionMap(backend!);
@@ -190,7 +190,7 @@ export function createWidgetRequest(
   const { headers, query: fixedQueryParams } = processEndpointHeaders(
     backend.endpointHeaders,
   );
-  let urlParams = "";
+  let urlParams: string;
   switch (method) {
     case "GET": {
       const searchParams = new URLSearchParams({
