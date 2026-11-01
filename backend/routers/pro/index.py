@@ -95,8 +95,8 @@ async def confirm_account(
         # codeql[py/url-redirection] The origin is administrator-configured; the email is an encoded query value.
         return RedirectResponse(f"{settings.PROURL}/login?email={encoded_email}")
 
-    # codeql[py/url-redirection] The origin is administrator-configured; the email is an encoded query value.
     return RedirectResponse(
+        # codeql[py/url-redirection] The origin is administrator-configured; the email is an encoded query value.
         f"{settings.FRONTENDURL}/login?email={encoded_email}&email-confirmed=true"
     )
 
