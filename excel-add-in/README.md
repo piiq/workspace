@@ -2,6 +2,8 @@
 
 ## Installation
 
+Use Node.js 24 or later with npm. Node.js 22.13 or later in the 22.x release line is also supported.
+
 ```bash
 npm ci
 ```

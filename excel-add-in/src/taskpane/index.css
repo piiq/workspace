@@ -1,6 +1,7 @@
-@import "@openbb/ui/style.css";
+@import "@openbb/ui/fonts.css";
+@import "@openbb/ui/lib.css";
 
-/* @tailwind base; */
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 

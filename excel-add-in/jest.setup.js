@@ -19,14 +19,7 @@ global.Office = mockOffice;
 
 // Mock environment variables
 jest.mock("~/constants", () => {
-  const { loadEnv } = require('vite');
   const packageJson = require("./package.json");
-
-  // Load environment variables for the "test" environment
-  const env = loadEnv("test", process.cwd(), "");
-
-  // Merge environment variables with process.env
-  process.env = { ...process.env, ...env };
 
   return {
     VITE_PLATFORM_URL: process.env.VITE_PLATFORM_URL,

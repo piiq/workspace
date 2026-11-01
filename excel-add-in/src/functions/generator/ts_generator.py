@@ -331,7 +331,7 @@ describe("fullTests", () => {
                         ex_code += "null,"
                 ex_code = ex_code.strip(",")
                 ex_code += ")\n"
-                ex_code += "        expect(privateFuncMock).toBeCalledTimes(1);\n"
+                ex_code += "        expect(privateFuncMock).toHaveBeenCalledTimes(1);\n"
                 ex_code += "        checkExpected({received});\n"
                 ex_code += "      });\n"
             if ex_code:
