@@ -52,12 +52,12 @@ describe("smokeTests", () => {
     test("Empty", async () => {
       const array = [];
       const received = await OBB.get(array, null, null);
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received: received, min_rows: 0, min_columns: 0 });
     });
     test("Full", async () => {
       const received = await OBB.get(mockArray, null, null);
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received: received, min_rows: 3, min_columns: 6 });
     });
     test("Partial", async () => {
@@ -66,7 +66,7 @@ describe("smokeTests", () => {
         [[2, "2024-01-03"]] as any[],
         [["close"], ["volume"]] as any[],
       );
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received: received, min_rows: 2, min_columns: 2 });
     });
   });
@@ -79,7 +79,7 @@ describe("smokeTests", () => {
         null,
         null,
       );
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received });
     });
     test("2+ symbols", async () => {
@@ -89,7 +89,7 @@ describe("smokeTests", () => {
         null,
         null,
       );
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received });
     });
     test("dates + provider", async () => {
@@ -99,7 +99,7 @@ describe("smokeTests", () => {
         "2024-01-01",
         "2024-01-10",
       );
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received });
     });
   });
@@ -107,7 +107,7 @@ describe("smokeTests", () => {
   describe("OBB.EQUITY.FUNDAMENTAL.BALANCE", () => {
     test("1 symbol", async () => {
       const received = await OBB.equity_fundamental_balance("NVDA", null, null);
-      expect(privateFuncMock).toBeCalledTimes(1);
+      expect(privateFuncMock).toHaveBeenCalledTimes(1);
       checkExpected({ received });
     });
   });
