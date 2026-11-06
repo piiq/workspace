@@ -1,4 +1,4 @@
-# OpenBB Workspace Community
+# OpenBB Workspace Community Fork
 
 A self-hosted workspace for financial data. Connect your data sources, build dashboards with charts and tables, and share them with your team.
 
@@ -21,7 +21,7 @@ Workspace starts without bundled market data. Bring your own data through file u
 Give your agent this prompt:
 
 ```text
-Set up OpenBB Workspace Community on this machine following https://raw.githubusercontent.com/piiq/workspace/main/docs/quickstart.md. Use docker run with the published image and a local data folder mounted at /data. Start Workspace, verify that it is healthy, and tell me the URL and the command to retrieve the administrator credentials.
+Set up OpenBB Workspace Community Fork on this machine following https://raw.githubusercontent.com/piiq/workspace/main/docs/quickstart.md. Use docker run with the published image and a local data folder mounted at /data. Start Workspace, verify that it is healthy, and tell me the URL and the command to retrieve the administrator credentials.
 ```
 
 ## Documentation

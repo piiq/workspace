@@ -1,4 +1,4 @@
-# OpenBB Workspace Community quickstart
+# OpenBB Workspace Community Fork quickstart
 
 Install [Docker](https://docs.docker.com/get-started/get-docker/) and start it. Docker Desktop on macOS and Windows includes everything needed; Windows installations use Linux containers, and the commands below run in PowerShell. Images support Intel/AMD 64-bit and ARM64 (including Apple Silicon) machines.
 

@@ -1,4 +1,4 @@
-# Operate OpenBB Workspace Community
+# Operate OpenBB Workspace Community Fork
 
 These commands apply to installations from the [quickstart](quickstart.md), with a local `data/` folder mounted at `/data`. For Compose, run them from the directory containing `compose.yaml`.
 
