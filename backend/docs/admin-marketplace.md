@@ -1,8 +1,8 @@
 # Marketplace Admin Guide
 
-Internal guide for publishing and managing marketplace apps.
+Publish and manage apps in your Workspace deployment. See the [marketplace reference](marketplace.md) for lifecycle and API definitions, and the [developer guide](developer-marketplace.md) for app submission.
 
-All `/admin/marketplace/*` endpoints require a superuser session token.
+Use the HTTP API for marketplace administration. The admin CLI manages users, organizations, and their backend connections; it has no marketplace commands. All `/admin/marketplace/*` endpoints require a superuser session token.
 
 ## Getting Your Token
 
@@ -130,117 +130,19 @@ curl -X POST http://localhost:8080/api/admin/marketplace/apps \
   }'
 ```
 
+Common app fields, media formats, and authentication settings are defined in the [developer field reference](developer-marketplace.md#fields). Administrator-specific behavior is:
+
 | Field | Notes |
-|---|---|
-| `vendor_name` | Reuses an existing vendor with the same name |
-| `version` | Free-form string. Defaults to `"1"` |
-| `app_name` | Display name shown to users. Overrides `name` in the vendor's `apps.json`. |
-| `short_description` | Marketplace tile copy. Overrides `description` in the vendor's `apps.json`. |
-| `category` | Optional category shown above the app name in the marketplace. |
-| `tagline` | Optional one-liner shown in the marketplace under the app name. |
-| `thumbnail_url` | Default app thumbnail. URL or base64. Overrides `img` in the vendor's `apps.json`. |
-| `thumbnail_url_dark` | Optional dark-mode thumbnail. URL or base64. Overrides `img_dark`. Falls back to `thumbnail_url` if unset. |
-| `thumbnail_url_light` | Optional light-mode thumbnail. URL or base64. Overrides `img_light`. Falls back to `thumbnail_url` if unset. |
-| `media` | URLs shown in the app detail carousel (`MediaCarousel` frontend component). Each URL is classified independently: `youtube.com` / `youtu.be`: `<iframe>` embed, `.mp4`/`.webm`/`.mov`/`.m4v`: `<video>` with native controls, everything else: `<img>`. Accepted under the legacy name `screenshots` as well. See [Media carousel](#media-carousel) below. |
-| `api_key_url` | Endpoint we POST user-entered API keys to for verification. If unset, we fall back to calling the first widget in `widgets.json`. See [API Key Verification](#api-key-verification) below. |
-| `backend_base_url` | Auto-derives `widgets.json` and `apps.json` URLs |
-| `is_built_in` | `true` for first-party apps (skips URL verification) |
-| `auth_type` | Array of `"none"`, `"api_key"`, or `"custom"`. Allowed combinations: `["none"]`, `["api_key"]`, `["custom"]`, `["none", "api_key"]`, `["none", "custom"]`. `["api_key", "custom"]` is rejected. |
-| `auth_fields` | Required when `auth_type` includes `"custom"`. Vendor-defined header fields rendered in the connect modal. See [Custom Auth Fields](#custom-auth-fields) below. |
-| `api_key_info_url` | Optional URL to the vendor's docs on how to obtain an API key. Surfaced next to the "Add API Key" modal so users can click straight through to signup / key-generation instructions. Complements `api_key_url` (which we POST keys to for verification). |
-| `vendor_thumbnail_url` | Optional vendor-level logo (URL or base64), stored on the vendor record. Use this when we want to show the vendor brand independently of the per-app `thumbnail_url` (shared across all apps from the same vendor). |
-| `owner_email` | Optional. Assign ownership to a developer by email |
+| --- | --- |
+| `vendor_name` | Reuses an existing vendor with the same name. |
+| `is_built_in` | `true` skips URL verification for a first-party app. |
+| `owner_email` | Assigns ownership to a developer by email. |
 
 The response also includes `created_date` and `updated_date` (auto-populated, not settable). `created_date` is when the app was first submitted; `updated_date` is when any field was last modified or re-verification ran.
 
-### Override semantics
+### App metadata
 
-The `app_name`, `short_description`, `category`, `thumbnail_url`, `thumbnail_url_dark`, and `thumbnail_url_light` fields are admin-controlled overrides. These values appear in the marketplace and Workspace, overriding the corresponding values in the vendor's `apps.json`.
-
-The approved name, copy, and logo stay fixed when the vendor changes their manifest. The rest of `apps.json` (tabs, widgets, prompts, groups) continues to flow through from the manifest as-is.
-
-### Media carousel
-
-The `media` array feeds the Workspace's `MediaCarousel` component on the app detail page. The frontend classifies each URL at render time without type metadata. The backend stores URLs without fetching or validating them:
-
-| URL pattern | Renders as | Example |
-|---|---|---|
-| `youtube.com/*` or `youtu.be/*` | `<iframe>` embed | `https://www.youtube.com/watch?v=abc123` |
-| `.mp4` / `.webm` / `.mov` / `.m4v` extension | `<video>` with native controls | `https://example.com/demo.mp4` |
-| Everything else | `<img>` | `https://example.com/screenshot.png` |
-
-Developers can mix types freely. Things to check when reviewing:
-
-- Broken or private URLs: the backend does not HEAD-check `media` items, so a 404 or CORS-blocked asset will only be visible when you open the app in the Workspace. If you're approving an app, click through to the detail page and confirm every carousel item actually loads.
-- Self-hosted videos: must be a direct `.mp4`/`.webm`/`.mov`/`.m4v` file URL. A page URL that returns HTML (e.g. a Vimeo watch page) will be mis-classified as an image and render as a broken placeholder.
-- CORS on videos: self-hosted video files must be served with `Access-Control-Allow-Origin` headers the Workspace origin can use, otherwise playback silently fails.
-- YouTube share links: both `youtube.com/watch?v=...` and `youtu.be/...` are accepted. The carousel converts them to the embed form internally.
-- Legacy alias: the same field is also accepted under the old name `screenshots` on request bodies and still emitted under that key on response bodies for backward compatibility. Prefer `media` in any new PATCH.
-
-### API Key Verification
-
-When a user adds an app that requires a key, we need to verify the key before saving it. There are two modes, picked per-app:
-
-- `api_key_url` is set: we POST the user-provided key to that URL and expect a success/error response. The vendor fully controls the verification flow and can return a custom error message that's shown directly in the "Add API Key" modal.
-- `api_key_url` is not set: we verify by calling the first widget in the vendor's `widgets.json` with the key. Whatever error message that widget returns on an invalid key is what the user sees in the modal.
-
-When reviewing a new app, confirm with the developer which mode they intended. If they're relying on the widget fallback, check that the first widget returns an error message explaining the authentication failure to the user. Stack traces and generic 401 responses do not explain how to correct the key.
-
-### Custom Auth Fields
-
-Use `auth_type: ["custom"]` (or `["none", "custom"]` for optional auth) when the vendor needs one or more named headers that don't fit the default `api_key` flow. The Workspace renders one input per `auth_fields` entry in the connect modal and sends each value as the named header on every backend request.
-
-```json
-{
-  "auth_type": ["custom"],
-  "auth_fields": [
-    {
-      "id": "api_key",
-      "label": "API Key",
-      "key": "Authorization",
-      "prefix": "Bearer "
-    },
-    {
-      "id": "client_id",
-      "label": "Client ID",
-      "key": "X-Client-Id"
-    }
-  ]
-}
-```
-
-Each item:
-
-- `id`: stable form key. Must be unique across the array.
-- `label`: user-facing field label shown in the modal.
-- `key`: HTTP header name sent on backend requests. Must be unique across the array.
-- `prefix`: optional string prepended to the user-entered value (e.g. `"Bearer "`).
-
-Rules to enforce when reviewing:
-
-- All fields are required at connect time. The schema has no per-field optional flag.
-- The modal preserves field order. Confirm the order with the developer.
-- `["api_key", "custom"]` is invalid; pick one. If the vendor needs anonymous + custom, use `["none", "custom"]`.
-- For a single `Authorization: Bearer ...` field, use `["api_key"]` or `["none", "api_key"]`. `custom` is for the cases the default flow can't express.
-
-Response:
-
-```json
-{
-  "app_id": "56946887-f386-4b65-bb8c-a24df582ea24",
-  "vendor_id": "965e38a5-46b6-403f-9e78-bb86911ef848",
-  "version": "1.0",
-  "status": "verified",
-  "verification": { "status": "ok", "errors": [], "warnings": [] }
-}
-```
-
-Save the `app_id`. Then publish:
-
-```bash
-curl -X POST http://localhost:8080/api/admin/marketplace/apps/<APP_ID>/publish \
-  -H "Authorization: Bearer <TOKEN>"
-```
+Display overrides follow the [manifest override rules](developer-marketplace.md#why-some-fields-override-your-appsjson). Media and authentication formats use the same [media](developer-marketplace.md#supported-media-urls), [API key](developer-marketplace.md#api-key-verification), and [custom authentication](developer-marketplace.md#custom-auth-fields) definitions as developer submissions.
 
 ### Add app to existing vendor
 
@@ -297,7 +199,7 @@ curl -X PATCH http://localhost:8080/api/admin/marketplace/apps/<APP_ID> \
   -d '{"short_description": "Updated description"}'
 ```
 
-Updatable fields: `app_name`, `short_description`, `category`, `tagline`,  `thumbnail_url`, `thumbnail_url_dark`, `thumbnail_url_light`, `media`, `api_key_url`, `api_key_info_url`, `more_information_url`, `backend_base_url`, `apps_json_url`, `widgets_json_url`, `is_built_in`, `auth_type`, `auth_fields`, `vendor_name`, `vendor_description`, `vendor_website_url`, `vendor_thumbnail_url`, `documentation_url`, `contact_email`, `owner_email`
+Updatable fields: `app_name`, `short_description`, `category`, `tagline`, `thumbnail_url`, `thumbnail_url_dark`, `thumbnail_url_light`, `media`, `api_key_url`, `api_key_info_url`, `more_information_url`, `backend_base_url`, `apps_json_url`, `widgets_json_url`, `is_built_in`, `auth_type`, `auth_fields`, `vendor_name`, `vendor_description`, `vendor_website_url`, `vendor_thumbnail_url`, `documentation_url`, `contact_email`, `owner_email`
 
 > Switching `auth_type` away from `custom` (e.g. `["custom"]` to `["api_key"]`) clears any stored `auth_fields` automatically. Switching *to* `custom` requires `auth_fields` in the same PATCH.
 

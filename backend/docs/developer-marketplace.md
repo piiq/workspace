@@ -1,18 +1,18 @@
 # Marketplace Developer Guide
 
-Create and test marketplace apps before an administrator publishes them.
+Create and test marketplace apps before an administrator publishes them. The [marketplace reference](marketplace.md) documents models, versioning, public APIs, and manifest requirements.
 
 ## How It Works
 
 1. Create your app via the API in development mode
 2. Only you can see it in the marketplace (log in to verify)
 3. Update descriptions and backend URLs, and test widgets
-4. When you're happy, message us: "Version X.X is ready to publish"
-5. We review and publish it to all users
+4. Ask your deployment administrator to publish the app
+5. The administrator verifies and publishes it to deployment users
 
 ## Prerequisites
 
-- An OpenBB account
+- A user account on your Workspace deployment
 - Your session token (from browser DevTools: look for the `Authorization: Bearer <TOKEN>` header in network requests)
 - A backend that serves `widgets.json` and `apps.json` (see [Manifest Requirements](#manifest-requirements) below)
 
@@ -21,7 +21,7 @@ Create and test marketplace apps before an administrator publishes them.
 This single request creates your vendor profile and app in one call:
 
 ```bash
-curl -X POST https://payments.openbb.dev/marketplace/developer/apps \
+curl -X POST http://localhost:8080/api/marketplace/developer/apps \
   -H "Authorization: Bearer <YOUR_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -126,7 +126,7 @@ In this mode, make sure that first widget returns a clear, user-facing error mes
 
 `api_key_info_url` (both options)
 
-Independent of which verification mode you pick, set `api_key_info_url` to a page in your docs that explains how a user gets a key (signup page, dashboard link, whatever). The Workspace surfaces this next to the "Add API Key" modal so users can click straight through instead of hunting for your docs.
+Set `api_key_info_url` to a page explaining how users can get an API key. Workspace shows the link next to the "Add API Key" modal.
 
 ### Custom Auth Fields
 
@@ -209,7 +209,7 @@ Apps marked as development will show an `isDevelopment: true` flag in the API re
 Update descriptions, thumbnails, or backend URLs:
 
 ```bash
-curl -X PATCH https://payments.openbb.dev/marketplace/developer/apps/<APP_ID> \
+curl -X PATCH http://localhost:8080/api/marketplace/developer/apps/<APP_ID> \
   -H "Authorization: Bearer <YOUR_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"short_description": "Updated description"}'
@@ -230,7 +230,7 @@ The `version` field is fixed at creation. Create a new version to change it (see
 To release an update, create a new version:
 
 ```bash
-curl -X POST https://payments.openbb.dev/marketplace/developer/apps \
+curl -X POST http://localhost:8080/api/marketplace/developer/apps \
   -H "Authorization: Bearer <YOUR_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -250,7 +250,7 @@ You can have multiple versions in development at the same time. Publishing a ver
 If you want to delete a development app (frees up an app slot):
 
 ```bash
-curl -X DELETE https://payments.openbb.dev/marketplace/developer/apps/<APP_ID> \
+curl -X DELETE http://localhost:8080/api/marketplace/developer/apps/<APP_ID> \
   -H "Authorization: Bearer <YOUR_TOKEN>"
 ```
 
@@ -258,15 +258,7 @@ You can only remove apps in `development` status. Once an app is published, cont
 
 ## Step 6: Request Publish
 
-When your app is ready, message us with:
-
-> "[App Name] version [X.X] is ready to be published"
-
-We'll review the app, verify the manifests are working, and publish it to the marketplace.
-
-If we find any issues, we'll let you know what needs to be fixed. After fixing them, update your backend and request verification and publication again.
-
----
+Give your deployment administrator the app name and version. Publication and verification use the [administrator guide](admin-marketplace.md#publishing-a-developers-app).
 
 ## Limits
 
@@ -276,54 +268,7 @@ If we find any issues, we'll let you know what needs to be fixed. After fixing t
 
 ## Manifest Requirements
 
-Your backend must serve two JSON files:
-
-### `widgets.json`
-
-URL: `{backend_base_url}/widgets.json`
-
-A JSON object where each key is a widget ID:
-
-```json
-{
-  "stock_price_chart": {
-    "name": "Stock Price Chart",
-    "description": "Real-time stock price chart",
-    "category": "stocks",
-    "endpoint": "stock/price",
-    "gridData": {"w": 20, "h": 9}
-  },
-  "market_overview": {
-    "name": "Market Overview",
-    "description": "Daily market summary",
-    "category": "markets",
-    "endpoint": "market/overview",
-    "gridData": {"w": 40, "h": 9}
-  }
-}
-```
-
-### `apps.json`
-
-URL: `{backend_base_url}/apps.json`
-
-A JSON array of app configurations:
-
-```json
-[
-  {
-    "name": "Your App Name",
-    "description": "App description",
-    "img": "https://yourcompany.com/logo.png",
-    "prompts": [
-      "Analyze the latest stock price movement.",
-      "Compare the top 3 sectors by performance."
-    ]
-  }
-]
-```
-
-Both URLs must return valid JSON. If either is unreachable or returns invalid data, verification fails. The app is created in development mode so you can fix the errors.
+Serve `widgets.json` and `apps.json` as described in [manifest requirements](marketplace.md#vendor-app-manifest-requirements), including optional MCP servers. Use the app-builder [widget specification](../workspace_mcp/app_builder/resources/specs/widgets-json.md) and [app specification](../workspace_mcp/app_builder/resources/specs/apps-json.md) for the full declaration formats.
 
 ## Quick Reference
 
