@@ -131,7 +131,7 @@ Or generate a template:
 ./openbb-admin entity sample > new-entity.json
 ```
 
-Organization roles control administration and sharing. Backend settings `COPILOT_CALLS_PER_DAY` and `FILE_UPLOAD_LIMIT_GB` define the same limits for every user. Usage is counted separately for each account; a 10 GB setting gives each user 10 GB. Individual limit overrides are not supported.
+See [account access and resource limits](#account-access-and-resource-limits) for role and usage settings.
 
 ### 3. Update an Entity
 
@@ -506,7 +506,7 @@ entity = client.entity_create({
     "country": "USA"
 })
 
-# Update entity (smart partial update - only specify changed fields)
+# Update entity (specify the fields to change)
 client.entity_update("entity-uuid", aum=20000000)
 client.entity_update("entity-uuid", country="USA", aum=15000000)
 ```
@@ -702,6 +702,12 @@ Python client behavior:
 - `entity_update()` fetches the current state and merges partial updates
 - `provision_full()` creates entity + all users in a single call
 - API failures raise `APIError` exceptions
+
+## Account access and resource limits
+
+Admin/User roles control organization administration and sharing. The organization setting `allow_custom_backends` controls personal backend connections; administrator-configured organization backends remain available when it is disabled. Removing an account from its organization invalidates its Workspace sessions and MCP access.
+
+Set `COPILOT_CALLS_PER_DAY` (default `10000`) and `FILE_UPLOAD_LIMIT_GB` (default `10`) on the backend. These deployment settings give every user the same limits, with separate counters for each account. Individual limit overrides are not supported. The worker resets daily agent-call counters; users cannot reset or decrement them through the usage API. Uploads exceeding the configured total storage limit fail before files are written.
 
 ## Testing
 

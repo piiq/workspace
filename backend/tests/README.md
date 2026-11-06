@@ -5,18 +5,14 @@
 ### Prerequisites
 
 - Docker must be running (testcontainers uses Docker to spin up MySQL and Redis)
-- Python 3.13 with the dev dependencies installed
-- Run `uv sync --locked` in `backend/`
+- Python 3.13 with the activated development environment from [backend prerequisites](../DEVELOPMENT_SETUP.md#prerequisites)
 
 ### Run tests
 
 ```bash
 cd backend
-source .venv/bin/activate
 pytest tests -v
 ```
-
-On Windows, use `.\.venv\Scripts\Activate.ps1` in PowerShell or `.venv\Scripts\activate.bat` in cmd to activate the environment before running `pytest`.
 
 Testcontainers supplies the database and Redis; no separate Compose stack is needed. Testcontainers automatically:
 
