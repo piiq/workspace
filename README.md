@@ -2,7 +2,7 @@
 
 A self-hosted workspace for financial data. Connect your data sources, build dashboards with charts and tables, and share them with your team.
 
-<!-- Add the Workspace screenshot here using the GitHub editor. -->
+<img width="1450" height="851" alt="image" src="https://github.com/user-attachments/assets/112e56a9-d583-42b6-8a93-72552e454321" />
 
 ## Get started
 
