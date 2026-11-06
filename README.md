@@ -1,76 +1,39 @@
-# OpenBB Workspace
+# OpenBB Workspace Community Fork
 
-Source code for OpenBB Workspace and the components that build and run it.
+A self-hosted workspace for financial data. Connect your data sources, build dashboards with charts and tables, and share them with your team.
 
-## Run Workspace
+<img width="1450" height="851" alt="image" src="https://github.com/user-attachments/assets/112e56a9-d583-42b6-8a93-72552e454321" />
 
-Start with [installation from source](docs/install-from-source.md) for a local Docker installation. Use [the advanced deployment guide](docker/README.md) for configuration, separate containers, databases, storage, administration, and plugin installation. [The plugin guide](docs/plugins.md) covers plugin development and loading interfaces.
+## Get started
 
-## Layout
+Run Workspace with Docker on macOS, Windows, or Linux:
 
-| Directory | What it is |
-|---|---|
-| `frontend/` | The Workspace frontend (React 18 + TypeScript + Vite) |
-| `backend/` | FastAPI API, SQLAlchemy models, migrations, workers, and backend tooling |
-| `admin_cli/` | CLI for managing users, entities, and backend operations |
-| `docker/` | Compose deployments and test infrastructure |
-| `.github/workflows/` | Repository workflows |
-| `excel-add-in/` | The OpenBB Add-in for Excel (Office.js, TypeScript/React) |
-
-Each component keeps its own README with setup and development instructions.
-
-## Source development
-
-Use Bun and a Node version supported by [frontend/package.json](frontend/package.json). From the repository root:
-
-```bash
-cd frontend
-bun install --frozen-lockfile
-bun run dev
+```sh
+docker run -d --name workspace -p 127.0.0.1:8080:80 -v "${PWD}/data:/data" ghcr.io/piiq/workspace:latest
 ```
 
-The backend requires Python 3.13 and uv. Create its environment and activate it:
+Once the container is healthy, run `docker exec workspace credentials` and sign in at [http://localhost:8080](http://localhost:8080). See the [quickstart](docs/quickstart.md) for Docker requirements and connecting your data.
 
-```bash
-cd backend
-uv sync --locked
-source .venv/bin/activate
+Workspace starts without bundled market data. Bring your own data through file uploads, APIs, or an [Open Data Platform](https://github.com/openbq-org/OpenBB) connection. Optional plugins add renderers and grid features.
+
+## Set up with an agent
+
+Give your agent this prompt:
+
+```text
+Set up OpenBB Workspace Community Fork on this machine following https://raw.githubusercontent.com/piiq/workspace/main/docs/quickstart.md. Use docker run with the published image and a local data folder mounted at /data. Start Workspace, verify that it is healthy, and tell me the URL and the command to retrieve the administrator credentials.
 ```
 
-Follow [backend/DEVELOPMENT_SETUP.md](backend/DEVELOPMENT_SETUP.md) for environment files, backend services, and account provisioning. Compose commands run from the repository root, for example:
+## Documentation
 
-```bash
-docker compose -f docker/docker-compose-local-dev.yml up --build --watch
-```
+- [Quickstart](docs/quickstart.md): launch, sign in, and connect your data.
+- [Operating guide](docs/operations.md): updates, backups, and restoration.
+- [Deployment](docs/deployment.md): Compose, hostnames, databases, and storage.
+- [Plugin installation](docs/plugin-installation.md): runtime servers and build-time selections.
+- [Install from source](docs/install-from-source.md): build and run your own image.
+- [Plugin development](docs/plugins.md): SDK interfaces and building plugins.
+- [Administration](admin_cli/README.md): manage users and organizations, export and import accounts.
 
-The frontend, backend, and combined Workspace targets use the repository root as their build context:
+See [development](docs/development.md) for source workflows and checks, and [repository maintenance](docs/maintaining.md) for image publication and GitHub security settings.
 
-```bash
-docker buildx build --load -f docker/Dockerfile --target frontend -t workspace-frontend:dev .
-docker buildx build --load -f docker/Dockerfile --target backend -t workspace-backend:dev .
-docker buildx build --load -f docker/Dockerfile --target workspace -t workspace:dev .
-```
-
-See [the container instructions](docker/README.md) for runtime configuration, account provisioning, and combined or separate deployments.
-
-Use [the local image build command](docker/README.md#build) and [image integration tests](docker/README.md#test-images) to verify combined and separate deployments before publication. The [Workspace Images workflow](.github/workflows/workspace-images.yml) verifies native AMD64 and ARM64 images on `main` and supports manual runs with publication disabled by default. See [image names and tags](docker/README.md#image-publication).
-
-## Checks
-
-Frontend unit tests compile the example plugin. Install its dependencies and the SDK runtime dependencies using [the plugin build instructions](docs/plugins.md#building-a-plugin) before running the suite.
-
-```bash
-cd frontend
-bun run typecheck
-bun run test:unit
-
-cd ../backend
-pytest
-```
-
-Backend integration and database migration tests start their own Docker containers. Lint and unit/integration workflows run on pull requests that change their component's source, tests, configuration, or workflow file. Frontend browser tests run manually and on PRs affecting browser or plugin integration, using source servers with SQLite, file storage, and Redis. See [the browser test setup](frontend/tests/e2e/README.md). Excel smoke tests use a manual trigger and require hosted OpenBB accounts and secrets.
-
-## Notes
-
-- Root workflows cover tests, lint, and PR descriptions.
-- Licensed under Apache-2.0 (see [LICENSE](LICENSE)). Individual components may carry additional notices in their own directories.
+Licensed under [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for attribution.

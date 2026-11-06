@@ -34,12 +34,20 @@ Prerequisites.
 
 Deployment Steps.
 
-1. Obtain Customized Files: Receive the customized application files (the built bundle and `manifest.xml`) from the OpenBB team.
+1. Obtain Customized Files: Receive the built bundle and `manifest.xml` from the add-in developer.
 2. Host the Application: Host the application bundle (the front-end code) on the client's chosen domain. This domain should match the `ADDIN_BASE_URL` configured in the manifest.
 3. Access Admin Center: Log in to the organization's Microsoft 365 Admin Center.
 4. Navigate to Integrated Apps: Go to the section for Integrated Apps (or equivalent for managing custom add-ins).
 5. Upload Custom App: Select the option to Upload Custom App.
-6. Upload Manifest: Upload the customized `manifest.xml` file provided by OpenBB.
+6. Upload Manifest: Upload the customized `manifest.xml` file from the build.
 7. Deploy to Users: Follow the prompts to deploy the add-in to the desired user groups or the entire organization.
 
 Once deployed - the custom manifest file instructs the client's Excel application to load the add-in from the client's hosted domain.
+
+## Release
+
+Run the [function generator](README.md#generate-custom-functions--integration-tests) when function declarations change, run [integration tests](README.md#integration-tests), and update the [function documentation](README.md#documentation).
+
+For Microsoft AppSource distribution, increment the package version with `npm version patch`, build and validate the package using the steps above, and submit its generated `dist/manifest.xml` through Microsoft Partner Center.
+
+For organization deployments, distribute the built files and update the manifest in the organization's Microsoft 365 Admin Center under Integrated Apps.

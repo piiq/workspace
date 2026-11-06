@@ -44,7 +44,6 @@ The add-in supports analytics configuration through environment variables:
   - `DEVELOPMENT`: Disables analytics for development environments
   - `PRODUCTION`: Enables analytics (when PostHog variables are configured)
   - Other values: Enables analytics (when PostHog variables are configured)
-
 - VITE_POSTHOG_API_KEY: PostHog API key (required for analytics)
 - VITE_POSTHOG_API_HOST: PostHog API host (required for analytics)
 
@@ -89,42 +88,13 @@ python scripts/generate_excel_markdown.py
 
 This will create a local version of the [reference](https://docs.openbb.co/excel/reference) section. This script will run automatically on every docs website deployment. To update the reference or other static documentation just re-deploy the website.
 
-## Release
+## Deployment
 
-- Run the [custom functions generator](#generate-custom-functions--integration-tests) (optional since we might just want to fix a bug)
-- Run the [full integration tests](#integration-tests)
-- Push to the `main` branch and it will deploy to AWS via GitHub action
-- Update the [documentation](#documentation)
-
-If the new version introduces `manifest.xml` changes like a ribbon button or a new icon we need to publish a new Microsoft AppSource version, this means the following:
-
-- Update version:
-
-```bash
-npm version patch
-```
-
-- Upload the manifest.xml to Microsoft Partner Center to become available in the AppSource following [How to publish to MS Office Store](https://openbb.atlassian.net/wiki/spaces/PROD/pages/356876289/How+to+publish+to+MS+Office+Store)
-
-- If there are admin deployments to update:
-
-  - go to Office 365 admin center > [Integrated Apps](https://admin.microsoft.com/?auth_upn=Disorder@3nxjkw.onmicrosoft.com&source=applauncher#/Settings/IntegratedApps)
-
-  - Upload the new [manifest](https://excel.openbb.co/manifest.xml) file from server
+Build, hosting, manifest distribution, and release instructions are in [deployment](DEPLOYMENT.md).
 
 ## Usage
 
-To create a production build, run:
-
-```bash
-npm run build
-```
-
-To start the development server, run:
-
-```bash
-npm run dev
-```
+Use the [development server](#development) for source edits. Production builds use the [deployment instructions](DEPLOYMENT.md).
 
 To load the add-in in your desktop Excel, use any of the `start` scripts. e.g:
 
@@ -136,7 +106,7 @@ npm run start
 
 Alternatively, you can load the add-in manually to Excel on the web by following these steps:
 
-1. Run `npm run build` to create a production build.
+1. Create a build using the [deployment instructions](DEPLOYMENT.md).
 2. Go to Insert > Office Add-ins in Excel.
 3. Click on the Manage My Add-ins dropdown.
 4. Click on Upload My Add-in.
@@ -192,7 +162,7 @@ Set `TEST_PLATFORM_EMAIL` and `TEST_PLATFORM_PASSWORD` in .env.local. This token
   npm run test:integration-smoke
   ```
 
-  > Note: smoke tests run on every push to `main` or `develop` branch. The GitHub secrets `DEV/PROD_VITE_TEST_PLATFORM_EMAIL` and  `DEV/PROD_VITE_TEST_PLATFORM_PASSWORD` must be populated to make request to the platform.
+  > Smoke tests use the manual [Excel smoke workflow](../.github/workflows/excel-smoke-tests.yml), with credentials configured for its selected environment.
 
 ### All projects
 

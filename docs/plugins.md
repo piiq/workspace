@@ -1,8 +1,8 @@
-# Workspace plugins
+# Plugin development
 
-For deployment commands, see [plugin installation](../docker/README.md#plugin-installation). This guide describes the SDK, plugin builds, and loading interfaces.
+This guide describes the SDK, plugin builds, and host interfaces. For runtime serving and build-time preparation, see [plugin installation](plugin-installation.md).
 
-`packages/plugin-sdk/` provides `@piiq/workspace-plugin-sdk`. The frontend consumes it as a local Bun dependency. Run `bun install --frozen-lockfile` in `frontend/` before typechecking or testing. Unit tests also require the SDK runtime and example dependencies described under [Building a plugin](#building-a-plugin). Plugin projects consume the SDK package without importing Workspace source files or stores.
+`packages/plugin-sdk/` provides `@piiq/workspace-plugin-sdk`. The frontend uses it as a local Bun dependency. Install frontend dependencies using the [frontend development guide](../frontend/README.md#installation) before typechecking or testing. Unit tests also require the SDK runtime and example dependencies described under [Building a plugin](#building-a-plugin). Plugin projects use the SDK package without importing Workspace source files or stores.
 
 ## Registration
 
@@ -22,7 +22,7 @@ Backend `widgets.json` entries select a renderer with `type: "@scope/package/ren
 
 Missing, incompatible, or failed plugins display an actionable message on the affected widget. Other widgets remain usable. Installing the renderer makes a mounted widget render its saved definition without substituting a table or rewriting its ID.
 
-The host keeps these fixed bindings for existing widget definitions:
+For existing widget definitions, Workspace resolves these renderer IDs:
 
 | Saved renderer ID | Bound renderer ID |
 | --- | --- |
@@ -34,13 +34,13 @@ The host keeps these fixed bindings for existing widget definitions:
 
 A renderer registered under the saved ID takes precedence over its binding. An absent plugin does not invalidate a saved definition.
 
-These bindings do not install plugins or refer to filesystem locations. Plugin authors choose their own package and renderer names and use those qualified IDs in widget declarations, such as `@example/perspective/table`. The fixed aliases apply to existing widget types; independent plugins do not need an entry in this mapping.
+These aliases select renderers; they do not install plugins or identify file locations. Plugin authors choose their own package and renderer names and use those qualified IDs in widget declarations, such as `@example/perspective/table`. The fixed aliases apply to existing widget types; independent plugins do not need an entry in this table.
 
 ## Host interfaces
 
-`api.host` supplies the application's React, ReactDOM, ReactDOM client, and JSX runtime. Plugins use these bindings to share the application's hooks. `host.useTheme()` follows the application's light/dark theme. The core SDK has no AG Grid imports; plugins using other rendering libraries do not need to install AG Grid.
+`api.host` provides the application's React, ReactDOM, ReactDOM client, and JSX runtime. Plugins use these React instances to share the application's hooks. `host.useTheme()` follows the application's light/dark theme. The core SDK has no AG Grid imports; plugins using other rendering libraries do not need to install AG Grid.
 
-`host.ui` exposes the application's Button, Icon, Tooltip, WidgetShell, and RawDataTable. These components load lazily and require a React Suspense boundary. WidgetShell uses the existing draggable card, loading/error display, parameter controls, data publication, CSV/XLSX downloads for array data, and a `toolbar` slot. A plugin supplies its library-specific content as children. RawDataTable uses the host's existing grid, column processing, and widget context.
+`host.ui` provides the application's Button, Icon, Tooltip, WidgetShell, and RawDataTable. These components load lazily and require a React Suspense boundary. WidgetShell uses the existing draggable card, loading/error display, parameter controls, agent access to widget data, CSV/XLSX downloads for array data, and a `toolbar` slot. A plugin renders its library-specific content as children. RawDataTable uses the host's existing grid, column processing, and widget context.
 
 WidgetShell hides its content and shows the host's loading indicator while its widget is being resized.
 
@@ -49,7 +49,7 @@ Renderer declarations can include a Toolbar component. The host provides these h
 - `useWidgetContext()` returns the widget instance ID, renderer ID, endpoint configuration, parameters, `options` from the widget's `data` field, saved plugin state, and reactive theme. `setParameters()` merges parameter values into the widget's stored parameters; `setState()` merges values into `storage.pluginState`. Both persist through the host's widget update path.
 - `useWidgetData<Data>(options?)` uses the application's fetcher, authentication, query cache, and refresh handling. Endpoint query values, optional `options.query`, and stored parameters merge in that order. Stored parameters take precedence; change them with `setParameters()`. It preserves endpoint headers and method, applies the widget's `data.dataKey`, and returns data, loading/fetching/error state, refresh time, and `refetch()`. Options support POST bodies, text responses, and disabling the query.
 - `useChartData<Data>()` supplies chart payloads and the shared raw-data toggle. It merges endpoint query values and stored parameters, then sets `theme` to the current application theme. A declaration's `raw` flag enables the toggle; `storage.rawDataView` saves the selected view. Raw requests force `raw: true` and unwrap `results`. The result includes the active payload, `showTable`, `toggle`, loading/error state, and refresh time. Put `toggle` in WidgetShell's toolbar and render RawDataTable when `showTable` is true. `refetch()` resolves to the refreshed active payload for immediate lifecycle exports. The host interface declares this hook as optional; a plugin that requires it must check availability and report an unsupported host. Chart requests use the widget's `staleTime` or 15 minutes; raw requests use zero stale time.
-- `useWidgetDataExport({ data, enabled, lastUpdated, ... })` publishes data and widget metadata for agents independently of an active chat. It records columns and the parameters used for the response; Copilot selection remains in the consumer. WidgetShell publishes its `data` prop through the same hook. Use one publication path for a given payload.
+- `useWidgetDataExport({ data, enabled, lastUpdated, ... })` publishes data and widget metadata for agents independently of an active chat. It records columns and the parameters used for the response; The component using the hook decides whether to include the widget in a Copilot conversation. WidgetShell publishes its `data` prop through the same hook. Use one publication path for a given payload.
 - `useWidgetLifecycle({ refresh, exportData?, dispose? })` registers callbacks for the mounted instance. `refresh` can use the data hook's `refetch`. `exportData` returns `{ data, columns? }` for agent requests; without that callback, requests use published data. Callbacks follow renderer updates and are removed on unmount, which also calls `dispose`. Native widget callbacks are separate from the iframe bridge. Backend widget requests with matching parameters use the export callback; requests with different parameters fetch the endpoint. Destructive MCP tools refresh matching mounted widgets using the backend's existing `mcp_tool` mapping. A refresh failure reports a widget error while preserving the tool result.
 
 ## AG Grid integration
@@ -58,7 +58,7 @@ Renderer declarations can include a Toolbar component. The host provides these h
 
 Declare `agGridCapabilities` alongside renderers, using `AgGridCapabilityDefinition` for `name`, `title`, AG `modules`, and an optional `configureGrid(options)` function. Descriptor generation retains capability metadata and excludes executable grid configuration and modules. Registration installs modules through the host's Community registry before exposing renderers or capabilities. The host applies registered configuration functions to its shared grid options. Keep changes specific to the grid behaviour the capability supports.
 
-`getAgGridUi(host)` exposes the shared table shell, SQL editor, request handling, saved settings, and data publication through the `agGridUi` interface. A server-side renderer supplies its datasource hook to the interface's `ServerSideTable` component. The host also shares AG Charts Community and Charts Core with plugin bundles so chart modules use the same registries.
+`getAgGridUi(host)` provides the shared table shell, SQL editor, request handling, saved settings, and agent access to widget data through the `agGridUi` interface. A server-side renderer passes its datasource hook to the interface's `ServerSideTable` component. The host also shares AG Charts Community and Charts Core with plugin bundles so chart modules use the same registries.
 
 ## Configuration files
 
@@ -68,13 +68,9 @@ Declare `agGridCapabilities` alongside renderers, using `AgGridCapabilityDefinit
 | `plugin.json` | Generated descriptor: package name/version, API version, renderer and AG Grid capability metadata, entry module, and asset paths. |
 | `entry.js` | Browser module exporting `register(api)`. |
 
-Build selections use `mode: "build"` and one `source`: `{ "path": "../my-plugin" }`, `{ "repository": "ssh://git.example/plugin.git", "ref": "v1.0.0" }`, or `{ "dist": "../my-plugin/dist" }`. Runtime selections use `mode: "runtime"` and `descriptorUrl`, either relative to the manifest or an absolute URL. An empty selection is `{ "plugins": [] }`. Keep deployment selections outside tracked application configuration. Application flags remain in `frontend/src/lib/runtimeConfigSchema.ts`.
+Selection formats and source choices are documented in [plugin installation](plugin-installation.md). Application flags remain in `frontend/src/lib/runtimeConfigSchema.ts`.
 
 The SDK validates selections and descriptors. Workspace preparation and descriptor loading are separate from building a plugin. Plugin sources retain their own dependencies and lockfiles; generated descriptors, entry modules, and assets belong in their build output.
-
-Runtime plugins execute in the Workspace page with the same trust as application code. Administrators select executable modules; user-supplied widget declarations identify renderers and do not supply executable URLs.
-
-Build-time plugins are included in the application build. Changes to a plugin's source or hosted output do not change that deployment; updating its plugin code requires another application build.
 
 ## Building a plugin
 
@@ -86,7 +82,7 @@ The generated browser module exports `register(api)`. It evaluates the compiled 
 
 Assets listed in the build options keep their project-relative paths under `dist/`. Imported file assets receive generated names and are included in the descriptor. Use `new URL(assetPath, import.meta.url)` for URLs relative to `entry.js`. Load descriptor assets relative to `plugin.json`; CSS assets accompany the plugin's JavaScript. The same output can be copied into a Workspace build or served for runtime loading.
 
-The [basic widget example](../examples/plugins/basic-widget/) consumes the SDK through its own manifest and lockfile. It renders supplied endpoint data with HTML, exposes a symbol parameter and saved row selection, publishes data through WidgetShell, and provides data export and refresh through the lifecycle API. Its build script also copies `assets/style.css`.
+The [basic widget example](../examples/plugins/basic-widget/) uses the SDK through its own manifest and lockfile. It renders supplied endpoint data with HTML, has a symbol parameter and saved row selection, publishes data through WidgetShell, and provides data export and refresh through the lifecycle API. Its build script also copies `assets/style.css`.
 
 Local Bun dependencies link SDK source files to this checkout, so install the SDK's runtime dependencies before building the example. A packed SDK resolves its dependencies inside the consuming project.
 
@@ -110,63 +106,6 @@ bun scripts/build-plugin.ts --help
 
 For a project outside this checkout, set its SDK dependency to the local `packages/plugin-sdk/` path or a tarball produced by `bun pm pack` in that directory. Install and typecheck in the plugin project, then call its build script. No imports from Workspace source files or stores are required.
 
-## Including plugins in a frontend build
+## Development configuration
 
-From the Workspace root, prepare the administrator's selection before starting Vite or building the frontend:
-
-```sh
-bun scripts/prepare-frontend.ts --manifest /path/to/plugins.json
-cd frontend
-bun run build
-```
-
-Manifest paths resolve beside `plugins.json`. A build selection accepts `source.path` for a local project, `source.repository` and `source.ref` for a Git checkout, or `source.dist` for compiled output. Source projects use Bun and their own `bun.lock`, `typecheck` script, and `build` script; the build script calls the SDK helper. Repository selections require dependencies accessible from the cloned project, including its SDK dependency. Preparation runs installation, typechecking, and building in that project without changing Workspace's manifests or lockfiles. Runtime selections are left out of this build.
-
-Preparation validates descriptors and copies `plugin.json`, the entry module, and every declared asset into ignored `.build/plugins/bundles/<scope>/<package>/`. Missing files, incompatible API versions, duplicate selections, and failed source commands fail preparation. `.build/plugins/index.js` supplies the selected descriptors and module imports to Vite through `virtual:workspace-plugins`.
-
-Vite serves the compiled files at `/plugins/<scope>/<package>/` during development and copies them to that directory in `dist/`. Entry modules retain their own `import.meta.url`, so asset URLs resolve beside the compiled module in both cases. The loader loads stylesheets and awaits registration before mounting Workspace. Loading or registration failures appear on affected widgets; other plugins and core widgets remain available.
-
-Use `bun run dev` after preparation for source development. Re-run preparation and reload Workspace when changing the selection. To remove all selected plugins, run `bun scripts/prepare-frontend.ts` from the repository root. A checkout with no prepared output also uses an empty selection.
-
-The frontend Dockerfile includes the same prepared output from the repository root context. Prepare plugins on the host, then run `docker buildx build --load -f docker/Dockerfile --target frontend -t workspace-frontend:dev .`. Plugin repositories and their dependency installations are not needed inside that image build.
-
-## Installing plugins at runtime
-
-The frontend image writes `config.js` from container environment variables at startup. Use the same image with different settings for each deployment:
-
-```sh
-docker run --rm -p 8080:80 \
-  -e BACKEND_URL=http://127.0.0.1:8000 \
-  -e RUNTIME_PLUGINS_ENABLED=true \
-  -e PLUGINS_MANIFEST_URL=http://127.0.0.1:8090/plugins.json \
-  workspace-frontend:dev
-```
-
-`PLUGINS_MANIFEST_URL` is fetched by the user's browser, so use a URL reachable from that browser. Changing these environment variables and recreating the container requires no application rebuild. Runtime loading is disabled by default. With runtime loading disabled, Workspace skips the manifest and loads bundled plugins. A build can lock `plugins.runtimeEnabled` to `false` through its existing locked configuration policy.
-
-`VITE_RUNTIME_PLUGINS_ENABLED` and `VITE_PLUGINS_MANIFEST_URL` in `frontend/.env` are development/build fallbacks. For a frontend built with `bun run build:runtime` and served outside the container, set `plugins.runtimeEnabled` and `plugins.manifestUrl` in the deployed `config.js`.
-
-The [example manifest](../docker/plugins/plugins.example.json) selects the basic widget's generated descriptor. Deployment manifests belong with the deployment configuration; plugin source projects keep their own repositories.
-
-Descriptor URLs resolve beside the manifest. Entry modules and stylesheet URLs resolve beside their descriptor. Redirected manifests and descriptors use their final response URL. Build selections in a runtime manifest are ignored. Both loaders use the same registration code, supported API version, host dependencies, and registry; duplicate registrations cannot replace an installed renderer.
-
-The [plugin server Compose service](../docker/docker-compose.plugins.yml) uses nginx Alpine with the [nginx configuration](../docker/plugins/nginx.conf.template). It serves `PLUGINS_ROOT` through a read-only mount and sets CORS and `Cache-Control: no-store` headers.
-
-After building the example, run from the Workspace root:
-
-```sh
-mkdir -p .build/runtime-plugins/basic-widget
-cp docker/plugins/plugins.example.json .build/runtime-plugins/plugins.json
-cp -R examples/plugins/basic-widget/dist/. .build/runtime-plugins/basic-widget/
-PLUGINS_ROOT="$PWD/.build/runtime-plugins" \
-WORKSPACE_ORIGIN=http://127.0.0.1:8080 \
-docker compose -f docker/docker-compose.plugins.yml up
-```
-
-`PLUGINS_ROOT` is an absolute path containing `plugins.json` and compiled plugin bundles. Keep that directory in place when replacing its contents. Source repositories can live anywhere; deploy their compiled `dist/` output into named subdirectories and reference their descriptors in the manifest. The nginx configuration and Compose service belong to Workspace; deployment selections and compiled bundles stay outside tracked configuration.
-
-`PLUGINS_PORT` defaults to `8090`. Set `WORKSPACE_ORIGIN` to the Workspace browser origin; use `http://127.0.0.1:1420` for Vite development. The manifest in this example is available at `http://127.0.0.1:8090/plugins.json`. Cross-origin modules need CORS headers and JavaScript MIME types; nginx supplies these through its configuration. Use HTTPS plugin URLs for an HTTPS deployment. Same-origin hosting through the frontend nginx can use a relative manifest URL.
-
-Replace plugin files and the manifest, then reload Workspace to apply changes. Keep HTTP caching disabled for these mutable URLs, as in the example, so a reload retrieves replacement code and stylesheets. No Workspace rebuild is required. Removing a selection preserves saved widget settings and shows its unavailable diagnostic; restoring it and reloading recovers the widget. Descriptor or manifest request failures are logged with their URL. An incompatible descriptor or failed module produces a diagnostic for its widgets while other plugins and core widgets remain usable.
-
-Runtime modules are administrator-trusted application code running in the Workspace page for every deployment user. They can access the same browser data and application interfaces as Workspace. User backend declarations can reference installed renderer IDs but cannot select executable URLs. Bundling fixes the plugin code at application build time; it does not isolate that code.
+`VITE_RUNTIME_PLUGINS_ENABLED` and `VITE_PLUGINS_MANIFEST_URL` in `frontend/.env` are development/build fallbacks. For a frontend built with `bun run build:runtime` and served outside a container, set `plugins.runtimeEnabled` and `plugins.manifestUrl` in the deployed `config.js`. Container settings and installation commands are in [plugin installation](plugin-installation.md).
