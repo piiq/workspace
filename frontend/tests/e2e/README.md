@@ -4,15 +4,10 @@ Playwright checks login settings, uploaded CSV/JSON data, connected backend widg
 
 ## Run from source
 
-Use Python 3.13 with the activated backend virtual environment, uv, Bun, Node supported by `frontend/package.json`, and a running Docker daemon. From the repository root:
+Use Python 3.13, uv, Bun, Node supported by `frontend/package.json`, and a running Docker daemon. Create and activate the backend environment using [backend prerequisites](../../../backend/DEVELOPMENT_SETUP.md#prerequisites), and install dependencies using [frontend installation](../../README.md#installation). Then, from the repository root:
 
 ```bash
-cd backend
-uv sync --locked
-source .venv/bin/activate
-cd ../frontend
-bun install --frozen-lockfile
-cd ../packages/plugin-sdk
+cd packages/plugin-sdk
 bun install --frozen-lockfile --production
 cd ../../frontend
 bun run playwright install chromium
@@ -23,7 +18,7 @@ On Linux, install Chromium's system dependencies with `bun run playwright instal
 
 Playwright starts or reuses the frontend at `http://127.0.0.1:1420` and API at `http://127.0.0.1:8000`. The source backend runner starts Redis through `docker/docker-compose.e2e.yml`, applies migrations to SQLite, provisions the `Browser Tests` organization, and runs the API and worker. Database and uploaded files are stored in a temporary directory under ignored `backend/.e2e/`; stopping the runner removes the directory and its Redis container. Existing source servers must use the same organization and account configuration.
 
-The frontend server command prepares `fixtures/plugins.json`, which installs, typechecks, and builds the example using its own dependencies. Source configuration enables external agents and disables the hosted OpenBB Copilot and AI file enhancements. Reused frontend servers need the same prepared selection and configuration.
+The frontend server command prepares `fixtures/plugins.json`, which installs, typechecks, and builds the example using its own dependencies. Source configuration enables external agents and disables the OpenBB Copilot and AI file enhancements. Reused frontend servers need the same prepared selection and configuration.
 
 The account setup uses `admin_cli/openbb-admin` to create the member `playwright@example.com` with password `WorkspaceTest123!`, then signs in through the UI. The account-access scenarios check the Help page, member security settings, and the organization policy for personal backends. The policy scenario uses the source administrator account. CLI credentials stay in ignored `frontend/playwright/.cache/admin.json`; browser authentication stays in `frontend/playwright/.auth/user.json`. These credentials are for the local test environment.
 
@@ -44,7 +39,7 @@ PLAYWRIGHT_PLUGIN_MODE=runtime bun run playwright test tests/e2e/plugins.spec.ts
 PLAYWRIGHT_PLUGIN_MODE=runtime PLAYWRIGHT_FRONTEND_BUILD=true bun run playwright test tests/e2e/plugins.spec.ts
 ```
 
-Runtime mode builds the example and prepares an empty bundled selection. Each scenario starts a separate HTTP origin serving the descriptor, module, stylesheet, and administrator manifest with CORS and caching disabled. The fixture supplies browser configuration with runtime loading enabled and the test API URL. The scenarios also cover removal/reinstallation, incompatible descriptors, failed modules, and replacement code after a reload, without rebuilding Workspace. Bundled scenarios run with runtime loading disabled; a separate scenario verifies that a runtime selection cannot replace a bundled plugin.
+Runtime mode builds the example and prepares an empty bundled selection. Each scenario starts a separate HTTP origin serving the descriptor, module, stylesheet, and administrator manifest with CORS and caching disabled. The fixture sets browser configuration with runtime loading enabled and the test API URL. The scenarios also cover removal/reinstallation, incompatible descriptors, failed modules, and replacement code after a reload, without rebuilding Workspace. Bundled scenarios run with runtime loading disabled; a separate scenario verifies that a runtime selection cannot replace a bundled plugin.
 
 `PLAYWRIGHT_API_URL` selects the local API URL, including its listening port. `PLAYWRIGHT_REDIS_PORT` selects Redis's host port (default `16379`). `PLAYWRIGHT_EMAIL` and `PLAYWRIGHT_PASSWORD` select the test account. Source login settings disable registration, forgotten-password links, and identity providers.
 
@@ -59,9 +54,9 @@ PLAYWRIGHT_PASSWORD=WorkspaceTest123! \
 bun run test:e2e
 ```
 
-For combined and separate container deployments, follow [the container setup and verification commands](../../../docker/README.md).
+For application installation, use the [quickstart](../../../docs/quickstart.md) or [deployment guide](../../../docs/deployment.md). Image integration checks are covered in [development](../../../docs/development.md#test-images).
 
-Setting `PLAYWRIGHT_BASE_URL` uses the supplied deployment and account; Playwright does not start source servers or provision accounts. For deployments exposing registration, password recovery, or Google login, set `PLAYWRIGHT_ALLOW_REGISTRATION=true`, `PLAYWRIGHT_ALLOW_FORGOT_PASSWORD=true`, or `PLAYWRIGHT_IDENTITY_PROVIDERS=google` to match the deployed login settings. The configuration test checks the matching controls.
+Setting `PLAYWRIGHT_BASE_URL` uses the supplied deployment and account; Playwright does not start source servers or provision accounts. For deployments with registration, password recovery, or Google login, set `PLAYWRIGHT_ALLOW_REGISTRATION=true`, `PLAYWRIGHT_ALLOW_FORGOT_PASSWORD=true`, or `PLAYWRIGHT_IDENTITY_PROVIDERS=google` to match the deployed login settings. The configuration test checks the matching controls.
 
 Set `PLAYWRIGHT_PLUGIN_TESTS=true` to run plugin scenarios against a deployment with the basic widget example installed and external agents enabled. Selection changes run against the source server; deployment checks use the selected compiled plugin.
 

@@ -1,6 +1,6 @@
-# Testing Guide
+# Frontend unit and integration testing
 
-This document outlines the testing strategy, conventions, and best practices for the OpenBB Workspace project.
+This guide covers frontend unit and integration tests with Vitest and MSW. Playwright setup, scenarios, and results are documented in [browser tests](tests/e2e/README.md).
 
 ## Table of Contents
 
@@ -126,21 +126,7 @@ bun run test:integration
 
 ### E2E Tests
 
-```bash
-# Run all E2E tests
-bun run test:e2e
-
-# Run with UI (interactive mode)
-bun run playwright test tests/e2e --ui
-
-# Run specific test file
-bun run playwright test tests/e2e/auth.spec.ts
-
-# Generate test code against a running frontend
-bun run playwright codegen http://127.0.0.1:1420
-```
-
-See [the browser test setup](tests/e2e/README.md) for source servers, account provisioning, and deployment URLs. Tests use local data and do not require hosted OpenBB accounts or data subscriptions. Onboarding-question and PDF-export scenarios require `PLAYWRIGHT_HOSTED_TESTS=true` and a deployment with those features enabled.
+Use the [browser test guide](tests/e2e/README.md) for commands, source-server setup, and deployment checks.
 
 ### Storybook Accessibility Tests
 
@@ -310,55 +296,7 @@ describe("UserProfile", () => {
 
 ## E2E Testing
 
-We use Playwright for end-to-end tests that simulate real user behavior.
-
-### Basic E2E Test
-
-```typescript
-import { expect, test } from "@playwright/test";
-import { login } from "./helpers";
-
-test("user can create a dashboard", async ({ page }) => {
-  await login(page);
-
-  // Wait for app to load
-  await page.waitForSelector("#tabs", { timeout: 30000 });
-
-  // Create new dashboard
-  await page.click('[data-testid="new-dashboard-button"]');
-  await page.fill('[data-testid="dashboard-name-input"]', "My Dashboard");
-  await page.click('[data-testid="create-dashboard-submit"]');
-
-  // Verify dashboard was created
-  await expect(page.getByText("My Dashboard")).toBeVisible();
-});
-```
-
-### E2E Helper Functions
-
-Located in `tests/e2e/helpers.ts`:
-
-- `login(page)` - Authenticate user
-- `onboardUser(page)` - Complete onboarding flow
-- `acceptTermsAndConditions(page)` - Accept TOS
-- `dismissChangeLog(page)` - Dismiss changelog modal
-- `handleFirstTime(page)` - Handle first-time user setup
-
-### When to Write E2E Tests
-
-Write E2E tests for:
-
-- Critical user journeys (login, dashboard creation, data viewing)
-- Flows that span multiple pages
-- Features with complex browser interactions (drag-drop, charting)
-
-Do NOT write E2E tests for:
-
-- Individual component behavior (use unit tests)
-- API response handling (use integration tests)
-- Edge cases and error states (use unit/integration tests)
-
----
+Browser scenarios and their shared helpers are documented in [browser tests](tests/e2e/README.md). Use Playwright for user journeys spanning the frontend and backend; use Vitest for component behavior and mocked API responses.
 
 ## Mocking with MSW
 
@@ -626,7 +564,7 @@ coverage: {
 
 - All new code must have tests
 - Minimum 80% coverage for new files
-- Critical paths require 100% coverage (auth, payments, data handling)
+- Critical paths require 100% coverage (auth, data handling)
 
 ---
 
