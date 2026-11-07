@@ -68,11 +68,11 @@ tests/
 bun install --frozen-lockfile
 ```
 
-`--frozen-lockfile` installs the versions in `bun.lock` and fails if the dependency declarations require a lockfile change. This keeps a checkout's dependencies consistent with CI. Use `bun add`, `bun remove`, or `bun update` for dependency changes.
+Use `bun add`, `bun remove`, or `bun update` to change dependencies and the lockfile.
 
 ### Building and running
 
-Note: Use this if you are testing the application. If you are developing the application use the development section below.
+To preview a production build:
 
 ```bash
 bun run build
@@ -84,23 +84,19 @@ Optional renderers use the [plugin installation guide](../docs/plugin-installati
 bun run preview
 ```
 
-This will start the web application on `http://localhost:4173`.
+Open `http://localhost:4173`.
 
 ## Development
-
-To start the web application:
 
 ```bash
 bun run dev
 ```
 
-This will start the web application in development mode on `http://localhost:1420`.
+Open `http://localhost:1420`.
 
 The development configuration connects to `http://localhost:8000`. Configure the backend's [frontend URL and CORS settings](../docs/deployment.md#deployment-urls-and-cors) for `http://localhost:1420`. Set `VITE_BACKEND_URL`, other API URLs, OAuth client IDs, and analytics settings for your deployment in `.env.local`. Container deployments accept these settings at startup through environment variables; see [container configuration](../docs/deployment.md).
 
 ### Adding Icons
-
-Workflow to add icons to the project:
 
 1. Get the SVG source:
 
@@ -134,7 +130,7 @@ Workflow to add icons to the project:
 
 ## Special things to remember
 
-- Custom class names prefixed with underscore (e.g., `_copy-chart-data-button`) are used to mark HTML elements for easy identification in selectors and testing. The underscore prefix indicates these are developer-defined classes rather than framework or library classes.
+- Use underscore-prefixed classes such as `_copy-chart-data-button` for test selectors.
 
 ## Testing
 

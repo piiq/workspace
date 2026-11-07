@@ -12,9 +12,7 @@ related:
 
 # Backend Contract
 
-An OpenBB Workspace backend is an HTTP service that returns JSON. Workspace fetches metadata and data from your backend over HTTP; it does not import your code, run your runtime, or care which language you use.
-
-Any framework that can serve JSON over HTTP works: FastAPI, Flask, Django, Express, Fastify, Hono, Spring, Actix, ASP.NET, Go's `net/http`, etc. The contract below is identical for all of them.
+An OpenBB Workspace backend serves metadata and data as JSON over HTTP. Use your project's language and framework.
 
 ## Required endpoints
 
@@ -73,4 +71,4 @@ Always serve UTF-8. If your backend reads JSON files from disk to serve them, op
 
 ## Language and framework neutrality
 
-Nothing on this page is Python-specific. The fastest documented starter is FastAPI (see `openbb://workspace/examples/python-fastapi/minimal`), but `openbb://workspace/examples/generic-http/minimal` shows the same contract framework-neutrally. Pick whatever your project already uses.
+For examples, see `openbb://workspace/examples/python-fastapi/minimal` and `openbb://workspace/examples/generic-http/minimal`.

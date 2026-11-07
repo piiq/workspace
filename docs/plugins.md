@@ -1,6 +1,6 @@
 # Plugin development
 
-This guide describes the SDK, plugin builds, and host interfaces. For runtime serving and build-time preparation, see [plugin installation](plugin-installation.md).
+For runtime serving and build-time preparation, see [plugin installation](plugin-installation.md).
 
 `packages/plugin-sdk/` provides `@piiq/workspace-plugin-sdk`. Import paths use that name regardless of where the package was downloaded. The frontend uses it as a local Bun dependency. External projects can install it from a [GitHub release tarball](#developing-a-plugin).
 
@@ -10,7 +10,7 @@ Install frontend dependencies using the [frontend development guide](../frontend
 
 Use `definePlugin(packageJson, declarations)` to take the plugin name and version from its `package.json`. Declare renderer metadata and components together: `name`, `title`, optional `description`, `kind` (`content` or `table`), input/parameter/state JSON schemas, and optional capability names. `createPluginDescriptor(plugin, { entry, assets, styles })` produces serializable metadata from those declarations.
 
-`kind: "table"` describes the renderer's content and does not select a table library. A renderer that needs the host's AG Grid table context declares `wrapper: "ag-grid"`. A renderer using its own table library, such as Perspective, omits that field. These settings belong to plugin registration; backend `widgets.json` declarations reference renderers through their existing `type` field.
+`kind: "table"` describes the renderer's content and does not select a table library. A renderer that needs the host's AG Grid table context declares `wrapper: "ag-grid"`. A renderer using its own table library, such as Perspective, omits that field. Backend `widgets.json` declarations reference renderers through `type`.
 
 Plugin IDs use the scoped package name from `package.json`, such as `@piiq/tradingview`. Scope, package, local renderer, and capability names use lowercase kebab-case. A renderer named `chart` becomes `@piiq/tradingview/chart`. Built-in renderers retain identifiers such as `ag_grid_table` and `metric`.
 
@@ -42,7 +42,7 @@ These aliases select renderers; they do not install plugins or identify file loc
 
 `api.host` provides the application's React, ReactDOM, ReactDOM client, and JSX runtime. Plugins use these React instances to share the application's hooks. `host.useTheme()` follows the application's light/dark theme. The core SDK has no AG Grid imports; plugins using other rendering libraries do not need to install AG Grid.
 
-`host.ui` provides the application's Button, Icon, Tooltip, WidgetShell, and RawDataTable. These components load lazily and require a React Suspense boundary. WidgetShell uses the existing draggable card, loading/error display, parameter controls, agent access to widget data, CSV/XLSX downloads for array data, and a `toolbar` slot. A plugin renders its library-specific content as children. RawDataTable uses the host's existing grid, column processing, and widget context.
+`host.ui` provides Button, Icon, Tooltip, WidgetShell, and RawDataTable. Wrap them in a React Suspense boundary. WidgetShell provides the draggable card, loading/error display, parameter controls, agent data access, CSV/XLSX downloads for array data, and a `toolbar` slot. Render plugin content as its children. Use RawDataTable to display an array with Workspace's table controls.
 
 WidgetShell hides its content and shows the host's loading indicator while its widget is being resized.
 
@@ -74,7 +74,7 @@ Declare `agGridCapabilities` alongside renderers, using `AgGridCapabilityDefinit
 
 Selection formats and source choices are documented in [plugin installation](plugin-installation.md). Application flags remain in `frontend/src/lib/runtimeConfigSchema.ts`.
 
-The SDK validates selections and descriptors. Workspace preparation and descriptor loading are separate from building a plugin. Plugin sources retain their own dependencies and lockfiles; generated descriptors, entry modules, and assets belong in their build output.
+Keep each plugin's dependencies and lockfile in its repository, and generated files in its build output.
 
 ## Developing a plugin
 
@@ -95,15 +95,13 @@ For `define`, pass expressions such as `{ LICENSE_KEY: JSON.stringify(key) }`. T
 
 The generated descriptor lists copied files in `assets` and page stylesheets in `styles`. Set `styles` to select which CSS assets load into the Workspace page. Use `styles: []` for libraries that load their own CSS inside an iframe.
 
-Default-export a `PluginDefinition` created with `definePlugin(packageJson, declarations)` from the entry module. Its name/version must match the project's `package.json`. The build imports this module in Bun to generate the descriptor from the same declarations used during registration. Put browser initialization in `setup(host)` or the renderer component. Build failures exit with an error; install the plugin's dependencies and run its TypeScript check before building.
+Default-export a `PluginDefinition` created with `definePlugin(packageJson, declarations)` from the entry module. Its name/version must match `package.json`. Put browser initialization in `setup(host)` or the renderer component. Install dependencies and run the plugin's TypeScript check before building.
 
-The generated browser module exports `register(api)`. It evaluates the compiled plugin using that API's React, ReactDOM, JSX runtime, and optional AG Community exports, then awaits `api.registerPlugin()`. Plugins can use ordinary imports from `react`, `react-dom`, `react-dom/client`, `react/jsx-runtime`, `ag-grid-community`, `ag-charts-community`, and `ag-charts-core`; these dependencies come from the host during registration. Other dependencies are bundled from the plugin project. The Bun build helper is a separate SDK export and is not included in browser code.
+Plugins can import `react`, `react-dom`, `react-dom/client`, `react/jsx-runtime`, `ag-grid-community`, `ag-charts-community`, and `ag-charts-core` from the host. Other dependencies are bundled from the plugin project.
 
-Assets listed in the build options keep their project-relative paths under the output directory. Imported file assets receive generated names and are included in the descriptor. Use `new URL(assetPath, import.meta.url)` for URLs relative to `entry.js`. Load descriptor assets relative to `plugin.json`; CSS assets accompany the plugin's JavaScript. The same output can be copied into a Workspace build or served for runtime loading.
+Copied assets keep their project-relative paths under the output directory. Imported assets receive generated names. Use `new URL(assetPath, import.meta.url)` for URLs relative to `entry.js`, or resolve descriptor asset paths relative to `plugin.json`.
 
-The [basic widget example](../examples/plugins/basic-widget/) uses the SDK through its own manifest and lockfile. It renders supplied endpoint data with HTML, has a symbol parameter and saved row selection, publishes data through WidgetShell, and provides data export and refresh through the lifecycle API. Its build script also copies `assets/style.css`.
-
-Local Bun dependencies link SDK source files to this checkout, so install the SDK's runtime dependencies before building the example. A packed SDK resolves its dependencies inside the consuming project.
+Build the [basic widget example](../examples/plugins/basic-widget/) from the Workspace root. Install the local plugin SDK's runtime dependencies first:
 
 ```sh
 cd packages/plugin-sdk
@@ -114,7 +112,7 @@ bun run typecheck
 bun run build
 ```
 
-From the Workspace root, the convenience command builds a definition module using the plugin's installed SDK and dependencies:
+To build a definition module from the Workspace root:
 
 ```sh
 bun scripts/build-plugin.ts --path examples/plugins/basic-widget --asset assets
@@ -123,7 +121,7 @@ bun scripts/build-plugin.ts --help
 
 `--entry` selects a module other than `src/index.tsx`; repeat `--asset` for multiple files or directories. Plugin projects can call the SDK helper from their own build scripts without this command.
 
-For a project outside this checkout, install the SDK from the [latest SDK tarball](https://github.com/piiq/workspace/releases/latest/download/workspace-plugin-sdk.tgz). Local SDK development can use the `packages/plugin-sdk/` path or a tarball produced by `bun pm pack` in that directory. Install and typecheck in the plugin project, then call its build script. No imports from Workspace source files or stores are required. See [SDK releases](maintaining.md#plugin-sdk-releases) for publication and dependency updates.
+For a project outside this checkout, install the [latest plugin SDK tarball](https://github.com/piiq/workspace/releases/latest/download/workspace-plugin-sdk.tgz). For local SDK development, use the `packages/plugin-sdk/` path or a tarball produced by `bun pm pack` there. See [SDK releases](maintaining.md#plugin-sdk-releases) for dependency updates.
 
 ## Development configuration
 

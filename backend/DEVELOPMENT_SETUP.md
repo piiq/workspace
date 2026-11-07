@@ -1,13 +1,8 @@
 # Development Setup
 
-This guide walks through setting up the OpenBB Workspace backend for local development.
+For UI development on macOS, use `docker/docker-compose-local-dev.yml`. It mounts `backend/` into the API and worker containers for source edits.
 
-For interactive UI development on macOS, run the backend inside Docker via
-`docker/docker-compose-local-dev.yml`. The API and RQ worker both run from Linux
-containers with the local `backend/` folder bind-mounted, so normal code changes
-do not require rebuilding the images.
-
-For automated browser tests, follow the [browser test setup](../frontend/tests/e2e/README.md). It runs the API and worker from source with SQLite and file storage, and starts Redis in Docker.
+For automated UI checks, follow the [browser test setup](../frontend/tests/e2e/README.md).
 
 ## Prerequisites
 
@@ -56,11 +51,7 @@ All commands run from the repository root unless noted otherwise.
 docker compose -f docker/docker-compose-local-dev.yml up --build --watch
 ```
 
-This starts MySQL (port 3306), Redis (port 6379), the FastAPI backend on
-`http://localhost:8000`, and the RQ worker. The API container runs migrations on
-startup and starts Uvicorn with `--reload`, so backend edits are picked up
-automatically. The worker container uses Compose watch to restart on backend
-code changes.
+The API is available at `http://localhost:8000`, MySQL at port `3306`, and Redis at port `6379`. API edits reload through Uvicorn; worker edits restart through Compose watch.
 
 ### 2. Initialize admin users and entities
 
@@ -71,13 +62,7 @@ docker compose -f docker/docker-compose-local-dev.yml exec fastapi python -m scr
 docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
 ```
 
-This reads entity/admin configuration from `backend/scripts/cfgs/config.toml` and:
-
-- Creates an entity ("Local Development") with Admin and User roles
-- Creates the admin user (`admin@openbb.co` / `asdQWE123!`) as a superuser
-- Writes `/data/user_create.json` with UUIDs needed by the API and worker
-
-The HubSpot errors in the output are expected (fake API keys in local dev).
+Edit `backend/scripts/cfgs/config.toml` to change the organization or administrator. The default login is `admin@openbb.co` / `asdQWE123!`. Provisioning writes `/data/user_create.json` for the API and worker.
 
 ### 3. Verify authentication
 
@@ -88,7 +73,7 @@ curl -s http://localhost:8000/pro/login \
   -d '{"email":"admin@openbb.co","password":"asdQWE123!","remember":false}'
 ```
 
-A successful response returns JSON with `access_token`, `uuid`, etc.
+Check that the response contains an `access_token`.
 
 Deployment administrators use the [admin CLI](../admin_cli/README.md) to manage this backend's users and organizations.
 
@@ -133,8 +118,7 @@ docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
   Check that the account belongs to the expected organization and rerun `scripts.init_users` with its configured administrator credentials.
 
 - Login returns 403 "User is not confirmed":
-  The admin user was created without `confirmed=1`. This is fixed in the current
-  `init_users.py`. Do a full reset.
+  Check the user's `confirmed` field. Development administrators must be confirmed.
 
 - API or worker is not picking up code changes:
   Confirm the bind mount is active and that you started Compose with `--watch`.
@@ -146,11 +130,9 @@ docker compose -f docker/docker-compose-local-dev.yml restart fastapi rq_worker
   `localhost`. The compose file handles this via `environment:` overrides. If you see
   connection errors, verify the overrides are present in `docker/docker-compose-local-dev.yml`.
 
-## Architecture Notes
+## Service authentication
 
-- The `OPENBB_AUTH_TOKEN` in `.env` is the service-to-service auth token. When
-  `DISABLE_CORS=1`, the `/pro/*` endpoints auto-authenticate using this token,
-  so no `X-OpenBB-Authorization` header is needed from localhost clients.
+`OPENBB_AUTH_TOKEN` is the service token. With `DISABLE_CORS=1`, localhost requests to `/pro/*` can omit `X-OpenBB-Authorization`.
 
 ### Account bootstrap file
 

@@ -1,27 +1,21 @@
 # Deploying the OpenBB Add-in for Excel On-Premise
 
-This documentation section provides guidelines for deploying the OpenBB Excel add-in in an on-premise environment, separated into steps for the OpenBB Add-in Developer and a guide for the Client Organization Administrator.
-
 ## Guidelines for OpenBB Add-in Developer
 
-The developer's primary task is to build and deliver the customized add-in package, including the front-end application and the manifest file, configured for the client's domain.
+Configure the add-in for the deployment domain, then build and deliver it:
 
 | Step                         | Action                                                        | Details                                                                                              |
 | :--------------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------- |
-| 1. Configure Environment | Update local environment variables (e.g., in an `.env` file). | The `ADDIN_BASE_URL` variable must be set to the domain where the client will host the application (e.g., `https://client-domain.com`). This URL is automatically replaced in the `manifest.xml` during the build. |
-| 2. Configure Backend URL | Update the backend URL configuration.                         | The `VITE_BACKEND_URL` must point to the client's specific OpenBB instance/backend. This variable is hardwired into the application bundle at build time, as the add-in uses this to point to the services (e.g., for login). |
-| 3. Configure Add-in UUID | Set a unique identifier for the add-in.                       | The `ADDIN_UUID` variable must be set to a unique UUID for the client's deployment. This identifier is used in the manifest.xml file. |
-| 4. Build the Application | Run the build command to generate the production-ready files. | Execute `npm run build`. This command creates the static bundle and updates the `manifest.xml` in the `dist` folder with the new `ADDIN_BASE_URL` and other configuration variables. |
-| 5. Validate Manifest     | Validate the generated manifest file.                         | Execute `npm run validate` to ensure the manifest.xml file is valid before delivery.                 |
-| 6. Package for Delivery  | Prepare the built files for client transfer.                  | Deliver the contents of the `dist` folder (the build static bundle and the customized `manifest.xml`) to the client, typically as a `.zip` file. |
+| 1. Hosting URL | Set `ADDIN_BASE_URL` | Add-in hosting URL, such as `https://client-domain.com`. |
+| 2. Backend URL | Set `VITE_BACKEND_URL` | Workspace backend URL. |
+| 3. Add-in ID | Set `ADDIN_UUID` | Unique UUID for this deployment. |
+| 4. Build | `npm run build` | Output is in `dist/`. URL settings are fixed at build time. |
+| 5. Validate | `npm run validate` | Check `manifest.xml`. |
+| 6. Deliver | Send `dist/` | Include the web files and `manifest.xml`. |
 
 ## Guide for Client Organization Administrator
 
-The OpenBB Excel Add-in is an application that integrates directly into Microsoft Excel, providing users with access to data available in their OpenBB Workspace. It uses a custom ribbon interface and task pane.
-
-From a technical perspective the add-in consists of a static web application bundle and a manifest file that configures how Excel loads and displays the add-in.
-
-The administrator's role is to host the application services and distribute the custom manifest within their Microsoft 365 environment.
+Host the built application and distribute its manifest through Microsoft 365.
 
 Prerequisites.
 
@@ -41,8 +35,6 @@ Deployment Steps.
 5. Upload Custom App: Select the option to Upload Custom App.
 6. Upload Manifest: Upload the customized `manifest.xml` file from the build.
 7. Deploy to Users: Follow the prompts to deploy the add-in to the desired user groups or the entire organization.
-
-Once deployed - the custom manifest file instructs the client's Excel application to load the add-in from the client's hosted domain.
 
 ## Release
 

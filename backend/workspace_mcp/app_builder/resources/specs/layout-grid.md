@@ -72,9 +72,7 @@ Group object shape:
 
 ## Click-through navigation (apply aggressively)
 
-The single biggest UX upgrade: clicking a row in a discovery table updates the rest of the dashboard. Audit every `table` widget for it before declaring an app done.
-
-The rule. For every table column, check the column's `field`. If any `field` matches a `paramName` used by an app-level group (and the cell value is what the param expects, e.g. a ticker symbol), that column MUST have:
+Check each table column for a `field` matching an app group's `paramName`. When its cell value matches the parameter's expected value, configure it for click-through:
 
 ```json
 {

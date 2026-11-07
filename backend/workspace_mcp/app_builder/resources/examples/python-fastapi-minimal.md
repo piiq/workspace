@@ -12,13 +12,11 @@ related:
 
 # Minimal Backend: Python + FastAPI
 
-> This is an implementation example, not a platform requirement. Workspace is language-agnostic. If your project already uses a different framework, use that. See `openbb://workspace/examples/generic-http/minimal` for the framework-neutral shape.
-
-FastAPI is the recommended Python starter because most current OpenBB examples are written against it.
+For other frameworks, use `openbb://workspace/examples/generic-http/minimal`.
 
 ## Project shape
 
-```
+```text
 my-backend/
 ├── main.py            # FastAPI app + routes
 ├── widgets.json       # Widget metadata (served from /widgets.json)

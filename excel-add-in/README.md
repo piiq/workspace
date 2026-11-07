@@ -37,8 +37,6 @@ Use [.env.local](https://vitejs.dev/guide/env-and-mode.html#env-files) file to o
 
 #### Analytics Configuration
 
-The add-in supports analytics configuration through environment variables:
-
 - VITE_ENV: Deployment environment
   - `ONPREM`: Disables analytics for on-premise deployments
   - `DEVELOPMENT`: Disables analytics for development environments
@@ -47,7 +45,7 @@ The add-in supports analytics configuration through environment variables:
 - VITE_POSTHOG_API_KEY: PostHog API key (required for analytics)
 - VITE_POSTHOG_API_HOST: PostHog API host (required for analytics)
 
-For On-Premise Deployments: Set `VITE_ENV=ONPREM` to completely disable analytics. Analytics will also be automatically disabled if PostHog environment variables are missing.
+For on-premise deployments, set `VITE_ENV=ONPREM`. Analytics requires both PostHog variables.
 
 ### Generate custom functions & integration tests
 
@@ -86,7 +84,7 @@ cd OpenBBTerminal/website
 python scripts/generate_excel_markdown.py
 ```
 
-This will create a local version of the [reference](https://docs.openbb.co/excel/reference) section. This script will run automatically on every docs website deployment. To update the reference or other static documentation just re-deploy the website.
+Redeploy the documentation website after updating the reference.
 
 ## Deployment
 
@@ -172,19 +170,12 @@ npm run test
 
 ## Office Add-in React Vite Template
 
-This is a template for developing an [Office.JS](https://learn.microsoft.com/en-us/office/dev/add-ins/) Excel add-in with Vite and React 18. The main advantage of using this template is a much faster development cycle. The development server starts in just 2-3 seconds and hot-reloaded changes are near instant.
+The add-in uses [Office.JS](https://learn.microsoft.com/en-us/office/dev/add-ins/), Vite, and React 18.
 
-## Key differences
+## Template origin
 
 This template was generated using the [generator-office](https://www.npmjs.com/package/generator-office) generator which is based on the [Office-Addin-Taskpane-React](https://github.com/OfficeDev/Office-Addin-TaskPane-React) project.
 
-These are the key differences between this template and the default generated template:
+## Browser support
 
-- Use Vite instead of Webpack.
-- Use React 18.
-- Remove polyfills and support for IE 11.
-- Enabled typescript strict mode
-
-## Legacy Browsers
-
-This template does not include support for IE11. If you need support, add [@vitejs/plugin-legacy](https://github.com/vitejs/vite/tree/main/packages/plugin-legacy).
+IE11 is unsupported.

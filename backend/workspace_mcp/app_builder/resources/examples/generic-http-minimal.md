@@ -24,7 +24,7 @@ If you're already on Python and want a runnable starting point, see `openbb://wo
 | `GET` | `/apps.json` | JSON array of app templates (optional) |
 | `GET` | `/prices?symbol=AAPL` | JSON array of rows for the price table widget |
 
-That's it. Add more data routes for each widget you expose.
+Add a data route for each widget.
 
 ## Response shapes
 
@@ -127,17 +127,8 @@ Workspace lets users register the backend connection with header or query-string
 
 ## Encoding
 
-Serve UTF-8 on every response. If you read JSON files from disk, open them explicitly as UTF-8 because defaulting to the OS locale will mangle non-ASCII content (Greek letters, em-dashes, emoji) on systems whose default isn't UTF-8.
+Serve UTF-8 responses and use UTF-8 when reading JSON files.
 
 ## Picking a stack
 
-Anything that can do the above works. Concrete starting points by ecosystem:
-
-- Python: FastAPI, Flask, Starlette, Django REST.
-- Node: Express, Fastify, Hono.
-- Go: `net/http`, Echo, Gin, Chi.
-- Rust: Axum, Actix-web.
-- Java/Kotlin: Spring Boot, Ktor.
-- C#: ASP.NET Core minimal APIs.
-
-If you want a runnable Python sample to copy from, see `openbb://workspace/examples/python-fastapi/minimal`.
+Use your project's framework. For a runnable Python example, see `openbb://workspace/examples/python-fastapi/minimal`.

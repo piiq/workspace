@@ -14,7 +14,7 @@ Use the HTTP API for marketplace administration. The admin CLI manages users, or
 
 ## Publishing a Developer's App
 
-A developer's submitted app has `development` status. Review and publish it with these steps.
+A submitted app has `development` status.
 
 ### 1. List apps waiting for review
 
@@ -23,7 +23,7 @@ curl "http://localhost:8080/api/admin/marketplace/apps?status=development" \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
-Each version is a separate entry with its own `id`. If a developer submitted v1.0 and v1.2, you'll see both:
+Each version has its own `id`:
 
 ```json
 [
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8080/api/admin/marketplace/apps/<OLD_APP_ID>/enabl
 
 ## Creating Apps Directly (Without Developer)
 
-If the developer hasn't used the self-serve flow, you can create the vendor + app yourself.
+Create the vendor and app directly:
 
 ### Create vendor + app
 
@@ -163,7 +163,7 @@ curl -X POST http://localhost:8080/api/admin/marketplace/vendors/<VENDOR_ID>/app
 
 ### Assign ownership to a developer
 
-So a developer can manage the app via the self-serve endpoints:
+Set ownership for developer API access:
 
 ```bash
 curl -X PATCH http://localhost:8080/api/admin/marketplace/apps/<APP_ID> \

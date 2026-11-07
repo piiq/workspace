@@ -9,7 +9,9 @@ A self-hosted workspace for financial data. Connect your data sources, build das
 Run Workspace with Docker on macOS, Windows, or Linux:
 
 ```sh
-docker run -d --name workspace -p 127.0.0.1:8080:80 -v "${PWD}/data:/data" ghcr.io/piiq/workspace:latest
+docker run -d --name workspace -p 127.0.0.1:8080:80 \
+           -v "${PWD}/data:/data" \
+           ghcr.io/piiq/workspace:latest
 ```
 
 Once the container is healthy, run `docker exec workspace credentials` and sign in at [http://localhost:8080](http://localhost:8080). See the [quickstart](docs/quickstart.md) for Docker requirements and connecting your data.
@@ -21,7 +23,10 @@ Workspace starts without bundled market data. Bring your own data through file u
 Give your agent this prompt:
 
 ```text
-Set up OpenBB Workspace Community Fork on this machine following https://raw.githubusercontent.com/piiq/workspace/main/docs/quickstart.md. Use docker run with the published image and a local data folder mounted at /data. Start Workspace, verify that it is healthy, and tell me the URL and the command to retrieve the administrator credentials.
+Set up OpenBB Workspace Community Fork on this machine following
+https://raw.githubusercontent.com/piiq/workspace/main/docs/quickstart.md.
+Use docker run with the published image and a local data folder mounted at /data.
+Start Workspace, verify that it is healthy, and tell me the URL and the command to retrieve the administrator credentials.
 ```
 
 ## Documentation

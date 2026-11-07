@@ -16,11 +16,9 @@ related:
 
 # Build an App
 
-A linear workflow for going from "I want a Workspace app for X" to a working backend that Workspace can connect to.
-
 ## 0. Understand Workspace
 
-If this is your first time, read `openbb://workspace/overview/what-is-workspace` and `openbb://workspace/overview/ai-agent-contract` before drafting anything. They explain Workspace's built-in features, the backend's responsibilities, and how the AI Agent reads widget metadata.
+Read `openbb://workspace/overview/what-is-workspace` and `openbb://workspace/overview/ai-agent-contract` before designing the app.
 
 ## 1. Define the user goal and data sources
 
@@ -28,11 +26,7 @@ Write down, in plain English, what the user wants to see and do. Identify the ac
 
 ## 2. Choose a backend implementation
 
-Use the project's framework or one you already know. Any framework that serves JSON over HTTP works. Most examples use Python and FastAPI.
-
-- Existing project? Use whatever framework it uses.
-- Greenfield with no constraints? Use FastAPI. See `openbb://workspace/examples/python-fastapi/minimal`.
-- Want a framework-neutral picture first? See `openbb://workspace/examples/generic-http/minimal`.
+Use the project's framework. For a new Python project, see `openbb://workspace/examples/python-fastapi/minimal`. For other frameworks, see `openbb://workspace/examples/generic-http/minimal`.
 
 ## 3. Define the HTTP contract
 
