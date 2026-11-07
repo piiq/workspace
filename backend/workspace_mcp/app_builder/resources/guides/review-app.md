@@ -84,7 +84,7 @@ For every `table` widget:
 
 ## 6. Common Workspace validation failures
 
-Walk `openbb://workspace/validation/common-errors`. Most reviews find at least one entry from that list.
+Check `openbb://workspace/validation/common-errors`.
 
 ## 7. Encoding, performance, and tests
 

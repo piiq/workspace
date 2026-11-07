@@ -1,6 +1,6 @@
 # Frontend unit and integration testing
 
-This guide covers frontend unit and integration tests with Vitest and MSW. Playwright setup, scenarios, and results are documented in [browser tests](tests/e2e/README.md).
+Use Vitest and MSW for unit and integration tests. For Playwright setup and commands, see [browser tests](tests/e2e/README.md).
 
 ## Table of Contents
 
@@ -20,28 +20,12 @@ This guide covers frontend unit and integration tests with Vitest and MSW. Playw
 
 ## Testing Philosophy
 
-We follow a Test-Driven Development (TDD) approach for new features:
+For new features:
 
 1. Write the test first - Define expected behavior before implementation
 2. Make it fail - Verify the test fails for the right reason
 3. Make it pass - Write minimal code to pass the test
 4. Refactor and rerun the tests
-
-### Testing Pyramid
-
-```text
-        /\
-       /E2E\        <- Few, critical user journeys
-      /------\
-     /Integration\  <- API + component interactions
-    /--------------\
-   /   Unit Tests   \ <- Many, fast, isolated
-  /------------------\
-```
-
-- Unit tests: Test individual functions, hooks, and components in isolation
-- Integration tests: Test component interactions with mocked APIs (MSW)
-- E2E tests: Test critical user flows in a real browser (Playwright)
 
 ---
 
@@ -99,7 +83,7 @@ src/api/auth.api.ts
 
 ### Unit Tests
 
-Plugin build tests compile the standalone example with Bun and register its generated module against the host API. Install the SDK runtime and example dependencies using [the plugin build instructions](../docs/plugins.md#developing-a-plugin) before running the unit suite.
+Install the plugin SDK runtime and example dependencies using [the plugin build instructions](../docs/plugins.md#developing-a-plugin) before running the unit suite.
 
 ```bash
 # Run all unit tests
@@ -130,7 +114,7 @@ Use the [browser test guide](tests/e2e/README.md) for commands, source-server se
 
 ### Storybook Accessibility Tests
 
-We use `@storybook/test-runner` and `axe-playwright` to run accessibility (WCAG) checks against our UI components using Storybook.
+To check Storybook accessibility:
 
 ```bash
 # 1. Build the static Storybook (requires significant memory, hence NODE_OPTIONS)
@@ -146,8 +130,6 @@ bunx test-storybook --url http://127.0.0.1:6006
 ---
 
 ## Unit Testing
-
-We use Vitest with React Testing Library for unit tests.
 
 ### Basic Component Test
 
@@ -250,8 +232,6 @@ describe("DataComponent", () => {
 
 ## Integration Testing
 
-Integration tests verify components work correctly with mocked API responses.
-
 ### Using MSW for API Mocking
 
 ```tsx
@@ -299,8 +279,6 @@ describe("UserProfile", () => {
 Browser scenarios and their shared helpers are documented in [browser tests](tests/e2e/README.md). Use Playwright for user journeys spanning the frontend and backend; use Vitest for component behavior and mocked API responses.
 
 ## Mocking with MSW
-
-Mock Service Worker (MSW) intercepts network requests and returns responses from test handlers.
 
 ### MSW File Structure
 
@@ -483,46 +461,11 @@ When adding new API endpoints:
 
 ### For New Features
 
-1. Write E2E test (if user-facing feature):
-
-   ```typescript
-   test("user can export dashboard to PDF", async ({ page }) => {
-     // This will fail - feature doesn't exist
-     await page.click('[data-testid="export-pdf-button"]');
-     await expect(page.getByText("PDF exported")).toBeVisible();
-   });
-   ```
-
-2. Write integration test for component:
-
-   ```typescript
-   describe("ExportButton", () => {
-     setupMSW();
-
-     it("calls export API when clicked", async () => {
-       // This will fail - component doesn't exist
-       render(<ExportButton dashboardId="123" />);
-       await userEvent.click(screen.getByRole("button"));
-       // Assert API was called
-     });
-   });
-   ```
-
-3. Write unit tests for utilities/hooks:
-
-   ```typescript
-   describe("useExport", () => {
-     it("returns export function", () => {
-       // This will fail - hook doesn't exist
-       const { result } = renderHook(() => useExport());
-       expect(result.current.exportToPDF).toBeDefined();
-     });
-   });
-   ```
-
-4. Implement code to make tests pass
-
-5. Refactor and rerun the tests
+1. Write a browser test for user-facing behavior.
+2. Write component integration tests.
+3. Write unit tests for utilities and hooks.
+4. Implement code to make tests pass.
+5. Refactor and rerun the tests.
 
 ### For Bug Fixes
 
@@ -536,29 +479,17 @@ When adding new API endpoints:
 
 ## Coverage Requirements
 
-### Current Thresholds
-
-```typescript
-// vite.config.ts
-coverage: {
-  thresholds: {
-    lines: 20,
-    functions: 20,
-    branches: 15,
-    statements: 20,
-  }
-}
-```
+Coverage thresholds are configured in [vite.config.ts](vite.config.ts).
 
 ### Target Coverage by Area
 
-| Area | Current | Target |
-|------|---------|--------|
-| API modules | 88% | 90%+ |
-| Hooks | 55% | 80%+ |
-| Utils/Lib | 49% | 80%+ |
-| Components | 8% | 60%+ |
-| Routes | ~2% | 50%+ |
+| Area | Target |
+| --- | --- |
+| API modules | 90%+ |
+| Hooks | 80%+ |
+| Utils/Lib | 80%+ |
+| Components | 60%+ |
+| Routes | 50%+ |
 
 ### New Code Requirements
 
@@ -658,13 +589,11 @@ describe("Modal", () => {
 
 "ResizeObserver is not defined".
 
-- Already polyfilled in `vitest.setup.ts`
-- If still failing, check test is using the setup file
+- Check that the test loads the polyfill in `vitest.setup.ts`.
 
 "Canvas is not defined".
 
-- Already mocked via `vitest-canvas-mock`
-- For charting tests, may need additional mocking
+- Check that the test loads `vitest-canvas-mock` and mocks the chart APIs it uses.
 
 MSW not intercepting requests.
 
@@ -696,4 +625,3 @@ screen.logTestingPlaygroundURL();
 1. Check existing tests for similar patterns
 2. Review React Testing Library docs: <https://testing-library.com/docs/react-testing-library/intro>
 3. Check Vitest docs: <https://vitest.dev/>
-4. Ask in team Slack channel

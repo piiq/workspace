@@ -14,11 +14,7 @@ cd backend
 pytest tests -v
 ```
 
-Testcontainers supplies the database and Redis; no separate Compose stack is needed. Testcontainers automatically:
-
-1. Starts fresh MySQL and Redis containers with random ports
-2. Configures the test environment to use those containers
-3. Stops and cleans up containers when tests finish
+Testcontainers manages MySQL and Redis for the test session.
 
 ### Running a specific test file
 
@@ -35,18 +31,7 @@ pytest tests/test_auth.py::TestProLogin::test_login_valid_credentials -v
 
 ## Database Dialect Migration Tests
 
-Separate from the integration tests, `test_migration_dialects.py` verifies that
-`alembic upgrade head` works correctly on a fresh database for all three
-supported dialects: MySQL, PostgreSQL, and SQLite.
-
-Each test spins up a fresh container (or temp file for SQLite), runs the full
-migration chain via subprocess, then introspects every table to verify:
-
-- All tables were created (40+ expected)
-- Every column can be reflected without type-mapping errors
-- A `SELECT` succeeds on every table
-- Synchronous pg8000 and asynchronous asyncpg connections can read and write PostgreSQL UUID, JSON, and numeric values
-- Database revision matches the Alembic migration head
+`test_migration_dialects.py` checks migrations and database reads/writes on MySQL, PostgreSQL, and SQLite. MySQL and PostgreSQL require Docker.
 
 ### Run all dialect tests
 
@@ -63,42 +48,21 @@ python -m pytest tests/test_migration_dialects.py::TestMySQLMigrations -v
 python -m pytest tests/test_migration_dialects.py::TestPostgreSQLMigrations -v
 ```
 
-> Note: MySQL and PostgreSQL tests require Docker. SQLite runs without Docker.
-
 `--require-docker` fails before running tests when Docker is unavailable. Use it for runs covering all database dialects, including CI. Without that option, tests requiring Docker are skipped when it is unavailable.
 
 ---
 
-## Test Infrastructure
-
-The test setup uses [testcontainers-python](https://testcontainers-python.readthedocs.io/) to automatically manage:
-
-- MySQL 8.0 container (random port, auto-configured)
-- Redis Alpine container (random port, auto-configured)
-
-Environment variables are set dynamically by `conftest.py` based on the container ports.
-
 ## Database Seeding
 
-The `apply_migrations` fixture calls `_seed_workspace_entities()` in `fixtures/base.py` after applying database migrations. It provisions the default organization, member and admin roles, and an admin user for registration and login tests.
-
-### What gets seeded
-
-The seed function creates the following records after database migrations run:
-
-1. `EntityType` and `Entity` records for the default organization
-2. `PermissionsEntityMap` records named `User` and `Admin` within that organization
-3. A confirmed admin user, `workspace-admin@openbb.co`, used as the default inviter
+The default organization, its Admin/User roles, and confirmed administrator `workspace-admin@openbb.co` are defined in `fixtures/base.py`.
 
 ### UUID References
 
-The seed function sets `DEFAULT_PERMISSIONS_UUID`, `DEFAULT_ADMIN_PERMISSIONS_UUID`, `DEFAULT_INVITER_UUID`, and `DEFAULT_INVITER_EMAIL` to match the seeded records. These settings select the organization, roles, and inviter used by registration.
-
-The UUID constants are defined alongside `_seed_workspace_entities()` in `fixtures/base.py`.
+Keep `DEFAULT_PERMISSIONS_UUID`, `DEFAULT_ADMIN_PERMISSIONS_UUID`, `DEFAULT_INVITER_UUID`, and `DEFAULT_INVITER_EMAIL` consistent with the seeded records when changing test registration settings.
 
 ### The `pro_client` fixture
 
-Tests that hit `/pro/*` endpoints must use the `pro_client` fixture instead of the base `client` fixture. This is because the `/pro` router requires a service JWT in the `X-OpenBB-Authorization` header.
+Use `pro_client` for `/pro/*` requests; it supplies the required service JWT.
 
 ```python
 @pytest.mark.asyncio
@@ -107,19 +71,9 @@ async def test_pro_login(pro_client):
     assert response.status_code == 200
 ```
 
-The `pro_client` fixture:
-
-- Inherits from the base `client` fixture
-- Adds `X-OpenBB-Authorization: Bearer <service_jwt>` header
-- The service JWT has `sub="pro"` and `iss="openbb-hub"`
-
-### Cleanup
-
-The database and client fixtures delete records belonging to their test users, sessions, roles, and entities. The default organization and inviter remain available throughout the test session. Testcontainers removes the database container after the session.
-
 ## Unit Tests (no Docker required)
 
-Some test files are pure unit tests that mock all external dependencies and don't need the integration test infrastructure (MySQL, Redis, Docker). They can be run standalone without Docker:
+Run unit tests separately:
 
 ```bash
 pytest tests/test_mailchimp.py -v

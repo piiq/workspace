@@ -29,11 +29,9 @@ The script builds from the current checkout, including prepared plugins. It uses
 ./scripts/build-images.sh --platform linux/amd64 --tag dev-amd64
 ```
 
-This produces the same three local image names with `:dev-amd64` tags. A tag identifies an image version; it does not choose a registry. The build script leaves the images local. Publication is a separate operation described in [repository maintenance](maintaining.md#image-publication).
+For image publication, see [repository maintenance](maintaining.md#image-publication).
 
-Local builds reuse Docker's build cache automatically. CI restores saved build layers into a directory and sets `BUILD_CACHE_FROM` to read them through Docker's `--cache-from` option. `BUILD_CACHE_TO` supplies Docker's `--cache-to` option to save layers for subsequent runs. The workflow provides these environment variables.
-
-Prepare build-time plugins with [the plugin preparation command](plugin-installation.md#including-plugins-in-a-frontend-build) before building. Compiled output under `.build/plugins/` is included without copying plugin repositories into the image. A checkout without prepared output builds with no optional plugins.
+To include plugins, run [plugin preparation](plugin-installation.md#including-plugins-in-a-frontend-build) before building.
 
 For a combined-image build and first launch, see [installation from source](install-from-source.md). The frontend and backend targets use the same Dockerfile and root build context.
 
@@ -51,6 +49,4 @@ For images built with a different tag or platform:
 WORKSPACE_IMAGE_TAG=dev-amd64 WORKSPACE_IMAGE_PLATFORM=linux/amd64 pytest docker/tests -v
 ```
 
-The tests run the existing login, upload/export, and dashboard browser scenarios against isolated combined and separate deployments, check worker execution, and check combined-container persistence across recreation. They use loaded images without building or pushing. Test projects and volumes are removed afterward; reports and traces remain under ignored `.build/image-checks/<architecture>/`. Building and testing another architecture locally requires Docker support for running it.
-
-Image publication and GitHub security settings are covered in [repository maintenance](maintaining.md).
+Tests cover login, uploads, dashboards, worker jobs, and persistence in both deployment layouts. Reports and traces are saved under `.build/image-checks/<architecture>/`. Testing another architecture requires Docker support for running it.

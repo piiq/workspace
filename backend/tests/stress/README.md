@@ -1,7 +1,6 @@
 # Stress / load tests
 
-A repeatable, multi-user load simulator for the backend + Workspace MCP, plus a launcher that
-brings up the topology you want to test.
+Load tests for the backend and Workspace MCP.
 
 Run these load tests manually against a running stack. Pytest regression coverage is in `tests/test_bridge_load.py`, `tests/test_runtime_metrics.py`, and `tests/test_workspace_mcp_bridge.py`.
 
@@ -58,18 +57,9 @@ The simulator authenticates as `admin@openbb.co` / `asdQWE123!` (override with `
 `ADMIN_PASSWORD` env). It needs the frontend User-Agent to skip rate limiting. This defaults to
 `test` (the value in the development environments); override with `FRONTEND_UA` if your env differs.
 
-## What it does
-
-Each simulated user logs in, opens a bridge WebSocket (an auto-answering "browser tab"), and loops a
-weighted mix of real endpoints: `validate-and-sync` (once, the dashboard-open aggregation),
-`dash/sync` (save), the read endpoints (`api-source`, `apps`, `shared`, `resource-permissions`),
-`display-settings`, and Workspace MCP tool calls over `/mcp`. A `--mcp-users` pool can add MCP-only
-load to isolate the MCP server's impact on the rest of the API.
-
 ## Reading the output
 
-The simulator prints, per action: count, `ok%`, p50/p95 latency, and HTTP status distribution.
-Then it reports the live runtime gauges scraped from `/metrics`:
+Output includes request counts, success rates, p50/p95 latency, HTTP statuses, and these `/metrics` gauges:
 
 - `db_pool_connections`: checked-out connections per engine pool (not applicable to SQLite, which uses `StaticPool`).
 - `threadpool_tokens`: worker thread-pool occupancy.

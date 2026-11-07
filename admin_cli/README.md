@@ -2,10 +2,7 @@
 
 A single-file Python tool for managing OpenBB Hub entities and users. It requires Python 3.8 or later and uses the standard library.
 
-Two ways to use:
-
-1. CLI - Command-line interface for shell scripts and manual operations
-2. Python Client - `HubAPIClient` class for programmatic access
+Use the CLI for shell commands or `HubAPIClient` for Python programs.
 
 ## Quick Start
 
@@ -23,7 +20,7 @@ Note: On Windows, replace `./openbb-admin` with `py openbb-admin` or `python ope
 
 Auth credentials (token) persisted in `~/.openbb-hub/config.json` (automatically created on first login).
 
-Set `OPENBB_CONFIG_FILE` to use a separate configuration file. Browser tests keep this file inside the checkout's ignored test directory.
+Set `OPENBB_CONFIG_FILE` to use a separate configuration file.
 
 Config file structure:
 
@@ -63,7 +60,7 @@ Note: The config file value takes precedence over variable `OPENBB_BASE_URL`.
 
 ## Documentation
 
-The CLI is self-documenting. Use `-h` for details on any command.
+Use `-h` for help on any command.
 
 ```bash
 ./openbb-admin -h
@@ -246,8 +243,7 @@ Returns a new temporary password.
 
 ### 9. Export a User's Data
 
-Downloads a complete copy of somebody's account as a zip, which they can import
-into Workspace.
+Download an account archive for import into Workspace.
 
 Exports include current chat history. Re-export older account archives before importing.
 
@@ -268,14 +264,7 @@ Options:
 
 #### Why files are opt-in
 
-By default the archive carries the *record* of the user's uploads but not the
-files themselves. Downloading blobs dominates the export: on a real account,
-160 files took 47 seconds of a 53-second export. That is close enough to a
-typical 60-second proxy idle timeout that a user with more uploads would see the
-request die mid-flight.
-
-Pass `--with-files` when you want the files, and expect it to be slow. If it
-times out over HTTP, run the export directly on the backend instead:
+Pass `--with-files` to include uploaded files. Large exports can exceed proxy timeouts; run them directly on the backend:
 
 ```bash
 python -m scripts.export_user_data --email user@example.com --with-files --out ./exports
@@ -311,7 +300,7 @@ run this on a backend checkout:
 python -m scripts.user_data_scope
 ```
 
-The same text ships inside every archive as `SCOPE.txt`.
+Each archive includes `SCOPE.txt`.
 
 #### Handling the archive
 
@@ -453,7 +442,7 @@ Set `allow_custom_backends` to `true` to allow personal backends. The setting ap
 
 ## Python Client (`HubAPIClient`)
 
-The `HubAPIClient` class provides programmatic access to the OpenBB Hub API. It's embedded in the same `openbb-admin` file and can be imported directly.
+Import `HubAPIClient` from `openbb-admin`:
 
 ### Import the client
 
@@ -711,7 +700,7 @@ Set `COPILOT_CALLS_PER_DAY` (default `10000`) and `FILE_UPLOAD_LIMIT_GB` (defaul
 
 ## Testing
 
-Run the test scripts to verify everything works:
+Run the CLI tests:
 
 ```bash
 # Test CLI

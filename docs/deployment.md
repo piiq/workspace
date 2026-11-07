@@ -1,6 +1,6 @@
 # Workspace deployment
 
-For first launch, use the [quickstart](quickstart.md). This guide covers container configuration, combined and separate services, databases, and storage. See [operations](operations.md) for updates and backups, [plugin installation](plugin-installation.md) for plugins, and [development](development.md#container-images) for image builds.
+For first launch, use the [quickstart](quickstart.md). See [operations](operations.md) for updates and backups, [plugin installation](plugin-installation.md) for plugins, and [development](development.md#container-images) for image builds.
 
 ## Combined container
 
@@ -121,7 +121,7 @@ Then start the deployment:
 docker compose --env-file docker/.env -f docker/docker-compose.yml up --no-build -d --wait
 ```
 
-Compose starts MySQL and Redis, applies migrations and provisions accounts, then starts the worker, API, and frontend. Bootstrap failure prevents application startup. MySQL, Redis, uploaded files, and `user_create.json` use named volumes; `down` keeps these volumes, while `down -v` deletes them.
+MySQL, Redis, uploaded files, and `user_create.json` use named volumes. `down` keeps them; `down -v` deletes them.
 
 The backend reads `docker/.env`. Set `BACKEND_ENV_FILE` to an absolute backend environment file to use a separate file; `--env-file` still supplies Compose settings such as the database password, provisioning path, and published port. See [databases and storage](#databases-and-storage) for external services.
 

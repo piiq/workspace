@@ -69,7 +69,7 @@ curl http://localhost:8080/api/marketplace/apps/<APP_ID>
 
 The response includes `isDevelopment: true` for apps in development status.
 
-Each app also includes a `widgets` array and a `total_widgets` count derived from the cached manifests. Only widgets that are actually referenced in a tab layout (i.e. `apps.json[].tabs[].layout[].i`) are included, and each entry shows how many times that widget is used across the app's layouts:
+The `widgets` array lists widgets referenced by tab layouts. Each entry includes its number of layout placements:
 
 ```json
 {
@@ -91,7 +91,7 @@ Each app also includes a `widgets` array and a `total_widgets` count derived fro
 }
 ```
 
-`total_widgets` is the sum of all `count` values (total layout placements), not the number of distinct widget IDs. Widgets that exist in `widgets.json` but aren't referenced by any layout are excluded from the array.
+`total_widgets` counts layout placements, including repeated widgets.
 
 ---
 
@@ -148,7 +148,7 @@ An app entry in `apps.json` can also declare MCP servers. When present, the app'
 | `url` | The MCP server endpoint URL |
 | `authType` | Optional. `"oauth"` (default) or `"token"`. With `"oauth"`, Workspace runs the standard MCP OAuth flow when the server returns a 401. With `"token"`, Workspace prompts the user for a static access token and sends it as an `Authorization: Bearer <token>` header on every request to that server; a 401 is treated as an invalid/expired token and never falls back to OAuth. |
 
-The MCP server list is extracted from the first app entry in the cached `apps.json` and returned on the public marketplace endpoints as `mcp_servers`.
+Declare `mcp_servers` in the first app entry in `apps.json`.
 
 ---
 

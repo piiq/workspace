@@ -8,7 +8,7 @@ Install [Docker](https://docs.docker.com/get-started/get-docker/) and start it. 
 docker run -d --name workspace -p 127.0.0.1:8080:80 -v "${PWD}/data:/data" ghcr.io/piiq/workspace:latest
 ```
 
-Docker downloads the image and starts the application with SQLite and file storage. Docker creates a `data/` folder in your current directory and mounts it at `/data` in the container. Accounts, dashboards, uploads, and generated secrets persist there. No source checkout or configuration files are needed.
+Workspace uses SQLite and file storage. Accounts, dashboards, uploads, and secrets are stored in `data/` under your current directory.
 
 Wait for the container to report healthy, then print the administrator login:
 

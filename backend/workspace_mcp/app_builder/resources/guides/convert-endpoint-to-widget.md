@@ -12,7 +12,7 @@ related:
 
 # Convert an Existing Endpoint to a Widget
 
-Use this when the backend already exists and you need to wrap one of its endpoints as a Workspace widget. The work is mostly metadata authoring, not code.
+Define widget metadata for an existing backend endpoint.
 
 ## 1. Inspect a sample response
 
@@ -99,7 +99,7 @@ To let users flip the whole table into a chart, set `data.table.chartView`:
 }
 ```
 
-Supported `chartType`s include `line`, `bar`/`groupedBar`/`stackedBar`, `column`/`groupedColumn`/`stackedColumn`, `area`/`stackedArea`, `pie`, `donut`, `scatter`, `bubble`, `histogram`, `heatmap`, `treemap`, `waterfall`, `radarLine`/`radarArea`, `boxPlot`, `rangeBar`/`rangeArea` (see https://docs.openbb.co/workspace/developers/widget-types/aggrid-table-charts for the full list).
+Supported `chartType`s include `line`, `bar`/`groupedBar`/`stackedBar`, `column`/`groupedColumn`/`stackedColumn`, `area`/`stackedArea`, `pie`, `donut`, `scatter`, `bubble`, `histogram`, `heatmap`, `treemap`, `waterfall`, `radarLine`/`radarArea`, `boxPlot`, `rangeBar`/`rangeArea` (see the [chart type reference](https://docs.openbb.co/workspace/developers/widget-types/aggrid-table-charts)).
 
 For `chart`: have the endpoint return a Plotly figure (no title, because the widget supplies it). Add a `raw=true` query param so AI agents and table conversions can read the underlying rows. Before reaching here, confirm a `table` with sparklines or `chartView` won't do the job. Pick `chart` when AG Grid lacks the type (candlesticks/OHLC, custom subplots) or you need annotations / technical indicators / non-row-shaped data.
 

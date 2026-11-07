@@ -12,7 +12,7 @@ related:
 
 # What Workspace Is
 
-OpenBB Workspace is a hosted analytical environment used by financial analysts, portfolio managers, and research teams. They open a Dashboard, drop Widgets onto it, drive them with linked parameters, and ask the AI Agent questions about the data shown. Your backend supplies the data and metadata; Workspace handles rendering, layout, parameter linking, refresh, and AI reasoning over the result.
+OpenBB Workspace is a self-hosted application for dashboards, data widgets, and AI analysis. Your backend supplies data and widget metadata.
 
 Use Workspace's toolbars and parameter linking when designing widgets. Write descriptions that let the AI Agent identify the data each widget provides.
 
@@ -29,9 +29,7 @@ User-facing nouns. Match them when you write descriptions, titles, and docs.
 | AI Agent | Built-in assistant that reads the Dashboard's widgets and answers questions across them, runs multi-step analysis, and drops artifacts (text, tables, charts) back into the Dashboard. See `openbb://workspace/overview/ai-agent-contract`. |
 | Widget Gallery | Browse-and-add catalog. Your widgets surface here once the backend is registered. |
 
-## What Workspace gives you for free
-
-Workspace provides these features without additional backend code:
+## Workspace features
 
 - Layout & sizing: drag/drop, resize, duplicate dashboards, folder organization.
 - Auto-refresh: dashboards refresh data automatically; per-widget `refetchInterval` overrides cadence.

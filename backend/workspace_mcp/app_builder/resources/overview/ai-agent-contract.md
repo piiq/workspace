@@ -12,9 +12,7 @@ related:
 
 # AI Agent Contract
 
-Workspace ships a built-in AI Agent that reads the widgets on a Dashboard and answers questions across them. It runs calculations, identifies patterns, and adds text, tables, and charts to the Dashboard. It does this by reading the same `widgets.json` metadata you author and the same data endpoints the renderer hits.
-
-This means metadata you might treat as "tooltip text" is agent discoverability text. A widget with a vague `description` will not be picked up reliably when a user asks a question that should be answered by it.
+Workspace's AI Agent uses `widgets.json` metadata to select widgets and their endpoints to read data. Write descriptions that identify the data each widget provides.
 
 ## What the agent reads to discover widgets
 
@@ -28,7 +26,7 @@ The agent uses these `widgets.json` fields to know what each widget is and when 
 | `source` | Provenance, used in attribution. |
 | `params[].paramName` / `label` / `description` | Tells the agent which inputs the endpoint takes and what they mean. |
 
-If the agent is consistently failing to pick the right widget for an obvious question, the `description` is almost always the cause.
+Check widget descriptions when the agent selects the wrong widget.
 
 ## Description-writing rules
 

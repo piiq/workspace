@@ -12,7 +12,7 @@ The browser application renders dashboards, data connections, and agent conversa
 
 ## Data and state
 
-Widget declarations select an endpoint, renderer, parameters, and optional data-processing settings. The frontend fetches connected data and renders it with a built-in or installed renderer. Uploaded files are stored by the Workspace backend. Dashboard definitions and widget settings persist through the backend; rendering a widget does not bundle its provider's data into Workspace.
+Widget declarations select an endpoint, renderer, parameters, and optional data-processing settings. The backend stores uploads, dashboard definitions, and widget settings.
 
 The [widget specification](../../backend/workspace_mcp/app_builder/resources/specs/widgets-json.md) and [app specification](../../backend/workspace_mcp/app_builder/resources/specs/apps-json.md) define backend declarations. [Plugin development](../../docs/plugins.md) defines renderer IDs and host interfaces, including widget state and agent data publication.
 

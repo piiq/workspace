@@ -12,8 +12,6 @@ related:
 
 # Common Errors
 
-The mistakes that catch real apps. When validation fails, walk this list before exploring.
-
 ## `widgets.json` shape
 
 | Symptom | Cause | Fix |

@@ -1,12 +1,10 @@
 # Repository maintenance
 
-This guide covers image and plugin SDK publication, repository security, and dependency pull requests. For local image builds and verification, see [development](development.md#container-images).
+For local image builds and tests, see [development](development.md#container-images).
 
 ## Image publication
 
-The [Workspace Images workflow](../.github/workflows/workspace-images.yml) runs on pushes to `main` affecting application images or their checks. It does not build application images on pull requests. A manual run defaults to `publish: false`; enabling `publish` also permits optional comma-separated `release_tags`, such as `v1.0.0,stable`.
-
-Each architecture has a native Ubuntu runner. Both build local images with `scripts/build-images.sh`, sharing Buildx cache across the three targets and restoring a build cache per architecture. The workflow builds without optional plugins or subscription credentials. Each job runs `pytest docker/tests` against the loaded images, once per layout, without repeating the full application test suite. Tests must pass before the workflow tags and pushes those images to GHCR.
+The [Workspace Images workflow](../.github/workflows/workspace-images.yml) publishes images after image-related changes merge into `main`. For a manual build, leave `publish` disabled to test images or enable it to publish. Optional `release_tags` accepts comma-separated tags such as `v1.0.0,stable`.
 
 For this repository, publication uses these names:
 
@@ -18,11 +16,11 @@ For this repository, publication uses these names:
 
 Forks use their own lowercase `owner/repository` as the combined image name, with `-frontend` and `-backend` suffixes for the other targets.
 
-When publishing is enabled, each runner pushes its verified local images as `sha-<full-commit>-amd64` or `sha-<full-commit>-arm64`. After both runners succeed, the publication job joins those images into multi-platform `sha-<full-commit>`, `latest`, and requested release tags. It uses `docker buildx imagetools create` without rebuilding or repeating deployment checks. A failed architecture prevents multi-platform publication. A non-publishing run stops after verification and does not push images.
+Images support AMD64 and ARM64. Use `latest` for the latest build or `sha-<full-commit>` for a specific revision.
 
-The workflow authenticates with `GITHUB_TOKEN` and `packages: write`; no registry secret is required. GitHub creates container packages with private visibility. After the first publication, the repository owner must set each of the three packages to Public in its package settings to allow anonymous pulls. See [GitHub's container registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+After the first publication, set each container package to Public in GitHub's package settings to allow anonymous pulls. See [GitHub's container registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
 
-The publication job uses [GitHub artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations) to sign provenance for each final multi-platform image digest and store it in GitHub and GHCR. Its `id-token: write` and `attestations: write` permissions allow signing and attestation storage. Verify a published image with the GitHub CLI:
+Verify an image's source revision and publishing workflow using its [GitHub attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations):
 
 ```sh
 gh attestation verify oci://ghcr.io/piiq/workspace:latest \
@@ -30,22 +28,20 @@ gh attestation verify oci://ghcr.io/piiq/workspace:latest \
   --signer-workflow piiq/workspace/.github/workflows/workspace-images.yml
 ```
 
-Use `workspace-frontend` or `workspace-backend` to verify the separate images. Attestations identify the source revision and publishing workflow for the image digest.
+Use `workspace-frontend` or `workspace-backend` to verify the separate images.
 
 ## Plugin SDK releases
 
-The [Plugin SDK Package workflow](../.github/workflows/plugin-sdk-release.yml) publishes `workspace-plugin-sdk.tgz` after a PR targeting `main` merges with changes to `packages/plugin-sdk/src/`, its `package.json`, or its `bun.lock`. It packages the PR's merge commit, creates a GitHub release tagged `plugin-sdk-<commit SHA>`, and marks it latest. No existing release is required.
+The [Plugin SDK Package workflow](../.github/workflows/plugin-sdk-release.yml) publishes releases when PRs changing SDK code or dependencies merge into `main`.
 
-The tarball contains the plugin SDK sources, package metadata, license, and attribution. Open PRs check package contents with read-only permissions. Publication uses the workflow from the default branch and copies merged source files into an archive without running package scripts or installing dependencies. Checkout credentials are not saved. A separate job uploads that run's tarball with `contents: write`; it does not check out or execute repository code. Repository rules control who can approve and merge SDK changes.
-
-Plugins can install the plugin SDK from `https://github.com/piiq/workspace/releases/latest/download/workspace-plugin-sdk.tgz`. The filename stays the same between releases. Dependency caches and lockfiles can retain an earlier download; refresh the dependency to obtain a newer plugin SDK.
+Plugins can use the [latest plugin SDK tarball](https://github.com/piiq/workspace/releases/latest/download/workspace-plugin-sdk.tgz) as a dependency. Refresh cached downloads and lockfiles when updating it.
 
 ## Repository security
 
-[Dependabot configuration](../.github/dependabot.yml) schedules weekly updates for Python, JavaScript, GitHub Actions, Docker base images, and Compose image references, with one open version-update pull request per ecosystem. Dependabot alerts and security updates, secret scanning, and push protection are configured in the repository's GitHub security settings. Fork owners enable these settings for their repositories.
+Enable Dependabot alerts and security updates, secret scanning, and push protection in GitHub's security settings. Update schedules are in [dependabot.yml](../.github/dependabot.yml).
 
-The [CodeQL workflow](../.github/workflows/codeql.yml) scans Python, JavaScript/TypeScript, and GitHub Actions on main pushes, pull requests, manual runs, and a weekly schedule. Use advanced setup in GitHub's security settings for this workflow. The [Python](../.github/codeql/python.yml) and [JavaScript/TypeScript](../.github/codeql/javascript.yml) configs add CodeQL's inline suppression queries to the default security queries. Put a rule-specific comment immediately before the flagged expression, such as `# codeql[py/clear-text-storage-sensitive-data] Credentials belong to this temporary test deployment.` Use `// codeql[js/rule-id] Reason` in JavaScript or TypeScript. The workflow removes results marked by those comments before uploading SARIF; the rule remains active elsewhere. Include the reason in each comment.
+Use advanced setup in GitHub's security settings for the [CodeQL workflow](../.github/workflows/codeql.yml). To suppress a finding, put `# codeql[py/rule-id] Reason` or `// codeql[js/rule-id] Reason` immediately before the flagged expression. Include a specific reason.
 
-The [Dependabot PR Descriptions workflow](../.github/workflows/dependabot-pr-descriptions.yml) keeps dependency summaries and removes generated changelog HTML, badges, and bot instructions so descriptions can be used as squash commit messages. It processes Dependabot-authored PRs when Dependabot opens or updates them. Run it manually to format existing open Dependabot PRs. Its formatting job reads and edits PR metadata with `pull-requests: write`. The repository's Actions event policy must allow `pull_request_target` for this workflow.
+The [Dependabot PR Descriptions workflow](../.github/workflows/dependabot-pr-descriptions.yml) formats Dependabot descriptions for squash commits. Run it manually to format existing PRs. Allow `pull_request_target` in the repository's Actions event policy.
 
-Dependabot alerts depend on GitHub's dependency graph. Check Insights > Dependency graph for recognized manifests and resolved dependencies. Bun and uv update support does not establish complete transitive alert coverage. Docker and Compose updates cover image references. Operating-system packages installed inside images require separate vulnerability assessment. See [GitHub's supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories) and [dependency graph coverage](https://docs.github.com/en/code-security/reference/supply-chain-security/dependency-graph-supported-package-ecosystems).
+Check Insights > Dependency graph for recognized manifests and dependencies. See [GitHub's coverage](https://docs.github.com/en/code-security/reference/supply-chain-security/dependency-graph-supported-package-ecosystems); assess operating-system packages in images separately.

@@ -62,7 +62,7 @@ The backend includes the API, RQ worker, migrations, provisioning scripts, and `
 | `bootstrap [arguments]` | Apply migrations, then run `scripts.init_users` with the supplied arguments. |
 | `openbb-admin [arguments]` | Run the admin CLI. |
 
-`api` is the standalone backend image's default command. Migration and bootstrap failures exit with an error. The worker uses the same image and backend settings as the API. Compose supplies an init process to forward signals and reap worker children. `workspace-backend --help` lists the commands.
+`api` is the backend image's default command. Use the same settings for API and worker containers. Run `workspace-backend --help` for command options.
 
 For a combined installation, run backend commands through `workspace-command`, which loads persisted application secrets:
 

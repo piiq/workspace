@@ -2,7 +2,7 @@
 
 Create and test marketplace apps before an administrator publishes them. The [marketplace reference](marketplace.md) documents models, versioning, public APIs, and manifest requirements.
 
-## How It Works
+## Submit an app
 
 1. Create your app via the API in development mode
 2. Only you can see it in the marketplace (log in to verify)
@@ -18,7 +18,7 @@ Create and test marketplace apps before an administrator publishes them. The [ma
 
 ## Step 1: Create Your App
 
-This single request creates your vendor profile and app in one call:
+Create a vendor profile and app:
 
 ```bash
 curl -X POST http://localhost:8080/api/marketplace/developer/apps \
@@ -57,7 +57,7 @@ curl -X POST http://localhost:8080/api/marketplace/developer/apps \
 | `thumbnail_url` | No | Default app thumbnail shown to users. URL or base64 string. Overrides `img` in your `apps.json`. |
 | `thumbnail_url_dark` | No | Optional dark-mode variant of the thumbnail. URL or base64 string. Overrides `img_dark` in your `apps.json`. Falls back to `thumbnail_url` if unset. |
 | `thumbnail_url_light` | No | Optional light-mode variant of the thumbnail. URL or base64 string. Overrides `img_light` in your `apps.json`. Falls back to `thumbnail_url` if unset. |
-| `media` | No | Image / video / YouTube URLs shown in the app detail carousel (`MediaCarousel`). Rendering depends on the URL. See [Supported media URLs](#supported-media-urls) below. Also accepted under the legacy name `screenshots`. |
+| `media` | No | Image, video, or YouTube URLs for the app detail carousel. See [supported media URLs](#supported-media-urls). Accepts the alias `screenshots`. |
 | `api_key_url` | No | Endpoint we call to verify a user's API key. See [API Key Verification](#api-key-verification) below. |
 | `api_key_info_url` | No | URL to your docs explaining how users can get an API key. Shown alongside the "Add API Key" modal so users can click straight through to signup / key-generation instructions. |
 | `backend_base_url` | Yes | Your backend URL. We'll look for `{base}/widgets.json` and `{base}/apps.json` here |
@@ -70,17 +70,11 @@ The response also includes `createdDate` and `updatedDate` (auto-populated, not 
 
 ### Why some fields override your `apps.json`
 
-The `app_name`, `short_description`, `category`, `thumbnail_url`, `thumbnail_url_dark`, and `thumbnail_url_light` values you submit here are what users see in the marketplace and inside the Workspace. They override the equivalent `name`, `description`, `category`, `img`, `img_dark`, and `img_light` fields in your `apps.json` manifest.
-
-This means:
-
-- PATCH the app record to change its marketplace appearance independently of `apps.json`.
-- If we approve a specific marketing copy or thumbnail for your listing, your app will keep using it even if you later ship a different value in `apps.json`.
-- Everything else in `apps.json` (tabs, widgets, prompts, groups, etc.) is still served from your manifest as-is.
+Marketplace display fields take precedence over the corresponding manifest fields listed above. PATCH the app record to change them. Tabs, widgets, prompts, and groups use the manifest values.
 
 ### Supported media URLs
 
-The `media` array is rendered under the description for each app in the marketplace. Each URL is classified independently and rendered with the right element:
+Use these URL formats in `media`:
 
 | URL pattern | Renders as | Example |
 |---|---|---|
@@ -88,7 +82,7 @@ The `media` array is rendered under the description for each app in the marketpl
 | `.mp4` / `.webm` / `.mov` / `.m4v` extension | `<video>` with native controls | `https://example.com/demo.mp4` |
 | Everything else | `<img>` | `https://example.com/screenshot.png` |
 
-The carousel handles each URL independently, so the array can mix media types:
+You can mix media types:
 
 ```json
 {
@@ -100,12 +94,9 @@ The carousel handles each URL independently, so the array can mix media types:
 }
 ```
 
-Notes and gotchas:
-
-- YouTube share links work: both `youtube.com/watch?v=...` and `youtu.be/...` are accepted. The carousel converts them to the embed form internally, so you don't need to pre-format them.
-- Self-hosted videos need a direct file URL. A page URL that returns HTML (e.g. a Vimeo "watch" page) will be classified as an image and break. Point at the actual `.mp4`/`.webm` asset.
-- CORS matters for videos. Self-hosted video files must be served with `Access-Control-Allow-Origin` headers that allow the Workspace's origin, otherwise the browser will refuse to load them.
-- No URL validation at submit time. The backend accepts any string in the array and doesn't fetch or verify it. A broken URL produces a broken placeholder when the carousel renders.
+- Use YouTube watch or share URLs.
+- Use direct file URLs for self-hosted videos, with CORS headers allowing the Workspace origin.
+- Check media URLs before submitting; submission does not validate them.
 
 ### API Key Verification
 
@@ -113,16 +104,11 @@ When a user adds your app, Workspace prompts for an API key and verifies it befo
 
 Option A: Custom endpoint (`api_key_url` set)
 
-If you set `api_key_url`, the Workspace POSTs the user-provided key to that URL and expects a success/error response. This lets you:
-
-- Fully control the verification flow (hit your auth service, check entitlements, whatever you need).
-- Return a custom error message that gets shown directly to the user in the "Add API Key" modal, with a specific explanation (e.g. *"This key doesn't have access to the Pro tier, upgrade at acmedata.com/pro"*) instead of a generic failure.
+Set `api_key_url` to an endpoint that accepts the key by POST and returns success or an error. Error messages appear in the "Add API Key" dialog.
 
 Option B: Widget fallback (`api_key_url` not set)
 
-If you leave `api_key_url` empty, we verify the key by calling the first widget in your `widgets.json` with it. If the widget returns successfully, the key is considered valid. If it errors, the key is rejected.
-
-In this mode, make sure that first widget returns a clear, user-facing error message when the key is invalid, because whatever error string it returns is what the user will see in the modal. A generic 401 or an obscure stack trace is a bad experience; prefer something like *"Invalid API key. Check your key at acmedata.com/keys"*.
+Without `api_key_url`, the first widget endpoint verifies the key. Return a clear error for invalid keys, such as "Invalid API key. Check your key at acmedata.com/keys".
 
 `api_key_info_url` (both options)
 

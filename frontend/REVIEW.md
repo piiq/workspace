@@ -1,24 +1,20 @@
 # Code Review Guidelines
 
-This document outlines what to look for when reviewing pull requests for the OpenBB Workspace project.
-
-> Product + Architecture Context: OpenBB Workspace is the browser dashboard and Copilot UI for our financial data platform. The frontend routes requests either to the Workspace Core API (auth, storage, sharing) or to Copilot, and users bring their own data via backend connectors that power widgets and LLM tools. Start every review with that flow in mind and refer to [docs/product-context.md](docs/product-context.md) for the detailed overview.
+For application architecture, see [product context](docs/product-context.md).
 
 ## Review Philosophy
 
-- Be constructive, not critical - Suggest improvements, don't just point out flaws
-- Assume good intent - The author made decisions for reasons; ask before assuming they're wrong
-- Focus on what matters - Don't nitpick formatting if Biome handles it
-- Review the code, not the person - "This function could be simplified" not "You wrote this wrong"
-- DONT BE A YES MAN - We need to make sure the code is good and follows the guidelines
+- Suggest specific corrections.
+- Ask about decisions you do not understand.
+- Leave formatting to Biome.
+- Direct comments at the code.
+- Report issues even when the rest of the change looks correct.
 
 ---
 
 ## Review Checklist
 
 ### 1. Tests
-
-> This is the most important section. We follow TDD - tests are not optional.
 
 - [ ] New code has tests - All new functions, components, and hooks must have tests
 - [ ] Tests are meaningful - Not just coverage padding; they test actual behavior
@@ -28,6 +24,7 @@ This document outlines what to look for when reviewing pull requests for the Ope
 - [ ] Tests pass locally - Author should confirm tests pass before requesting review
 
 Red flags:
+
 ```typescript
 // Bad: Testing implementation, not behavior
 expect(component.state.isLoading).toBe(true);
@@ -127,7 +124,7 @@ const user = data as User;
 
 // Good: Type guard
 if (isUser(data)) {
-  // data is now typed as User
+  // data has type User
 }
 ```
 
@@ -193,7 +190,7 @@ useEffect(() => {
 
 #### Performance
 
-> Performance is critical. These patterns cause real render cascades. Violations are Blocking.
+Treat violations of the following performance requirements as blocking.
 
 ##### Memoization Requirements
 
@@ -324,6 +321,7 @@ return <DataList data={data} />;
 ```
 
 Common sources of untrusted content to watch for:
+
 - RSS/Atom feed descriptions and content
 - Third-party API responses rendered as HTML
 - User-provided URLs or embed codes
@@ -359,6 +357,7 @@ Token cheat-sheet (most common):
 | Card surface | `bg-surface-card` | `bg-white dark:bg-dark-900` |
 
 When `dark:` is acceptable:
+
 - Status indicator dots that need distinct shades per theme (e.g., disconnected state)
 - Forced-light contexts (login, onboarding) where semantic tokens break: use static primitives
 
@@ -398,7 +397,7 @@ See `src/styles/tokens.css` for the full token list and `.claude/skills/openbb-d
 
 ### 9. UI Components/Hooks
 
-- [ ] No repetition - Verify if a component already exists in our design system `src/components/ds` or `src/components/ui` (same for hooks). We should use those instead of creating new ones.
+- [ ] Reuse components and hooks in `src/components/ds` and `src/components/ui` where they meet the requirement.
 
 ---
 
@@ -506,44 +505,3 @@ The PR description should include:
 - Ask for clarification if feedback is unclear
 - Address all comments before re-requesting review
 - Thank reviewers for their time
-
----
-
-## Common Review Comments (Copy-Paste)
-
-### Missing Tests
-```
-This new function/component needs tests. Please add unit tests covering:
-- Happy path
-- Error cases
-- Edge cases (empty input, null values, etc.)
-
-See TESTING.md for patterns.
-```
-
-### Over-Engineering
-```
-This seems more complex than necessary for the current requirements.
-Could we simplify to just handle the current use case? We can always
-extend later if needed (YAGNI principle).
-```
-
-### Missing Error Handling
-```
-What happens if this API call fails? Please add error handling and
-show appropriate feedback to the user.
-```
-
-### Type Safety
-```
-Using `any` here bypasses TypeScript's protections. Could we:
-1. Define a proper type/interface, or
-2. Use `unknown` with type guards?
-```
-
-### Test Quality
-```
-This test doesn't have meaningful assertions. It passes even if
-the component is completely broken. Please add assertions that
-verify the actual behavior.
-```
