@@ -32,7 +32,7 @@ Use `workspace-frontend` or `workspace-backend` to verify the separate images.
 
 ## Plugin SDK releases
 
-The [Plugin SDK Package workflow](../.github/workflows/plugin-sdk-release.yml) publishes releases when PRs changing SDK code or dependencies merge into `main`.
+The [Plugin SDK Package workflow](../.github/workflows/plugin-sdk-release.yml) publishes releases when PRs changing SDK code, dependencies, or the release workflow merge into `main`.
 
 Plugins can use the [latest plugin SDK tarball](https://github.com/piiq/workspace/releases/latest/download/workspace-plugin-sdk.tgz) as a dependency. Refresh cached downloads and lockfiles when updating it.
 
