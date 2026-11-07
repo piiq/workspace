@@ -177,6 +177,81 @@ describe("independent plugin builds", () => {
     expect(descriptor.styles).toEqual([]);
   });
 
+  it("builds to selected directories with separate constants and leaves source unchanged", async () => {
+    const directory = await createProject();
+    const output = await mkdtemp(join(tmpdir(), "workspace-plugin-output-"));
+    projects.push(output);
+    const source = `
+import { definePlugin } from "@piiq/workspace-plugin-sdk";
+import packageJson from "../package.json";
+declare const LICENSE_KEY: string;
+export default definePlugin(packageJson, {
+  renderers: [],
+  setup(host) {
+    host.useWidgetDataExport({ data: [{ license: LICENSE_KEY }], enabled: true });
+  },
+});
+`;
+    await writeFile(join(directory, "src/index.tsx"), source);
+    const builds = [
+      { outdir: "compiled", key: "first-test-key" },
+      { outdir: output, key: "second-test-key" },
+    ];
+    await run(
+      "bun",
+      [
+        "-e",
+        `import { buildPlugin } from "@piiq/workspace-plugin-sdk/build";
+for (const { outdir, key } of ${JSON.stringify(builds)}) {
+  await buildPlugin({ root: ${JSON.stringify(directory)}, entry: "src/index.tsx", outdir, assets: ["assets"], define: { LICENSE_KEY: JSON.stringify(key) } });
+}`,
+      ],
+      { cwd: directory },
+    );
+    for (const { outdir, key } of builds) {
+      const destination = resolve(directory, outdir);
+      const descriptor = pluginDescriptorSchema.parse(
+        JSON.parse(await readFile(join(destination, "plugin.json"), "utf8")),
+      );
+      expect(descriptor.assets).toEqual(["assets/style.css"]);
+      const { register } = createRequire(import.meta.url)(
+        join(destination, "entry.js"),
+      );
+      const { host } = createHost();
+      await register(createPluginApi(host, new PluginRegistry()));
+      expect(host.useWidgetDataExport).toHaveBeenCalledWith({
+        data: [{ license: key }],
+        enabled: true,
+      });
+    }
+    expect(await readFile(join(directory, "src/index.tsx"), "utf8")).toBe(source);
+    await expect(readFile(join(directory, "dist/plugin.json"))).rejects.toThrow();
+  }, 15000);
+
+  it.each([
+    ".",
+    "src",
+    "assets",
+  ])("rejects output %s without deleting project files", async (outdir) => {
+    const directory = await createProject();
+    await expect(
+      run(
+        "bun",
+        [
+          "-e",
+          `import { buildPlugin } from "@piiq/workspace-plugin-sdk/build"; await buildPlugin({ root: ${JSON.stringify(directory)}, entry: "src/index.tsx", outdir: ${JSON.stringify(outdir)}, assets: ["assets"] });`,
+        ],
+        { cwd: directory },
+      ),
+    ).rejects.toThrow(/Build output must not contain|Plugin assets must be outside/);
+    expect(await readFile(join(directory, "src/index.tsx"), "utf8")).toContain(
+      "definePlugin",
+    );
+    expect(await readFile(join(directory, "assets/style.css"), "utf8")).toContain(
+      ".basic-widget",
+    );
+  });
+
   it("shares React, JSX, ReactDOM, and AG modules and resolves emitted assets beside entry.js", async () => {
     const directory = await createProject();
     for (const dependency of [

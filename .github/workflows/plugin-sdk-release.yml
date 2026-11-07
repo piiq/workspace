@@ -1,0 +1,79 @@
+name: Plugin SDK Package
+
+on:
+  pull_request:
+    paths:
+      - 'packages/plugin-sdk/**'
+      - 'LICENSE'
+      - 'NOTICE'
+      - '.github/workflows/plugin-sdk-release.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package SDK sources
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Select release
+        if: github.event_name != 'pull_request'
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ -z "$RELEASE_TAG" ]]; then
+            RELEASE_TAG="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag || github.ref }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Pack SDK
+        run: |
+          cp LICENSE NOTICE packages/plugin-sdk/
+          cd packages/plugin-sdk
+          bun pm pack --filename "$RUNNER_TEMP/workspace-plugin-sdk.tgz"
+
+      - name: Check package contents
+        run: |
+          mkdir "$RUNNER_TEMP/sdk-check"
+          tar -xzf "$RUNNER_TEMP/workspace-plugin-sdk.tgz" -C "$RUNNER_TEMP/sdk-check"
+          for path in package.json src/index.ts src/ag-grid.ts src/build.ts LICENSE NOTICE; do
+            test -f "$RUNNER_TEMP/sdk-check/package/$path"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: workspace-plugin-sdk
+          path: ${{ runner.temp }}/workspace-plugin-sdk.tgz
+          if-no-files-found: error
+
+  publish:
+    name: Attach SDK to release
+    needs: package
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: workspace-plugin-sdk
+          path: ${{ runner.temp }}/sdk
+
+      - name: Upload SDK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.package.outputs.release_tag }}
+        run: gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/sdk/workspace-plugin-sdk.tgz" --repo "$GITHUB_REPOSITORY" --clobber
