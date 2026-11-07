@@ -34,7 +34,9 @@ Use `workspace-frontend` or `workspace-backend` to verify the separate images. A
 
 ## Plugin SDK releases
 
-The [Plugin SDK Package workflow](../.github/workflows/plugin-sdk-release.yml) attaches `workspace-plugin-sdk.tgz` to each published GitHub release. The tarball contains the plugin SDK sources, package metadata, license, and attribution. Pull requests affecting the package check its contents without publishing. Run the workflow manually from `main` to attach the plugin SDK from the latest release's tag to that release.
+The [Plugin SDK Package workflow](../.github/workflows/plugin-sdk-release.yml) publishes `workspace-plugin-sdk.tgz` when changes to the plugin SDK, its license files, or the workflow reach `main`. It creates a GitHub release tagged `plugin-sdk-<commit SHA>` and marks it latest. A manual run from `main` publishes the same way. No existing release is required. Pull requests check package contents without publishing.
+
+The tarball contains the plugin SDK sources, package metadata, license, and attribution. Publishing a GitHub release also attaches the plugin SDK from that release's tag.
 
 Plugins can install the plugin SDK from `https://github.com/piiq/workspace/releases/latest/download/workspace-plugin-sdk.tgz`. The filename stays the same between releases. Dependency caches and lockfiles can retain an earlier download; refresh the dependency to obtain a newer plugin SDK.
 
