@@ -1,22 +1,20 @@
 name: Plugin SDK Package
 
 on:
-  push:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'packages/plugin-sdk/src/**'
+      - 'packages/plugin-sdk/package.json'
+      - 'packages/plugin-sdk/bun.lock'
+  pull_request:
     branches: [main]
     paths:
       - 'packages/plugin-sdk/**'
       - 'LICENSE'
       - 'NOTICE'
       - '.github/workflows/plugin-sdk-release.yml'
-  pull_request:
-    paths:
-      - 'packages/plugin-sdk/**'
-      - 'LICENSE'
-      - 'NOTICE'
-      - '.github/workflows/plugin-sdk-release.yml'
-  release:
-    types: [published]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,32 +26,32 @@ concurrency:
 jobs:
   package:
     name: Package SDK sources
+    if: github.event_name == 'pull_request' || (github.event_name == 'pull_request_target' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.release.outputs.tag }}
+      source_sha: ${{ steps.release.outputs.sha }}
     steps:
       - name: Select release
-        if: github.event_name != 'pull_request'
         id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          SOURCE_SHA: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
         run: |
-          if [[ -z "$RELEASE_TAG" ]]; then
-            RELEASE_TAG="plugin-sdk-$GITHUB_SHA"
-          fi
-          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "tag=plugin-sdk-$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || github.sha }}
-
-      - uses: oven-sh/setup-bun@v2
+          # Publication packages the merged commit, never the contributor's branch.
+          ref: ${{ steps.release.outputs.sha }}
+          persist-credentials: false
 
       - name: Pack SDK
         run: |
-          cp LICENSE NOTICE packages/plugin-sdk/
-          cd packages/plugin-sdk
-          bun pm pack --filename "$RUNNER_TEMP/workspace-plugin-sdk.tgz"
+          mkdir "$RUNNER_TEMP/package"
+          cp -R packages/plugin-sdk/src "$RUNNER_TEMP/package/"
+          cp packages/plugin-sdk/package.json LICENSE NOTICE "$RUNNER_TEMP/package/"
+          tar -czf "$RUNNER_TEMP/workspace-plugin-sdk.tgz" -C "$RUNNER_TEMP" package
 
       - name: Check package contents
         run: |
@@ -72,7 +70,7 @@ jobs:
   publish:
     name: Publish SDK release
     needs: package
-    if: github.event_name == 'release' || (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch'))
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -86,7 +84,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.package.outputs.release_tag }}
-          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_SHA: ${{ needs.package.outputs.source_sha }}
         run: |
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/sdk/workspace-plugin-sdk.tgz" --repo "$GITHUB_REPOSITORY" --clobber
