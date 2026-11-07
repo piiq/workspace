@@ -8,6 +8,7 @@ on:
       - 'packages/plugin-sdk/src/**'
       - 'packages/plugin-sdk/package.json'
       - 'packages/plugin-sdk/bun.lock'
+      - '.github/workflows/plugin-sdk-release.yml'
   pull_request:
     branches: [main]
     paths:
