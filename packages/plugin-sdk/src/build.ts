@@ -14,7 +14,11 @@ export interface BuildPluginOptions {
   root?: string;
   /** Default export: PluginDefinition. Paths are relative to root. */
   entry: string;
-  /** Files or directories copied to dist at their project-relative paths. */
+  /** Output directory, relative to root. Defaults to dist. */
+  outdir?: string;
+  /** Build-time expressions, such as { LICENSE_KEY: JSON.stringify(key) }. */
+  define?: Record<string, string>;
+  /** Files or directories copied to the output at their project-relative paths. */
   assets?: string[];
   /** Stylesheets loaded in the Workspace page. Defaults to all CSS assets. */
   styles?: string[];
@@ -40,12 +44,35 @@ async function listFiles(directory: string): Promise<string[]> {
   return files;
 }
 
+function contains(directory: string, path: string): boolean {
+  const child = relative(directory, path);
+  return child !== ".." && !child.startsWith(`..${sep}`) && !isAbsolute(child);
+}
+
 export async function buildPlugin(
   options: BuildPluginOptions,
 ): Promise<PluginDescriptor> {
   const root = resolve(options.root ?? process.cwd());
   const entry = resolve(root, options.entry);
-  const output = join(root, "dist");
+  const output = resolve(root, options.outdir ?? "dist");
+  if ([root, dirname(entry), process.cwd()].some((path) => contains(output, path))) {
+    throw new Error(
+      "Build output must not contain the project, entry source directory, or working directory.",
+    );
+  }
+  const assets = (options.assets ?? []).map((asset) => {
+    const source = resolve(root, asset);
+    const path = relative(root, source);
+    if (!path || !contains(root, source)) {
+      throw new Error(
+        `Asset paths must refer to files or directories inside the plugin project: ${asset}`,
+      );
+    }
+    if (contains(output, source) || contains(source, output)) {
+      throw new Error("Plugin assets must be outside the build output.");
+    }
+    return { source, path };
+  });
   const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const plugin: PluginDefinition = (await import(pathToFileURL(entry).href)).default;
   if (!plugin || typeof plugin !== "object") {
@@ -80,6 +107,7 @@ export async function buildPlugin(
       },
     ],
     define: {
+      ...options.define,
       "import.meta.url": "pluginEntryUrl",
       "process.env.NODE_ENV": '"production"',
     },
@@ -102,17 +130,7 @@ export async function buildPlugin(
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, new Uint8Array(await artifact.arrayBuffer()));
   }
-  for (const asset of options.assets ?? []) {
-    const source = resolve(root, asset);
-    const path = relative(root, source);
-    if (!path || path === ".." || path.startsWith(`..${sep}`) || isAbsolute(path)) {
-      throw new Error(
-        `Asset paths must refer to files or directories inside the plugin project: ${asset}`,
-      );
-    }
-    if (path === "dist" || path.startsWith(`dist${sep}`)) {
-      throw new Error("Plugin assets must be outside dist.");
-    }
+  for (const { source, path } of assets) {
     await cp(source, join(output, path), { recursive: true });
   }
   await writeFile(
@@ -136,14 +154,15 @@ ${await bundle.text()}
 }
 `,
   );
-  const assets = (await listFiles(output))
+  const emittedAssets = (await listFiles(output))
     .map((path) => relative(output, path).replaceAll("\\", "/"))
     .filter((path) => path !== "entry.js")
     .sort();
-  const styles = options.styles ?? assets.filter((asset) => asset.endsWith(".css"));
+  const styles =
+    options.styles ?? emittedAssets.filter((asset) => asset.endsWith(".css"));
   const descriptor = createPluginDescriptor(plugin, {
     entry: "entry.js",
-    assets,
+    assets: emittedAssets,
     styles,
   });
   await writeFile(
