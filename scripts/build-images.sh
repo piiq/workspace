@@ -35,7 +35,7 @@ case "$platform" in
   *) echo "Unsupported platform: $platform. Choose linux/amd64 or linux/arm64." >&2; exit 2 ;;
 esac
 
-args=(--load --file "$root/docker/Dockerfile")
+args=(--pull --load --file "$root/docker/Dockerfile")
 if [[ -n "$platform" ]]; then args+=(--platform "$platform"); fi
 if [[ -n "${BUILD_CACHE_FROM:-}" ]]; then args+=(--cache-from "$BUILD_CACHE_FROM"); fi
 if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
@@ -47,6 +47,9 @@ for target in frontend backend workspace; do
   image=workspace
   if [[ "$target" != workspace ]]; then image="workspace-$target"; fi
   build_args=("${args[@]}" --target "$target" --tag "$image:$tag")
+  if [[ "$target" == workspace ]]; then
+    build_args+=(--no-cache-filter workspace)
+  fi
   # The workspace target includes both application builds in the exported cache.
   if [[ "$target" == workspace && -n "${BUILD_CACHE_TO:-}" ]]; then
     build_args+=(--cache-to "$BUILD_CACHE_TO")
